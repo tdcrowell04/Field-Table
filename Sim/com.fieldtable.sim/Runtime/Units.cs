@@ -59,6 +59,12 @@ namespace FieldTable.Sim
 
         /// <summary>Rounds carried at the start of a mission.</summary>
         public int Ammo { get; set; }
+
+        /// <summary>Carries night vision goggles (NODs).</summary>
+        public bool NightVision { get; set; }
+
+        /// <summary>Carries a thermal sight.</summary>
+        public bool Thermal { get; set; }
     }
 
     /// <summary>

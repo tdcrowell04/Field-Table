@@ -73,6 +73,8 @@ namespace FieldTable.Sim
 
                 if (terrain.Height > 0f && z < g + terrain.Height)
                 {
+                    // Solid things (walls, buildings) block outright, however thin the line clips them.
+                    if (terrain.SightBlock >= 1f) return SightResult.Blocked;
                     obscured += terrain.SightBlock * step;
                     if (obscured >= 1f) return SightResult.Blocked;
                 }

@@ -3,6 +3,14 @@ using System.Collections.Generic;
 
 namespace FieldTable.Sim
 {
+    /// <summary>How much light there is to see by.</summary>
+    public enum LightLevel
+    {
+        Day,
+        Twilight,
+        Night,
+    }
+
     /// <summary>What one force knows about one unit that isn't theirs.</summary>
     public sealed class Contact
     {
@@ -62,11 +70,26 @@ namespace FieldTable.Sim
     /// Spotting builds up over time instead of rolling dice: a target standing in the open
     /// at 100 meters is spotted in about half a second, at 600 meters in about 6 seconds,
     /// and much slower when it's prone, still, or hidden in cover.
+    /// Each observer looks with whatever they have (eyes, NODs, a thermal) and the best one counts.
     /// </summary>
     public sealed class FogOfWar
     {
-        /// <summary>Farthest anyone can spot a person by eye, in daylight, in meters.</summary>
-        public const float MaxSightRange = 1000f;
+        /// <summary>Farthest the naked eye spots a person, in meters, by light.</summary>
+        public const float DayEyeRange = 1000f;
+        public const float TwilightEyeRange = 400f;
+        public const float NightEyeRange = 50f;
+
+        /// <summary>Farthest NODs spot a person, at twilight or night. They're no help in daylight.</summary>
+        public const float NightVisionRange = 300f;
+
+        /// <summary>NODs spot more slowly than eyes in daylight: less detail, no depth.</summary>
+        const float NightVisionSpeed = 0.6f;
+
+        /// <summary>Farthest a thermal spots a person, day or night.</summary>
+        public const float ThermalRange = 1500f;
+
+        /// <summary>A thermal sees body heat through reeds and grass, so concealment counts for less.</summary>
+        const float ThermalConcealment = 0.3f;
 
         /// <summary>How fast unfinished spotting fades once the target is out of view, per second.</summary>
         const float FadePerSecond = 0.5f;
@@ -84,24 +107,43 @@ namespace FieldTable.Sim
             return k;
         }
 
+        public static float EyeRange(LightLevel light)
+        {
+            switch (light)
+            {
+                case LightLevel.Twilight: return TwilightEyeRange;
+                case LightLevel.Night: return NightEyeRange;
+                default: return DayEyeRange;
+            }
+        }
+
         /// <summary>How fast one observer is spotting one target, as progress per second. 0 when it can't.</summary>
-        public static float SpotRate(MapGrid map, Unit observer, Unit target)
+        public static float SpotRate(MapGrid map, Unit observer, Unit target, LightLevel light = LightLevel.Day)
         {
             if (!observer.CanAct) return 0f;
             float d = Vec2.Distance(observer.Position, target.Position);
-            if (d > MaxSightRange) return 0f;
+
+            float eye = EyeRange(light);
+            float nods = observer.Def.NightVision && light != LightLevel.Day ? NightVisionRange : 0f;
+            float thermal = observer.Def.Thermal ? ThermalRange : 0f;
+            if (d > Math.Max(eye, Math.Max(nods, thermal))) return 0f;
 
             SightResult sight = Sight.Between(map, observer, target);
             if (!sight.Clear) return 0f;
 
             double secondsToSpot = 0.5 * Math.Pow(Math.Max(d, 10f) / 100.0, 1.4);
-            float rate = (float)(1.0 / secondsToSpot);
-            rate *= Postures.Visibility(target.Posture);
-            if (target.IsMoving) rate *= 2f;
-            rate *= 1f - sight.Obscured;
-            rate *= 1f - ConcealmentAt(map, target);
-            rate *= 1f - observer.Suppression;
-            return Math.Max(0f, rate);
+            float baseRate = (float)(1.0 / secondsToSpot);
+            baseRate *= Postures.Visibility(target.Posture);
+            if (target.IsMoving) baseRate *= 2f;
+            baseRate *= 1f - sight.Obscured;
+            baseRate *= 1f - observer.Suppression;
+            float concealment = ConcealmentAt(map, target);
+
+            float best = 0f;
+            if (d <= eye) best = Math.Max(best, baseRate * (1f - concealment));
+            if (d <= nods) best = Math.Max(best, baseRate * NightVisionSpeed * (1f - concealment));
+            if (d <= thermal) best = Math.Max(best, baseRate * (1f - concealment * ThermalConcealment));
+            return Math.Max(0f, best);
         }
 
         /// <summary>
@@ -128,7 +170,7 @@ namespace FieldTable.Sim
                     foreach (Unit observer in sim.Units)
                     {
                         if (!ReferenceEquals(observer.Force, force)) continue;
-                        float r = SpotRate(sim.Map, observer, target);
+                        float r = SpotRate(sim.Map, observer, target, sim.Light);
                         if (r > best)
                         {
                             best = r;

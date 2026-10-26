@@ -12,7 +12,7 @@ namespace FieldTable.Sim.Tests
     { ""id"": ""building"", ""name"": ""Building"", ""moveFactor"": 0.5, ""cover"": 0.8, ""height"": 6, ""sightBlock"": 1, ""seeOut"": true }
   ],
   ""units"": [
-    { ""id"": ""rifleman"", ""name"": ""Rifleman"", ""weapon"": ""M27"", ""ammo"": 210 },
+    { ""id"": ""rifleman"", ""name"": ""Rifleman"", ""weapon"": ""M27"", ""ammo"": 210, ""nightVision"": true, ""thermal"": true },
     { ""id"": ""pkm-gunner"", ""name"": ""Machine gunner"", ""weapon"": ""PKM"", ""ammo"": 400, ""walkSpeed"": 1.2 }
   ]
 }";
@@ -25,7 +25,10 @@ namespace FieldTable.Sim.Tests
             Assert.True(data.Terrains[2].SeeOut);
             Assert.Equal(6f, data.Terrains[2].Height);
             Assert.Equal(0.8f, data.Terrains[2].Cover);
+            Assert.True(data.FindUnit("rifleman").NightVision);
+            Assert.True(data.FindUnit("rifleman").Thermal);
             var pkm = data.FindUnit("pkm-gunner");
+            Assert.False(pkm.NightVision);
             Assert.Equal(400, pkm.Ammo);
             Assert.Equal(1.2f, pkm.WalkSpeed);
             Assert.Equal(3.5f, pkm.RunSpeed);

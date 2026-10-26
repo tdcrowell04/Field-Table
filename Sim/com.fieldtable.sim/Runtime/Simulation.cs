@@ -18,6 +18,9 @@ namespace FieldTable.Sim
         public SimClock Clock { get; }
         public EventLog Log { get; } = new EventLog();
         public FogOfWar Fog { get; } = new FogOfWar();
+
+        /// <summary>How much light there is. Night cuts how far the naked eye sees; NODs and thermals help.</summary>
+        public LightLevel Light { get; set; } = LightLevel.Day;
         public ulong Seed { get; }
 
         public IReadOnlyList<Force> Forces => forces;

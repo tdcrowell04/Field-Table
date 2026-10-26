@@ -43,7 +43,7 @@ namespace FieldTable.Sim.Tests
             Assert.True(c.Visible);
             Assert.Equal(new Vec2(300, 300), c.LastKnownPosition);
 
-            var e = Assert.IsType<ContactSpotted>(s.Sim.Log.Events.Last());
+            var e = s.Sim.Log.Events.OfType<ContactSpotted>().Single(x => x.Force == s.Blue);
             Assert.Equal("Alpha TL spots PKM gunner at D4.", e.Describe());
         }
 
@@ -101,7 +101,8 @@ namespace FieldTable.Sim.Tests
             Assert.True(c.Known);
             Assert.False(c.Visible);
             Assert.Equal(new Vec2(300, 300), c.LastKnownPosition);
-            Assert.Equal("Raider 2 loses sight of PKM gunner, last seen at D4.", s.Sim.Log.Events.Last().Describe());
+            var lost = s.Sim.Log.Events.OfType<ContactLost>().Single(x => x.Force == s.Blue);
+            Assert.Equal("Raider 2 loses sight of PKM gunner, last seen at D4.", lost.Describe());
         }
 
         [Fact]
