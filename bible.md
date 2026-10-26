@@ -63,7 +63,11 @@ The player clicks a unit, then talks to it. Selecting first means the game alway
   - Plain English: normal talk.
   - Loose: anything goes and the AI sorts it out.
 - Order styles: Radio talk, plain English, and spells (for fantasy). Players can type in other languages too, if it's not too hard.
-- Verbs and blanks: Verbs are hard-coded: move, assault, overwatch, suppress, call for fire, treat casualty, carry, hold, report, and so on. Each verb has blanks for who, where, what target, and when or on what condition. The AI picks the verb and fills the blanks, locked by a grammar so it can only output units, grids, and verbs that exist.
+- Verbs and blanks: The full verb list is in `verbs.md`: 86 verbs for tactical and tabletop RPG play, all built in the squad slice. *"We're adding all of the verbs."* Verbs are hard-coded: move, assault, overwatch, suppress, call for fire, treat casualty, carry, hold, report, and so on. Each verb has blanks for who, where, what target, and when or on what condition. The AI picks the verb and fills the blanks, locked by a grammar so it can only output units, grids, and verbs that exist.
+- How blanks: Speed, quiet or not, posture, distance to keep, which way to face, and when to open fire are blanks on a verb, not separate verbs.
+- SOPs: Standing orders the unit follows without being told, set once for the unit and changed for a single mission when needed, as in the prototype.
+- Formatted reports: The RTO, Doc, or team leaders build 9-lines, SALUTEs, and other formatted reports from what's already known; the player gives only the decisions that are theirs. *"I feel like I want the reports to be formatted as a choice in radio mode, doing the reports at all a choice in plain english, and a choice in free form but not really necessary."*
+- Out-of-game questions: A separate box for asking the game master questions out of character, without spending game time.
 - Silly orders: Funny stuff like dancing is a real thing you can do, in every order mode, for the actual D&D feel. Nothing illegal. Radio mode still wants these in proper radio format.
 - Unclear orders: Answered in-world, like "Bravo, say again, which building?" The game never guesses which unit, building, or grid an order means.
 - Orders the code doesn't cover: The AI decides what happens, which doesn't always mean the unit does it. It can give a reason it isn't possible right now, or flatly refuse if the order is insulting or illegal. If it's something absolutely ridiculous, the unit answers in a clever way that fits the setting, never cringy. A bug report gets filed quietly (see AI usage), and the most-requested orders get added as real verbs.
@@ -97,7 +101,7 @@ Code owns every hard fact it covers; the AI handles language. When an order fall
 | Layer | Owns |
 |---|---|
 | Game code (simulation) | Movement, terrain, passability, line of sight, hit chances, suppression, fires and dispersion, ammo, casualties, the clock |
-| Enemy AI (traditional) | Enemy decisions, using behavior trees or utility AI: fast, consistent, keeps its own plan |
+| Enemy AI (coded, steered by the in-game AI) | Enemy decisions: a smart coded enemy (behavior trees or utility AI) that's fast and consistent, steered by the in-game AI. *"Let's write a smart coed enemy that then gets steered by the in game AI."* |
 | Language AI | Turning orders into verbs and blanks, voicing units and higher on the net, writing the debrief from logged facts, and deciding orders the code doesn't cover yet |
 | Validation (code) | Checking each command is possible: time, ammo, friendlies in the grid. Failures become in-world pushback |
 
@@ -329,9 +333,35 @@ Every call gets ruled before anything is built. Rulings only; overruled ideas ar
 | The 25 slice verbs | Moving: move, bound, follow, withdraw, hold, take cover, change posture. Fighting: fire, suppress, overwatch, throw grenade, throw smoke, assault, clear, breach. Looking and talking: observe, report, fly drone, talk. Care and gear: treat casualty, carry, search, detain, share ammo. Fun: emote | *"Let's make sure that we have the requisite amount of verbs to cover almost any action that would be required in a tactical scenario and in a tabletop rpg scenario. You can also look at the actual Field Table artifact and see what verbs have been used in the games I've played."* |
 | Start building pieces 1 and 2 | Accepted | |
 
+### 2026-10-26: ledger round 6
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| The full verb catalog in `verbs.md` | Accepted | |
+| Verbs in the slice | All of them | *"We're adding all of the verbs."* |
+| Speed, posture, and the like are blanks on a verb | Accepted | *"Idk what do you think? Which allows for the most customization and recipe crafting to get the most custom experience possible without losing the pre determined code aspect."* |
+| SOPs from the prototype | Accepted | |
+| Formatted reports built by the RTO, Doc, or team leaders | Accepted | *"I feel like I want the reports to be formatted as a choice in radio mode, doing the reports at all a choice in plain english, and a choice in free form but not really necessary."* |
+| Out-of-game questions | Accepted | |
+| The simulation in `Sim/` as a package Unity loads; the Unity project in `Unity/` | Accepted | |
+| Unity template: Universal 3D | Accepted | |
+| The simulation moves in tenths of a second | Accepted | |
+| Meters, 1-meter cells, grid square size set per map | Accepted | |
+| Claude's own dice roller (PCG32) | Accepted | |
+| Who is hostile to whom | Civilians can be someone's enemy | *"Civilians can be someone's enemy. If you want a situation where there's a bad guy faction targeting civilians and you have to stop them ."* |
+| Data files in JSON, read with Newtonsoft | Accepted | |
+| Git LFS for big art files | Accepted | |
+| Build pieces 3 and 4 next | Accepted | |
+
+### 2026-10-26: in chat
+
+| Decision | Ruling |
+|---|---|
+| The enemy | *"Let's write a smart coed enemy that then gets steered by the in game AI."* |
+
 ## Open questions
 
-- [ ] The full verb catalog for tactical and tabletop RPG play (`verbs.md`, round 6)
+- [ ] Missions, maps, and phone playtesting (ledger round 7)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 

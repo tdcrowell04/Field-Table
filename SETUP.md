@@ -6,6 +6,14 @@
 - `Sim/FieldTable.Sim/` and `Sim/FieldTable.Sim.Tests/`: build and test the simulation without Unity.
 - `Unity/`: the Unity 6 project. You create it once, with the steps below.
 
+## Install Git LFS (one time)
+
+Models, textures, and sounds are stored with Git LFS so the repo stays fast. Install it from https://git-lfs.com, then run this once:
+
+```
+git lfs install
+```
+
 ## Make the Unity project (one time)
 
 1. Pull this branch so the `Field-Table` folder is up to date on your PC.
