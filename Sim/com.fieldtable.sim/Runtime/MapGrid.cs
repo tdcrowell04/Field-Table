@@ -57,6 +57,9 @@ namespace FieldTable.Sim
         /// <summary>True when someone inside can see out and be seen, like through a building's windows.</summary>
         public bool SeeOut { get; set; }
 
+        /// <summary>Water too deep to wade. Crossing takes a bridge, a boat, or a swim, and a swim in full kit can drown you.</summary>
+        public bool Deep { get; set; }
+
         public bool Passable => MoveFactor > 0f;
     }
 
@@ -291,6 +294,31 @@ namespace FieldTable.Sim
                     int i = cy * Width + cx;
                     ground[i] += peak * (float)(Math.Cos(Math.PI * d) + 1.0) / 2f;
                     if (t.HasValue) cells[i] = t.Value;
+                }
+        }
+
+        /// <summary>
+        /// Raises (or with a negative height, lowers) the ground along a line, highest in the middle of its width
+        /// and easing to nothing at the edges: a ridge, or a gully. Optionally paints the middle of it.
+        /// </summary>
+        public void RaiseAlong(IList<Vec2> points, float width, float height, string terrainId, float paintWidth = 0f)
+        {
+            if (points == null || points.Count < 2) throw new ArgumentException("A ridge or gully needs at least 2 points.", nameof(points));
+            if (width <= 0f) throw new ArgumentException("A ridge or gully needs a width above 0.");
+            byte? t = terrainId == null ? (byte?)null : IndexOf(terrainId);
+            float half = width / 2f;
+            float paintHalf = Math.Max(paintWidth, CellSize) / 2f;
+            Bounds(points, half, out int x0, out int y0, out int x1, out int y1);
+            for (int cy = y0; cy <= y1; cy++)
+                for (int cx = x0; cx <= x1; cx++)
+                {
+                    Vec2 c = CellCenter(cx, cy);
+                    float d = float.MaxValue;
+                    for (int i = 0; i + 1 < points.Count; i++) d = Math.Min(d, DistanceToSegment(c, points[i], points[i + 1]));
+                    if (d >= half) continue;
+                    int idx = cy * Width + cx;
+                    ground[idx] += height * (float)(Math.Cos(Math.PI * d / half) + 1.0) / 2f;
+                    if (t.HasValue && (paintWidth <= 0f || d <= paintHalf)) cells[idx] = t.Value;
                 }
         }
 

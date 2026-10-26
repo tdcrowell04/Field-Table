@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace FieldTable.Sim
 {
@@ -25,6 +26,9 @@ namespace FieldTable.Sim
 
         public List<MapFeature> Features { get; set; } = new List<MapFeature>();
 
+        /// <summary>For a generated map, which of the 15 map features it ended up with. Optional for hand-written maps.</summary>
+        public List<string> Includes { get; set; }
+
         public static MapData FromJson(string json)
         {
             MapData data;
@@ -42,6 +46,14 @@ namespace FieldTable.Sim
             if (data == null) throw new FormatException("The map file is empty.");
             return data;
         }
+
+        /// <summary>Writes the map down in the same format it's read in, so a generated map can be saved, replayed, and shared.</summary>
+        public string ToJson() => JsonConvert.SerializeObject(this, Formatting.Indented, new JsonSerializerSettings
+        {
+            NullValueHandling = NullValueHandling.Ignore,
+            DefaultValueHandling = DefaultValueHandling.Ignore,
+            ContractResolver = new CamelCasePropertyNamesContractResolver(),
+        });
 
         /// <summary>Builds the playable map, using the terrain kinds from the game data.</summary>
         public MapGrid Build(IList<TerrainDef> terrains)
@@ -80,6 +92,7 @@ namespace FieldTable.Sim
     /// <summary>
     /// One thing on a map. Kinds:
     /// "area" (a rect or polygon of terrain), "hill" (a rounded hill in a rect),
+    /// "ridge" (raised ground along points), "gully" (sunken ground along points),
     /// "line" (a road, creek, wall, or hedge along points), "building" (a center and a size in meters),
     /// and "control" (a phase line or boundary with no terrain of its own).
     /// </summary>
@@ -100,8 +113,11 @@ namespace FieldTable.Sim
         /// <summary>Line width in meters.</summary>
         public float Width { get; set; }
 
-        /// <summary>Hill height in meters.</summary>
+        /// <summary>Hill or ridge height, or gully depth, in meters.</summary>
         public float Height { get; set; }
+
+        /// <summary>For a gully: how wide its floor is painted, in meters. 0 paints its whole width.</summary>
+        public float PaintWidth { get; set; }
 
         /// <summary>Building center in grid squares.</summary>
         public float[] Center { get; set; }
@@ -138,6 +154,18 @@ namespace FieldTable.Sim
                     }
                     break;
 
+                case "ridge":
+                case "gully":
+                    {
+                        var pts = PointsMeters(square, 2);
+                        if (Width <= 0f) throw new ArgumentException("A " + Kind + " needs a width above 0.");
+                        if (Height <= 0f) throw new ArgumentException("A " + Kind + " needs a height (or depth) above 0.");
+                        map.RaiseAlong(pts, Width, Kind == "gully" ? -Height : Height, Terrain, PaintWidth);
+                        Extent(pts, out Vec2 min, out Vec2 max);
+                        Mark(map, Kind, Midpoint(pts), min, max, pts);
+                    }
+                    break;
+
                 case "line":
                     {
                         var pts = PointsMeters(square, 2);
@@ -169,7 +197,7 @@ namespace FieldTable.Sim
                     break;
 
                 default:
-                    throw new ArgumentException("Unknown kind: " + Kind + ". Use area, hill, line, building, or control.");
+                    throw new ArgumentException("Unknown kind: " + Kind + ". Use area, hill, ridge, gully, line, building, or control.");
             }
         }
 

@@ -1,0 +1,7 @@
+{
+  "places": ["Dornhof", "Velmar", "Kesten", "Brakow", "Ilsen", "Morvik", "Tarnet", "Hollin", "Grevna", "Askel", "Rudnik", "Seldwa", "Varno", "Lisk", "Pellin", "Oderin", "Marrow", "Hasken", "Torvel", "Ebbet", "Kalden", "Wyrd", "Stavna", "Orlik"],
+  "waters": ["Kessel", "Mill", "Stone", "Alder", "Birch", "Fox", "Willow", "Cold", "Black", "Lark", "Heron", "Otter", "Ash", "Linden", "Reed", "Elk", "Crane", "Wolf", "Bitter", "Grey"],
+  "routes": ["Slate", "Copper", "Iron", "Tin", "Cobalt", "Nickel", "Zinc", "Bronze", "Chrome", "Lead", "Granite", "Basalt", "Quartz", "Flint", "Shale", "Onyx", "Jasper", "Garnet", "Silver", "Gold"],
+  "woods": ["Pine", "Crna", "Hollow", "Raven", "Thorn", "Elder", "Maple", "Oak", "Beech", "Yew", "Larch", "Spruce"],
+  "ridges": ["Saddle", "Spine", "Hogback", "Long", "Broken", "Knife", "Camel", "Anvil", "Crow", "Ox", "Sawtooth", "Bald"]
+}
