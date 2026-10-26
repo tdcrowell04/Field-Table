@@ -1,0 +1,10 @@
+{
+  "name": "com.fieldtable.sim",
+  "version": "0.1.0",
+  "displayName": "Field Table Simulation",
+  "description": "The Field Table rules: map, units, dice, clock, and turns. Plain C# with no Unity code, so it can be tested and run on its own.",
+  "unity": "6000.0",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  }
+}

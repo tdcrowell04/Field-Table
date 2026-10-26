@@ -172,7 +172,8 @@ Modders can make their own experiences and share them with people.
 Live AI is allowed in this game. This project is separate from Conduits' no-AI-assets rule.
 
 - Local models: Run on the player's PC through LLM for Unity or llama-cpp-unity (both built on llama.cpp). Candidates: Qwen3 (4B to 14B), Phi-4, gpt-oss-20b, Gemma 4. Check each license before shipping.
-- Default and minimum spec: A small model by default. The minimum is a graphics card with 8 GB of memory.
+- Default and minimum spec: A small model by default, starting with Qwen3 4B (Apache 2.0 license, free to ship in a paid game). Newer models and their licenses get rechecked before release. The minimum is a graphics card with 8 GB of memory.
+- Order reader: The local model reads orders from day one, so what gets tested is what ships. Nothing of Triston's personal license goes in the game. The open-source parts (the model, LLM for Unity, llama.cpp) get their license notices in the credits.
 - Structured output: A GBNF grammar locks the model to valid verbs, units, and grids.
 - GPU budget: Roughly 3 GB for a 4B model, 5 to 6 GB for 8B, 9 to 10 GB for 14B, shared with graphics. The sim pauses or slows while the model thinks, which fits radio delay.
 - Speech: Whisper-family speech-to-text, a few hundred megabytes, push-to-talk.
@@ -319,10 +320,18 @@ Every call gets ruled before anything is built. Rulings only; overruled ideas ar
 | The 14 pieces of the slice, in order | Accepted | |
 | Every decision goes in an updated ledger, saved as a rule in `CLAUDE.md` | Accepted | *"I always want an updated ledger ok"* |
 
+### 2026-10-26: ledger round 5
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| How the AI reads orders from the start | The local model from day one | Picked (a) |
+| Starting model | Qwen3 4B; recheck newer models and licenses before release | |
+| The 25 slice verbs | Moving: move, bound, follow, withdraw, hold, take cover, change posture. Fighting: fire, suppress, overwatch, throw grenade, throw smoke, assault, clear, breach. Looking and talking: observe, report, fly drone, talk. Care and gear: treat casualty, carry, search, detain, share ammo. Fun: emote | *"Let's make sure that we have the requisite amount of verbs to cover almost any action that would be required in a tactical scenario and in a tabletop rpg scenario. You can also look at the actual Field Table artifact and see what verbs have been used in the games I've played."* |
+| Start building pieces 1 and 2 | Accepted | |
+
 ## Open questions
 
-- [ ] The 25 verbs for the slice (round 5)
-- [ ] How the AI reads orders from the start: local model or Claude (round 5)
+- [ ] The full verb catalog for tactical and tabletop RPG play (`verbs.md`, round 6)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 

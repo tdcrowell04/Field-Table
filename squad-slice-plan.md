@@ -15,7 +15,7 @@ The bible says it best: *"If this isn't fun, nothing above it will be."* Triston
 - **One mission:** seize the bridge. Enemy: a rifleman, a machine gunner with a PKM, and an RPG gunner. Some civilians.
 - **WEGO turns,** with a 1-minute default you can change in settings.
 - **Typed orders,** in Plain English mode first.
-- **Verbs:** 25 of them. *"Let's get 25 verbs made."* The list is in ledger round 5.
+- **Verbs:** 25 of them. *"Let's get 25 verbs made."* The list is in `bible.md`; the full catalog for later is in `verbs.md`.
 - **Order preview:** a path on the map, an order card per unit, odds, and warnings. Nothing moves until you commit.
 - **Readback** on the net, with pushback when an order can't work.
 - **Dice:** you roll the big moments, everything else rolls itself on screen, and every roll goes in the combat log.
@@ -32,7 +32,7 @@ Voice, multiplayer, the platoon, sci-fi and fantasy, the pocket DM, mods, Radio 
 - **The simulation is plain C# with no Unity code in it.** Unity only draws the scene and takes your clicks and typing. This makes the rules easy to test, lets the game run a battle invisibly at high speed later (autoresolve), and lets the host's PC run the game for friends later (multiplayer).
 - **Units, verbs, and maps are data files from day one,** not hard-wired into the code. That's what lets sci-fi, fantasy, and mods slot in later. A verb is already a recipe of pieces (move, play an animation, roll a die, apply an effect), which is the same thing modders will use.
 - **Every roll comes from one seeded dice roller,** so any turn can be replayed exactly. That's what makes the Contest button and the debrief possible.
-- **The AI reads orders from the start,** locked by a grammar to real verbs, units, and grids, with nothing of Triston's personal license in the released game. Whether that's the local model or Claude during development is in ledger round 5. Unclear orders get "say again." Orders the code doesn't cover go to the AI to decide, with the guardrails from the bible, and get written to a local log for now. The server for bug reports comes later.
+- **The local model reads orders from day one** (Qwen3 4B to start), locked by a grammar to real verbs, units, and grids, with nothing of Triston's personal license in the released game. Unclear orders get "say again." Orders the code doesn't cover go to the AI to decide, with the guardrails from the bible, and get written to a local log for now. The server for bug reports comes later.
 - **Figures start as rough 3D models from my Blender scripts,** in the look the figures page set: tilted sand table view, outlines, side rings, and yellow tracers.
 
 ## The pieces, in order
@@ -63,4 +63,9 @@ My workspace can't run Unity or Blender, so Triston is the one who sees each pie
 
 ## Rulings on this plan
 
-Ruled in ledger round 4 and logged in `bible.md`. Still open: the 25 verbs and how the AI reads orders from the start (round 5).
+Ruled in ledger rounds 4 and 5 and logged in `bible.md`.
+
+## Progress
+
+- **Piece 1, project setup:** the repo side is done (folders, git settings, and the simulation packaged for Unity). Triston makes the Unity project with the steps in `SETUP.md`.
+- **Piece 2, simulation core:** done and tested here (55 tests). The map grid and grid references, terrain and units loaded from data, forces, the 1-minute turn clock, the seeded dice roller, and the event log.
