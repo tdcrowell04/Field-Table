@@ -119,7 +119,9 @@ Code owns every hard fact it covers; the AI handles language. When an order fall
 - All tracers are one warm yellow (#ffd166), the same for both sides.
 - Camo matches the map.
 - Map symbols: above company level, units show as map symbols. At company level and below, it's just the figures.
-- Last known positions: a unit you can't see right now looks different from one you can, so you know it's only where it was last seen. *"There should be something indicating if they're not still seen at a spot if it's just last known."*
+- Last known positions: a unit you can't see right now looks different from one you can, so you know it's only where it was last seen. *"There should be something indicating if they're not still seen at a spot if it's just last known."* It shows as a faded figure with how long ago it was seen ("last seen 2 min ago"), fading more the older it gets.
+- 3D, from the angled camera: *"Ensure the maps are 3D as well so units can go in and out and they can hide and all that."* *"And viewed from that angled camera from earlier"*
+- The figures page's look: *"I really liked how the html looked that you gave me earlier too btw, with some tweaks that could look super cool"*
 
 ## Maps
 
@@ -128,12 +130,21 @@ Code owns every hard fact it covers; the AI handles language. When an order fall
 - Buildings are made from a small kit of parts (walls, roofs, doors) snapped together into any size, at real size.
 - Creeks are knee deep and fordable anywhere, at 40% of walking speed, unless a map marks one deeper.
 - Terrain values (speed, cover, height, how much it blocks sight, how well it hides you) live in `Data/terrain.json`. Game data lives in `Data/`, the same way a mod's files would.
+- The 15 map features, any of which can be in a map but don't have to be: hills, ridgelines and cliffs, rivers too deep to wade, creeks, lakes and ponds, marsh and reeds, forest, woodlots and orchards, hedgerows and stone walls, farm fields (plowed, stubble, and tall crops that hide you), roads and trails, bridges, villages and farms, towns, and gullies. Sci-fi and fantasy can add their own later.
+- Deep water: crossing a river takes a bridge, a boat, or a swim. *"don't miss the chance for a player to tell a fully kitted up marine to swim across the river and they can't and drown. Everything should be that custom."*
+- Each map gets a random mix of features. A start state can require some (a bridge seizure needs water and a bridge); the rest is random.
+- Before a mission, players can ask the game master for anything specific (a 100 m hill, a town, no river) and the generator builds it in.
+- Maps are written down in one map format, like a save file, so generated maps can be saved and replayed, players can write maps by hand for their own missions, and maps can be shared on Steam Workshop.
 
 ## Sight and spotting
 
 - Line of sight: eye height 1.7 m standing, 1.1 m kneeling, 0.4 m prone, checked against the ground and everything on it every meter. Hills, buildings, and walls block it; trees, hedges, and reeds thin it and then block it. Someone inside a building sees out its windows and can be seen at them.
 - Spotting builds up while someone is in view, with no dice: about half a second for someone standing in the open at 100 m, 6 seconds at 600 m, much slower if they're prone, still, or hidden.
-- Day and night are both in from the start: day, twilight, and night, with NODs and thermals. *"No dude it was already in the little artifact game you made, why can't you include it in something you're actually thinking about?"* (Claude's numbers for ranges are in ledger round 8.)
+- Day and night are both in from the start: day, twilight, and night, with NODs and thermals. *"No dude it was already in the little artifact game you made, why can't you include it in something you're actually thinking about?"*
+- Ranges: the naked eye spots a person at 1,000 m by day, 400 m at twilight, 50 m at night. NODs reach 300 m at twilight or night, spot 40% slower, and don't help by day. A thermal reaches 1,500 m day or night and sees body heat through reeds and grass, not through trees or walls.
+- Gear isn't guaranteed. Each start state sets who carries what, and sometimes someone is missing something. *"Not necessarily, what if you were out for a short op and it went bad and now someone didn't pack his nods because he didn't want to have to worry aobut it. Shit like that shouldn't happen every game or people will get sick of it but shit should just happen like that, not even just in gear but in other stuff too."*
+- Illumination rounds and flares light an area up to twilight for a short time (built with call for fire).
+- Firing at night shows the shooter to anyone with a line of sight, even past eye range (built with fire). *"Unless using something to compensate for that if the gear is meant for night"*
 
 ## Scale and layers
 
@@ -189,7 +200,8 @@ Modders can make their own experiences and share them with people.
 - Custom verbs: verb recipes. Modders build new verbs from pieces the game already has (move, play an animation, roll a die, apply an effect), so a mod can't touch the player's PC. The most popular recipes on Steam Workshop get baked into the game properly. Locked-down scripting, with files and the internet blocked, may come later.
 - Custom rules: modders can make custom rules with the existing verbs.
 - Custom blanks: modders can add their own blanks for how a verb is done (like "zigzag"), built from the same pieces as verb recipes.
-- Custom models and animations: *"custom models only need to have one moving animation, it never speeds up or slows down the animation or anything like that. Any custom emotes can be programmed in, and attached to a verb. People can get as intricate or simple with animations as they want to. Or they can use our animations."
+- Custom models and animations: *"custom models only need to have one moving animation, it never speeds up or slows down the animation or anything like that. Any custom emotes can be programmed in, and attached to a verb. People can get as intricate or simple with animations as they want to. Or they can use our animations."*
+- Poses for a custom model with one animation: a model with a standard human skeleton can use our animations for kneeling, prone, firing, and down. One without is shown like a tabletop miniature: lowered, laid flat, or tipped over.
 - Sharing: Steam Workshop.
 
 ## AI usage and technical approach
@@ -203,6 +215,7 @@ Live AI is allowed in this game. This project is separate from Conduits' no-AI-a
 - GPU budget: Roughly 3 GB for a 4B model, 5 to 6 GB for 8B, 9 to 10 GB for 14B, shared with graphics. The sim pauses or slows while the model thinks, which fits radio delay.
 - Speech: Whisper-family speech-to-text, a few hundred megabytes, push-to-talk.
 - Shipping: Model files download on first launch. Local AI only at launch. The model file stays out of the repo; during development it lives only on Triston's PC.
+- Players' own AI models: an advanced setting to load their own local model file. Local files only, no cloud keys. The content filter always stays on. In co-op and versus, everyone uses the host's model. Labeled "use at your own risk," with a short list of tested models.
 - Phone playtesting: a playtest page runs the same simulation in a phone's browser, with Haiku reading typed orders as a stand-in for the local model. Nothing from it ships. *"Use Haiku for this please so I don't eat up my usage and it should feel closer to what's in the final thing right"*
 - Cloud: Added later only if lots of players can't run the local model. If it comes, it runs through a backend we control, never with a key inside the game.
 - Guardrails: A hard no on sexual, racist, illegal, or similar content in anything the AI writes. The grammar lock keeps parsed orders to real verbs, units, and grids, and a filter covers anything the AI writes freely (orders the code doesn't cover, and the pocket DM).
@@ -417,9 +430,35 @@ Every call gets ruled before anything is built. Rulings only; overruled ideas ar
 | No static first map | *"I really don't see the need of having a static first map, it's kind've going away from what I wanted this to be in the first place"* |
 | Custom models and animations | *"custom models only need to have one moving animation, it never speeds up or slows down the animation or anything like that. Any custom emotes can be programmed in, and attached to a verb. People can get as intricate or simple with animations as they want to. Or they can use our animations."* |
 
+### 2026-10-26: ledger round 8
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| The 15 map features | Accepted | *"Great, also don't miss the chance for a player to tell a fully kitted up marine to swim across the river and they can't and drown. Everything should be that custom."* |
+| How the mix is picked | Accepted | |
+| Asking the game master for specifics | Accepted | |
+| Map format, asked again | Accepted | |
+| Night ranges | Accepted | |
+| Who carries what | Vetoed: gear isn't guaranteed, and things go wrong sometimes | *"Not necessarily, what if you were out for a short op and it went bad and now someone didn't pack his nods because he didn't want to have to worry aobut it. Shit like that shouldn't happen every game or people will get sick of it but shit should just happen like that, not even just in gear but in other stuff too."* |
+| Illumination and flares | Accepted | |
+| Muzzle flashes | Accepted | *"Unless using something to compensate for that if the gear is meant for night"* |
+| How a last-known marker looks | Accepted | |
+| Poses for a model with one animation | Accepted | |
+| Players' own AI models | Accepted | |
+| Build the map generator | Accepted | |
+| Then the phone playtest page | Accepted | |
+
+### 2026-10-26: in chat, after round 8
+
+| Decision | Ruling |
+|---|---|
+| 3D maps | *"Ensure the maps are 3D as well so units can go in and out and they can hide and all that."* |
+| The camera | *"And viewed from that angled camera from earlier"* |
+| The look | *"I really liked how the html looked that you gave me earlier too btw, with some tweaks that could look super cool"* |
+
 ## Open questions
 
-- [ ] The 15 map features, the map format, night numbers, the last-known marker, custom model poses, and players' own AI models (ledger round 8)
+- [ ] The look, going in and out of buildings, friction, the map generator's calls, and a mobile version (ledger round 9)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 

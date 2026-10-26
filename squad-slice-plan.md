@@ -71,5 +71,5 @@ Ruled in ledger rounds 4 to 7 and logged in `bible.md`.
 
 - **Piece 1, project setup:** the repo side is done (folders, git settings, and the simulation packaged for Unity). Triston makes the Unity project with the steps in `SETUP.md`.
 - **Piece 2, simulation core:** done and tested here. The map grid and grid references, terrain and units loaded from data, forces and who is hostile to whom, the 1-minute turn clock, the seeded dice roller, and the event log.
-- **Piece 3, map generator:** waiting on the 15 map features in ledger round 8. (A hand-built Cinder Ford map was made first and then removed in round 7.)
-- **Piece 4, line of sight and fog of war:** done and tested here. Hills, buildings, walls, hedges, trees, and reeds block or thin sight; people in buildings see out the windows; spotting builds up over time; day, twilight, and night, with NODs and thermals. 86 tests pass.
+- **Piece 3, map generator:** done and tested here. Builds a fresh map from the 15 features for each mission; the same seed gives the same map. A 1,000-map stress run had no failures, about 30 ms per map. (A hand-built Cinder Ford map was made first and then removed in round 7.)
+- **Piece 4, line of sight and fog of war:** done and tested here. Hills, buildings, walls, hedges, trees, and reeds block or thin sight; people in buildings see out the windows; spotting builds up over time; day, twilight, and night, with NODs and thermals. 86 tests passed at the time; 106 with the generator.
