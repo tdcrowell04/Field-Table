@@ -265,7 +265,18 @@ namespace FieldTable.Sim
             var side = new Vec2(-dir.Y, dir.X);
             int k = (index + 1) / 2;
             float sign = index % 2 == 1 ? 1f : -1f;
-            return side * (6f * k * sign);
+            Vec2 dest = order.Where != null && TryPlace(unit, order.Where, out Vec2 d) ? d : unit.Position;
+            // Side by side if there's dry ground there; otherwise in file behind the first, like on a bridge.
+            foreach (var candidate in new[] { side * (6f * k * sign), dir * (-6f * index) })
+                if (Standable(dest + candidate)) return candidate;
+            return default;
+        }
+
+        bool Standable(Vec2 p)
+        {
+            if (!Map.InBounds(p)) return false;
+            var t = Map.TerrainAt(p);
+            return t.Passable && !t.Deep && t.MoveFactor >= 0.3f;
         }
 
         static MoveSpeed SpeedOf(Order o)

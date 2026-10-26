@@ -365,8 +365,11 @@ namespace FieldTable.Sim
                                 float sin = Math.Abs(dir.X * flow.Y - dir.Y * flow.X);
                                 float half = wl.HalfWidth / Math.Max(0.3f, sin) + 6f;
                                 n++;
-                                string name = road.label.Replace("Route ", "") + " bridge";
-                                made.Add(Line(name, "bridge", 5f, new List<Vec2> { at - dir * half, at + dir * half }, "over " + wl.Label, "bridge " + n));
+                                // Named for the water it crosses, and never the same name twice.
+                                string name = wl.Label + " bridge";
+                                for (int k = 2; usedNames.Contains(name); k++) name = wl.Label + " bridge " + k;
+                                usedNames.Add(name);
+                                made.Add(Line(name, "bridge", 5f, new List<Vec2> { at - dir * half, at + dir * half }, "on " + road.label, "bridge " + n));
                             }
                 if (made.Count == 1) made[0].Aliases.AddRange(new[] { "the bridge", "bridge" });
                 bridges.AddRange(made);

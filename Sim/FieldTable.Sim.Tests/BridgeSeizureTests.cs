@@ -102,6 +102,9 @@ namespace FieldTable.Sim.Tests
             var lead = m.Sim.Units.First(u => u.Id == "lead");
             lead.Position = m.Objective.Center;
             m.CheckOutcome();
+            Assert.Null(m.Outcome);
+            m.Sim.RunTurn();
+            m.CheckOutcome();
             Assert.Equal("success", m.Outcome);
         }
 

@@ -159,6 +159,17 @@ namespace FieldTable.Sim.Tests
         }
 
         [Fact]
+        public void NoTwoPlacesShareAName()
+        {
+            for (ulong seed = 1; seed <= 60; seed++)
+            {
+                var map = Build(Gen(seed, r => r.Require.Add("bridges")));
+                var labels = map.Landmarks.Select(l => l.Label.ToLowerInvariant()).ToList();
+                Assert.Equal(labels.Count, labels.Distinct().Count());
+            }
+        }
+
+        [Fact]
         public void AGeneratedMapCanBeSavedAndLoadedAgain()
         {
             var data = Gen(21, r => r.Require.Add("villages"));

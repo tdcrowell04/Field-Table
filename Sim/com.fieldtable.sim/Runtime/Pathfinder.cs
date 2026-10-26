@@ -133,7 +133,10 @@ namespace FieldTable.Sim
                 from0 = p;
                 anchor = best;
             }
-            path.Add(goal);
+            // If the exact spot can't be stood on (deep water, a wall), stop at the nearest place that can.
+            var gt = map.TerrainAt(goal);
+            bool goalOk = gt.Passable && (allowDeep || !gt.Deep) && Nearest(goal, allowDeep) == e && Open(e, allowDeep);
+            path.Add(goalOk ? goal : Center(e % w, e / w));
             return path;
         }
 

@@ -34,23 +34,30 @@ namespace FieldTable.Sim
             var marines = Sim.Units.Where(u => ReferenceEquals(u.Force, Marines)).ToList();
             Vec2 b = Objective.Center;
             bool onBridge = marines.Any(u => u.CanAct && Vec2.Distance(u.Position, b) <= 15f);
-            bool enemyNear = Sim.Units.Any(u => ReferenceEquals(u.Force, Enemy) && u.CanAct && Vec2.Distance(u.Position, b) <= 150f);
+            bool enemyNear = Sim.Units.Any(u => ReferenceEquals(u.Force, Enemy) && u.CanAct && Vec2.Distance(u.Position, b) <= HoldRadius);
             int lost = marines.Count(u => !u.CanAct);
-            if (onBridge && !enemyNear)
-            {
-                Outcome = "success";
-                OutcomeText = Objective.Label + " is seized and held.";
-            }
-            else if (lost >= CombatIneffective)
+            bool holding = onBridge && !enemyNear;
+            if (lost >= CombatIneffective)
             {
                 Outcome = "failure";
                 OutcomeText = "The squad is combat ineffective, with " + lost + " Marines down.";
+            }
+            else if (holding && heldLastCheck)
+            {
+                Outcome = "success";
+                OutcomeText = Objective.Label + " is seized and held.";
             }
             else if (Sim.Clock.Turn > TurnLimit)
             {
                 Outcome = "failure";
                 OutcomeText = "Out of time. The platoon couldn't wait any longer for the bridge.";
             }
+            heldLastCheck = holding;
         }
+
+        bool heldLastCheck;
+
+        /// <summary>No enemy still fighting within this many meters, and the bridge is held.</summary>
+        public const float HoldRadius = 250f;
     }
 }
