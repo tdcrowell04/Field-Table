@@ -39,10 +39,23 @@ namespace FieldTable.Sim
         /// <summary>Movement speed multiplier: 1 is open ground, 0 means nobody can walk here.</summary>
         public float MoveFactor { get; set; } = 1f;
 
-        /// <summary>How much this ground protects someone in it, from 0 (none) to 1 (full).</summary>
+        /// <summary>How much this ground protects someone in it from fire, from 0 (none) to 1 (full).</summary>
         public float Cover { get; set; }
 
-        public bool BlocksSight { get; set; }
+        /// <summary>How tall the things growing or built here are, in meters. 0 for flat ground.</summary>
+        public float Height { get; set; }
+
+        /// <summary>
+        /// How much each meter of this blocks sight below its height. 1 is solid (a wall);
+        /// 0.04 means about 25 meters of it hides what's behind (dense pine).
+        /// </summary>
+        public float SightBlock { get; set; }
+
+        /// <summary>How well someone in this ground is hidden from 0 (not at all) to 1 (fully), when it's at least as tall as they are.</summary>
+        public float Concealment { get; set; }
+
+        /// <summary>True when someone inside can see out and be seen, like through a building's windows.</summary>
+        public bool SeeOut { get; set; }
 
         public bool Passable => MoveFactor > 0f;
     }
@@ -83,15 +96,60 @@ namespace FieldTable.Sim
         public override int GetHashCode() => (Column * 397) ^ Row;
     }
 
+    /// <summary>A named place on the map that orders can point at: "building 4", "Hill 151", "Route Slate".</summary>
+    public sealed class Landmark
+    {
+        public string Label { get; }
+        public string Kind { get; }
+        public IReadOnlyList<string> Aliases { get; }
+        public string Note { get; }
+
+        /// <summary>Where an order to go "to" this place aims, in meters.</summary>
+        public Vec2 Center { get; }
+
+        /// <summary>The area it covers, in meters.</summary>
+        public Vec2 Min { get; }
+        public Vec2 Max { get; }
+
+        /// <summary>For roads, creeks, walls, and other lines: the points along it, in meters. Empty for areas.</summary>
+        public IReadOnlyList<Vec2> Points { get; }
+
+        public Landmark(string label, string kind, IList<string> aliases, string note, Vec2 center, Vec2 min, Vec2 max, IList<Vec2> points)
+        {
+            Label = label;
+            Kind = kind;
+            Aliases = new List<string>(aliases ?? new string[0]);
+            Note = note ?? "";
+            Center = center;
+            Min = min;
+            Max = max;
+            Points = new List<Vec2>(points ?? new Vec2[0]);
+        }
+
+        public bool Contains(Vec2 p) => p.X >= Min.X && p.X <= Max.X && p.Y >= Min.Y && p.Y <= Max.Y;
+
+        public bool IsCalled(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return false;
+            string n = name.Trim();
+            if (string.Equals(Label, n, StringComparison.OrdinalIgnoreCase)) return true;
+            foreach (var a in Aliases)
+                if (string.Equals(a, n, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+    }
+
     /// <summary>
-    /// The ground the fight happens on: a fine grid of terrain cells, plus the coarser
-    /// lettered squares players use for grid references.
+    /// The ground the fight happens on: a fine grid of terrain cells with ground height,
+    /// the coarser lettered squares players use for grid references, and named landmarks.
     /// </summary>
     public sealed class MapGrid
     {
         readonly byte[] cells;
+        readonly float[] ground;
         readonly List<TerrainDef> terrains;
         readonly Dictionary<string, byte> terrainIndex = new Dictionary<string, byte>();
+        readonly List<Landmark> landmarks = new List<Landmark>();
 
         public string Name { get; }
 
@@ -104,6 +162,8 @@ namespace FieldTable.Sim
 
         /// <summary>Meters per lettered grid square.</summary>
         public float SquareSize { get; }
+
+        public IReadOnlyList<Landmark> Landmarks => landmarks;
 
         public MapGrid(string name, int width, int height, float cellSize, float squareSize, IList<TerrainDef> terrainTable, string fillTerrain)
         {
@@ -124,6 +184,7 @@ namespace FieldTable.Sim
             if (Columns > 26) throw new ArgumentException("A map can be at most 26 grid squares wide (A to Z).");
 
             cells = new byte[width * height];
+            ground = new float[width * height];
             byte fill = IndexOf(fillTerrain);
             for (int i = 0; i < cells.Length; i++) cells[i] = fill;
         }
@@ -150,6 +211,19 @@ namespace FieldTable.Sim
             return TerrainAt(x, y);
         }
 
+        /// <summary>Height of the ground itself in meters, not counting buildings or trees.</summary>
+        public float GroundAt(int x, int y)
+        {
+            if (!InBounds(x, y)) throw new ArgumentOutOfRangeException(nameof(x), "That cell is off the map.");
+            return ground[y * Width + x];
+        }
+
+        public float GroundAt(Vec2 p)
+        {
+            CellOf(p, out int x, out int y);
+            return GroundAt(x, y);
+        }
+
         public void SetTerrain(int x, int y, string terrainId)
         {
             if (!InBounds(x, y)) throw new ArgumentOutOfRangeException(nameof(x), "That cell is off the map.");
@@ -166,6 +240,68 @@ namespace FieldTable.Sim
                 for (int cx = x0; cx < x1; cx++)
                     cells[cy * Width + cx] = t;
         }
+
+        /// <summary>Paints every cell whose center is inside the polygon (points in meters).</summary>
+        public void FillPolygon(IList<Vec2> points, string terrainId)
+        {
+            if (points == null || points.Count < 3) throw new ArgumentException("An area needs at least 3 points.", nameof(points));
+            byte t = IndexOf(terrainId);
+            Bounds(points, 0f, out int x0, out int y0, out int x1, out int y1);
+            for (int cy = y0; cy <= y1; cy++)
+                for (int cx = x0; cx <= x1; cx++)
+                    if (InsidePolygon(points, CellCenter(cx, cy)))
+                        cells[cy * Width + cx] = t;
+        }
+
+        /// <summary>Paints a line of the given width (meters) along the points (meters). Never thinner than one cell.</summary>
+        public void FillLine(IList<Vec2> points, float width, string terrainId)
+        {
+            if (points == null || points.Count < 2) throw new ArgumentException("A line needs at least 2 points.", nameof(points));
+            byte t = IndexOf(terrainId);
+            float r = Math.Max(width, CellSize) / 2f;
+            for (int i = 0; i + 1 < points.Count; i++)
+            {
+                var seg = new[] { points[i], points[i + 1] };
+                Bounds(seg, r, out int x0, out int y0, out int x1, out int y1);
+                for (int cy = y0; cy <= y1; cy++)
+                    for (int cx = x0; cx <= x1; cx++)
+                        if (DistanceToSegment(CellCenter(cx, cy), seg[0], seg[1]) <= r)
+                            cells[cy * Width + cx] = t;
+            }
+        }
+
+        /// <summary>
+        /// Raises a rounded hill filling the ellipse inside the rectangle (meters), peaking at its middle.
+        /// Optionally paints the hill's ground.
+        /// </summary>
+        public void RaiseHill(Vec2 min, Vec2 max, float peak, string terrainId)
+        {
+            byte? t = terrainId == null ? (byte?)null : IndexOf(terrainId);
+            float cxm = (min.X + max.X) / 2f, cym = (min.Y + max.Y) / 2f;
+            float rx = (max.X - min.X) / 2f, ry = (max.Y - min.Y) / 2f;
+            if (rx <= 0f || ry <= 0f) throw new ArgumentException("A hill needs a width and a depth.");
+            Bounds(new[] { min, max }, 0f, out int x0, out int y0, out int x1, out int y1);
+            for (int cy = y0; cy <= y1; cy++)
+                for (int cx = x0; cx <= x1; cx++)
+                {
+                    Vec2 c = CellCenter(cx, cy);
+                    float dx = (c.X - cxm) / rx, dy = (c.Y - cym) / ry;
+                    float d = (float)Math.Sqrt(dx * dx + dy * dy);
+                    if (d >= 1f) continue;
+                    int i = cy * Width + cx;
+                    ground[i] += peak * (float)(Math.Cos(Math.PI * d) + 1.0) / 2f;
+                    if (t.HasValue) cells[i] = t.Value;
+                }
+        }
+
+        public void AddLandmark(Landmark landmark)
+        {
+            if (landmark == null) throw new ArgumentNullException(nameof(landmark));
+            landmarks.Add(landmark);
+        }
+
+        /// <summary>Finds a landmark by its label or any alias, ignoring case. Null if there's none.</summary>
+        public Landmark FindLandmark(string name) => landmarks.Find(l => l.IsCalled(name));
 
         public void CellOf(Vec2 p, out int x, out int y)
         {
@@ -194,6 +330,42 @@ namespace FieldTable.Sim
         }
 
         public bool SquareContains(GridRef g, Vec2 p) => InBounds(p) && SquareOf(p).Equals(g);
+
+        void Bounds(IList<Vec2> pts, float pad, out int x0, out int y0, out int x1, out int y1)
+        {
+            float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+            foreach (var p in pts)
+            {
+                minX = Math.Min(minX, p.X); minY = Math.Min(minY, p.Y);
+                maxX = Math.Max(maxX, p.X); maxY = Math.Max(maxY, p.Y);
+            }
+            x0 = Math.Max(0, (int)Math.Floor((minX - pad) / CellSize));
+            y0 = Math.Max(0, (int)Math.Floor((minY - pad) / CellSize));
+            x1 = Math.Min(Width - 1, (int)Math.Floor((maxX + pad) / CellSize));
+            y1 = Math.Min(Height - 1, (int)Math.Floor((maxY + pad) / CellSize));
+        }
+
+        static bool InsidePolygon(IList<Vec2> poly, Vec2 p)
+        {
+            bool inside = false;
+            for (int i = 0, j = poly.Count - 1; i < poly.Count; j = i++)
+            {
+                Vec2 a = poly[i], b = poly[j];
+                if ((a.Y > p.Y) != (b.Y > p.Y) && p.X < (b.X - a.X) * (p.Y - a.Y) / (b.Y - a.Y) + a.X)
+                    inside = !inside;
+            }
+            return inside;
+        }
+
+        internal static float DistanceToSegment(Vec2 p, Vec2 a, Vec2 b)
+        {
+            Vec2 ab = b - a;
+            float len2 = ab.X * ab.X + ab.Y * ab.Y;
+            if (len2 <= 0f) return Vec2.Distance(p, a);
+            float t = ((p.X - a.X) * ab.X + (p.Y - a.Y) * ab.Y) / len2;
+            t = Math.Max(0f, Math.Min(1f, t));
+            return Vec2.Distance(p, a + ab * t);
+        }
 
         byte IndexOf(string terrainId)
         {

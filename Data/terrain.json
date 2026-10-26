@@ -1,0 +1,19 @@
+{
+  "terrains": [
+    { "id": "grass",    "name": "Grass and pasture",       "moveFactor": 1.0 },
+    { "id": "stubble",  "name": "Stubble field",           "moveFactor": 1.0 },
+    { "id": "plowed",   "name": "Plowed field",            "moveFactor": 0.8, "concealment": 0.05 },
+    { "id": "scrub",    "name": "Scrub",                   "moveFactor": 0.85, "cover": 0.1, "height": 1.0, "sightBlock": 0.05, "concealment": 0.3 },
+    { "id": "rocky",    "name": "Spoil heaps and rock",    "moveFactor": 0.6, "cover": 0.6, "height": 2.0, "sightBlock": 0.2, "concealment": 0.4 },
+    { "id": "forest",   "name": "Dense pine",              "moveFactor": 0.5, "cover": 0.3, "height": 15.0, "sightBlock": 0.04, "concealment": 0.5 },
+    { "id": "marsh",    "name": "Reeds, knee deep",        "moveFactor": 0.4, "height": 2.0, "sightBlock": 0.1, "concealment": 0.6 },
+    { "id": "yard",     "name": "Farmyard",                "moveFactor": 1.0 },
+    { "id": "hedge",    "name": "Thick hedge",             "moveFactor": 0.3, "cover": 0.3, "height": 2.5, "sightBlock": 0.5, "concealment": 0.6 },
+    { "id": "creek",    "name": "Creek, knee deep ford",   "moveFactor": 0.4 },
+    { "id": "road",     "name": "Road",                    "moveFactor": 1.0 },
+    { "id": "trail",    "name": "Trail",                   "moveFactor": 1.0 },
+    { "id": "wall",     "name": "Low stone wall",          "moveFactor": 0.3, "cover": 0.8, "height": 1.2, "sightBlock": 1.0, "concealment": 0.3 },
+    { "id": "building", "name": "Stone building",          "moveFactor": 0.5, "cover": 0.8, "height": 6.0, "sightBlock": 1.0, "concealment": 0.5, "seeOut": true },
+    { "id": "bridge",   "name": "Bridge deck",             "moveFactor": 1.0, "cover": 0.1 }
+  ]
+}

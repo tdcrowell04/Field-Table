@@ -4,18 +4,20 @@ using System.Collections.Generic;
 namespace FieldTable.Sim
 {
     /// <summary>
-    /// The whole fight: map, forces, units, clock, dice, and log.
+    /// The whole fight: map, forces, units, clock, dice, fog of war, and log.
     /// Runs one WEGO turn at a time. Orders and verbs plug in at later pieces.
     /// </summary>
     public sealed class Simulation
     {
         readonly List<Force> forces = new List<Force>();
         readonly List<Unit> units = new List<Unit>();
+        readonly Dictionary<string, bool> hostility = new Dictionary<string, bool>();
         readonly Dice dice;
 
         public MapGrid Map { get; }
         public SimClock Clock { get; }
         public EventLog Log { get; } = new EventLog();
+        public FogOfWar Fog { get; } = new FogOfWar();
         public ulong Seed { get; }
 
         public IReadOnlyList<Force> Forces => forces;
@@ -51,6 +53,29 @@ namespace FieldTable.Sim
         public Unit FindUnit(string id) => units.Find(u => u.Id == id);
 
         /// <summary>
+        /// Sets whether two forces are enemies, both ways. The mission decides this,
+        /// so civilians can be a target (a faction attacking civilians that the player has to stop).
+        /// </summary>
+        public void SetHostile(Force a, Force b, bool hostile)
+        {
+            if (a == null || b == null) throw new ArgumentNullException(a == null ? nameof(a) : nameof(b));
+            if (ReferenceEquals(a, b)) throw new ArgumentException("A force can't be its own enemy.");
+            hostility[PairKey(a, b)] = hostile;
+        }
+
+        /// <summary>
+        /// True when two forces are enemies. Unless the mission says otherwise,
+        /// different forces are enemies and civilians are no one's enemy.
+        /// </summary>
+        public bool AreHostile(Force a, Force b)
+        {
+            if (a == null || b == null || ReferenceEquals(a, b)) return false;
+            if (hostility.TryGetValue(PairKey(a, b), out bool set)) return set;
+            if (a.Civilian || b.Civilian) return false;
+            return !string.Equals(a.Id, b.Id, StringComparison.Ordinal);
+        }
+
+        /// <summary>
         /// Rolls a die through the one seeded roller and writes it to the log.
         /// Every chance in the game goes through here, so a turn replays exactly.
         /// </summary>
@@ -75,9 +100,18 @@ namespace FieldTable.Sim
             Clock.NextTurn();
         }
 
+        /// <summary>Checks who can see whom right now, as it stands. Runs on its own once a second during a turn.</summary>
+        public void LookAround(float seconds = 1f) => Fog.Update(this, seconds);
+
+        internal void Record(SimEvent e) => Log.Add(e, Clock);
+
         void StepOnce()
         {
             // Movement, fire, and verbs plug in here in later pieces.
+            if (Clock.Step % SimClock.StepsPerSecond == 0) LookAround();
         }
+
+        static string PairKey(Force a, Force b) =>
+            string.CompareOrdinal(a.Id, b.Id) < 0 ? a.Id + "|" + b.Id : b.Id + "|" + a.Id;
     }
 }

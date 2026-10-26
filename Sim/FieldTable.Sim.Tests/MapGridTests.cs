@@ -10,7 +10,10 @@ namespace FieldTable.Sim.Tests
         {
             new TerrainDef { Id = "open", Name = "Open ground", MoveFactor = 1f },
             new TerrainDef { Id = "water", Name = "River", MoveFactor = 0f },
-            new TerrainDef { Id = "building", Name = "Building", MoveFactor = 0.5f, Cover = 0.8f, BlocksSight = true },
+            new TerrainDef { Id = "building", Name = "Building", MoveFactor = 0.5f, Cover = 0.8f, Height = 6f, SightBlock = 1f, Concealment = 0.5f, SeeOut = true },
+            new TerrainDef { Id = "wall", Name = "Low wall", MoveFactor = 0.3f, Cover = 0.8f, Height = 1.2f, SightBlock = 1f },
+            new TerrainDef { Id = "forest", Name = "Pine", MoveFactor = 0.5f, Height = 15f, SightBlock = 0.04f, Concealment = 0.5f },
+            new TerrainDef { Id = "reeds", Name = "Reeds", MoveFactor = 0.4f, Height = 2f, SightBlock = 0.1f, Concealment = 0.6f },
         };
 
         // 800 m by 600 m, 1 m cells, 100 m grid squares: columns A to H, rows 1 to 6.
@@ -101,7 +104,7 @@ namespace FieldTable.Sim.Tests
             Assert.Equal("water", map.TerrainAt(new Vec2(320.5f, 100f)).Id);
             Assert.False(map.TerrainAt(320, 5).Passable);
             Assert.Equal("building", map.TerrainAt(10, 10).Id);
-            Assert.True(map.TerrainAt(10, 10).BlocksSight);
+            Assert.Equal(6f, map.TerrainAt(10, 10).Height);
             Assert.Equal("open", map.TerrainAt(0, 0).Id);
         }
 

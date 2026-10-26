@@ -44,8 +44,8 @@ namespace FieldTable.Sim
             CheckIds("terrain", Terrains, t => t.Id);
             CheckIds("unit", Units, u => u.Id);
             foreach (var t in Terrains)
-                if (t.MoveFactor < 0f || t.Cover < 0f || t.Cover > 1f)
-                    throw new FormatException("Terrain " + t.Id + " has a move factor below 0 or cover outside 0 to 1.");
+                if (t.MoveFactor < 0f || t.Cover < 0f || t.Cover > 1f || t.Height < 0f || t.SightBlock < 0f || t.Concealment < 0f || t.Concealment > 1f)
+                    throw new FormatException("Terrain " + t.Id + " needs a move factor, height, and sight block of 0 or more, and cover and concealment from 0 to 1.");
             foreach (var u in Units)
                 if (u.WalkSpeed <= 0f || u.RunSpeed <= 0f || u.CrawlSpeed <= 0f || u.Ammo < 0)
                     throw new FormatException("Unit " + u.Id + " needs speeds above 0 and ammo of 0 or more.");

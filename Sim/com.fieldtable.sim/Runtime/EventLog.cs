@@ -47,6 +47,42 @@ namespace FieldTable.Sim
         public override string Describe() => Actor + " rolls d" + Sides + " for " + Reason + ": " + Result + ".";
     }
 
+    /// <summary>A force has just spotted a unit that isn't theirs.</summary>
+    public sealed class ContactSpotted : SimEvent
+    {
+        public Force Force { get; }
+        public Unit Target { get; }
+        public Unit Spotter { get; }
+        public GridRef Square { get; }
+
+        public ContactSpotted(Force force, Unit target, Unit spotter, GridRef square)
+        {
+            Force = force;
+            Target = target;
+            Spotter = spotter;
+            Square = square;
+        }
+
+        public override string Describe() => Spotter.Name + " spots " + Target.Name + " at " + Square + ".";
+    }
+
+    /// <summary>A force has lost sight of a unit it had spotted. It still knows where it last was.</summary>
+    public sealed class ContactLost : SimEvent
+    {
+        public Force Force { get; }
+        public Unit Target { get; }
+        public GridRef LastSquare { get; }
+
+        public ContactLost(Force force, Unit target, GridRef lastSquare)
+        {
+            Force = force;
+            Target = target;
+            LastSquare = lastSquare;
+        }
+
+        public override string Describe() => Force.Name + " loses sight of " + Target.Name + ", last seen at " + LastSquare + ".";
+    }
+
     /// <summary>Everything that happened, in order. Nothing is ever removed.</summary>
     public sealed class EventLog
     {

@@ -86,18 +86,41 @@ namespace FieldTable.Sim.Tests
         {
             var sim = NewSim();
             Force blue = sim.FindForce("blue"), red = sim.FindForce("red"), civ = sim.FindForce("civ");
-            Assert.True(blue.IsHostileTo(red));
-            Assert.False(blue.IsHostileTo(blue));
-            Assert.False(blue.IsHostileTo(civ));
-            Assert.False(civ.IsHostileTo(red));
+            Assert.True(sim.AreHostile(blue, red));
+            Assert.False(sim.AreHostile(blue, blue));
+            Assert.False(sim.AreHostile(blue, civ));
+            Assert.False(sim.AreHostile(civ, red));
+        }
+
+        [Fact]
+        public void AMissionCanMakeCiviliansATarget()
+        {
+            // A bad-guy faction going after civilians, and the player has to stop them.
+            var sim = NewSim();
+            Force red = sim.FindForce("red"), civ = sim.FindForce("civ"), blue = sim.FindForce("blue");
+            sim.SetHostile(red, civ, true);
+            Assert.True(sim.AreHostile(red, civ));
+            Assert.True(sim.AreHostile(civ, red));
+            Assert.False(sim.AreHostile(blue, civ));
+        }
+
+        [Fact]
+        public void AMissionCanMakeForcesAllies()
+        {
+            var sim = NewSim();
+            Force blue = sim.FindForce("blue"), red = sim.FindForce("red");
+            sim.SetHostile(blue, red, false);
+            Assert.False(sim.AreHostile(red, blue));
+            Assert.Throws<ArgumentException>(() => sim.SetHostile(blue, blue, true));
         }
 
         [Fact]
         public void VersusWorksWithBothPlayersOnTheSameFaction()
         {
-            var a = new Force { Id = "p1", Faction = "marines" };
-            var b = new Force { Id = "p2", Faction = "marines" };
-            Assert.True(a.IsHostileTo(b));
+            var sim = new Simulation(MapGridTests.Map(), 1);
+            var a = sim.AddForce(new Force { Id = "p1", Faction = "marines" });
+            var b = sim.AddForce(new Force { Id = "p2", Faction = "marines" });
+            Assert.True(sim.AreHostile(a, b));
         }
 
         [Fact]

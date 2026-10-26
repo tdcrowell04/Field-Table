@@ -9,6 +9,31 @@ namespace FieldTable.Sim
         Prone,
     }
 
+    public static class Postures
+    {
+        /// <summary>Eye height, and how tall a target is, for each posture, in meters.</summary>
+        public static float Height(Posture p)
+        {
+            switch (p)
+            {
+                case Posture.Kneeling: return 1.1f;
+                case Posture.Prone: return 0.4f;
+                default: return 1.7f;
+            }
+        }
+
+        /// <summary>How easy a target in this posture is to spot, compared with standing.</summary>
+        public static float Visibility(Posture p)
+        {
+            switch (p)
+            {
+                case Posture.Kneeling: return 0.6f;
+                case Posture.Prone: return 0.25f;
+                default: return 1f;
+            }
+        }
+    }
+
     public enum Condition
     {
         Ok,
@@ -38,23 +63,15 @@ namespace FieldTable.Sim
 
     /// <summary>
     /// One side in the fight. Two forces can share a faction, so versus works with
-    /// both players on the same faction.
+    /// both players on the same faction. Who is hostile to whom is set by the mission
+    /// (see Simulation.SetHostile).
     /// </summary>
     public sealed class Force
     {
         public string Id { get; set; }
         public string Name { get; set; }
         public string Faction { get; set; }
-
-        /// <summary>Civilians are never anyone's enemy.</summary>
         public bool Civilian { get; set; }
-
-        public bool IsHostileTo(Force other)
-        {
-            if (other == null || ReferenceEquals(this, other)) return false;
-            if (Civilian || other.Civilian) return false;
-            return !string.Equals(Id, other.Id, StringComparison.Ordinal);
-        }
     }
 
     /// <summary>One figure on the table: a single Marine, enemy, or civilian.</summary>
@@ -74,6 +91,10 @@ namespace FieldTable.Sim
         public float Facing { get; set; }
 
         public Posture Posture { get; set; } = Posture.Standing;
+
+        /// <summary>True while the unit is on the move this step. Moving draws the eye.</summary>
+        public bool IsMoving { get; set; }
+
         public Condition Condition { get; set; } = Condition.Ok;
         public int Ammo { get; set; }
 

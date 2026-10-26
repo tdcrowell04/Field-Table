@@ -9,7 +9,7 @@ namespace FieldTable.Sim.Tests
   ""terrains"": [
     { ""id"": ""open"", ""name"": ""Open ground"", ""moveFactor"": 1.0 },
     { ""id"": ""water"", ""name"": ""River"", ""moveFactor"": 0.0 },
-    { ""id"": ""building"", ""name"": ""Building"", ""moveFactor"": 0.5, ""cover"": 0.8, ""blocksSight"": true }
+    { ""id"": ""building"", ""name"": ""Building"", ""moveFactor"": 0.5, ""cover"": 0.8, ""height"": 6, ""sightBlock"": 1, ""seeOut"": true }
   ],
   ""units"": [
     { ""id"": ""rifleman"", ""name"": ""Rifleman"", ""weapon"": ""M27"", ""ammo"": 210 },
@@ -22,7 +22,8 @@ namespace FieldTable.Sim.Tests
         {
             var data = GameData.FromJson(Sample);
             Assert.Equal(3, data.Terrains.Count);
-            Assert.True(data.Terrains[2].BlocksSight);
+            Assert.True(data.Terrains[2].SeeOut);
+            Assert.Equal(6f, data.Terrains[2].Height);
             Assert.Equal(0.8f, data.Terrains[2].Cover);
             var pkm = data.FindUnit("pkm-gunner");
             Assert.Equal(400, pkm.Ammo);
@@ -43,6 +44,8 @@ namespace FieldTable.Sim.Tests
         [InlineData(@"{ ""terrains"": [ { ""id"": ""open"" }, { ""id"": ""open"" } ], ""units"": [] }")]
         [InlineData(@"{ ""terrains"": [ { ""name"": ""No id"" } ], ""units"": [] }")]
         [InlineData(@"{ ""terrains"": [ { ""id"": ""x"", ""cover"": 2 } ], ""units"": [] }")]
+        [InlineData(@"{ ""terrains"": [ { ""id"": ""x"", ""height"": -1 } ], ""units"": [] }")]
+        [InlineData(@"{ ""terrains"": [ { ""id"": ""x"", ""concealment"": 1.5 } ], ""units"": [] }")]
         [InlineData(@"{ ""terrains"": [], ""units"": [ { ""id"": ""u"", ""walkSpeed"": 0 } ] }")]
         [InlineData(@"{ ""terrains"": [], ""units"": [], ""typo"": 1 }")]
         [InlineData(@"{ ""terrains"": null, ""units"": [] }")]
