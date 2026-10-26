@@ -6,6 +6,8 @@
 
 A WEGO tactical game where you command units by talking to them, typed or by voice, and watch the fight play out. Think computer D&D: XCOM-adjacent, but with more people and more options for scale. It also has a pocket DM mode for tabletop RPG sessions with friends.
 
+Pitch: *"A tabletop game you run by talking. Command Marines, a sci-fi squad, or a fantasy party, with every roll in the open."*
+
 - Title: Field Table
 - Settings at launch: Marines (today), sci-fi, and fantasy, each usable in whatever modes get released
 - Status: Concept. Code work starts now. The Field Table web prototype is the live design lab.
@@ -22,7 +24,7 @@ Every feature has to serve at least one of these four. If it fights one, it gets
 3. Talk like the radio. Orders are given in natural language, typed or spoken, the way a leader talks on the net. Units read back and push back like real Marines.
 4. Honest fog of war. The player knows only what their units can see or are told. Bad intel is part of the game; a trap hidden in a mismatch between the map and the truth is not.
 
-*Open: how pillars 1 and 3 apply to the sci-fi and fantasy settings. See open questions.*
+In sci-fi and fantasy, each setting follows its own rules just as strictly: consistent, visible, and no movie logic. The Marines follow real-world norms. "Talk like the radio" becomes each setting's own way of giving orders: comms chatter for sci-fi, spoken commands and spells for fantasy. Picking Radio mode comes with the structure of what it will and will not accept.
 
 ## Settings, modes, and group play
 
@@ -57,7 +59,7 @@ The player clicks a unit, then talks to it. Selecting first means the game alway
 - Typed orders: Free text.
 - Voice orders: Push-to-talk, using local speech-to-text (Whisper family). Primed with callsigns, the phonetic alphabet, building numbers, and the verb list. Spoken grids like "golf four" convert to G4. Added after typed orders work, since voice just produces text.
 - Order modes: A difficulty selector of its own, separate from the odds setting.
-  - Radio: proper radio format; sloppy orders get "say again."
+  - Radio: proper radio format; sloppy orders get "say again." It comes with the structure of what it will and will not accept.
   - Plain English: normal talk.
   - Loose: anything goes and the AI sorts it out.
 - Order styles: Radio talk, plain English, and spells (for fantasy). Players can type in other languages too, if it's not too hard.
@@ -187,12 +189,10 @@ Each step is a complete, playable game on its own. Don't start a step until the 
 2. Voice: Push-to-talk on top of the typed path, with readback.
 3. Co-op and versus at squad level.
 4. Platoon: Three squads plus attachments; the radio net and platoon sergeant problems.
-5. Release on Steam Early Access, with all three settings (Marines, sci-fi, fantasy).
+5. Release on Steam Early Access at platoon size, with all three settings (Marines, sci-fi, fantasy).
 6. Mods and pocket DM during Early Access.
 7. Company: Full individual models and the first real autoresolve.
 8. Battalion and up: The abstract layer with drill-down into any company fight.
-
-*Open: whether Early Access opens at squad size or platoon size. See open questions.*
 
 Price: decided closer to release.
 
@@ -283,14 +283,15 @@ Every call gets ruled before anything is built. Rulings only; overruled ideas ar
 | Local AI | A small model by default; minimum spec is a graphics card with 8 GB of memory | |
 | Cloud AI | Local only at launch; cloud later only if lots of players can't run it | Asked first: *"Would we run into usage issues or no? I din't know if I want to do cloud AI that sounds too finnicky. Do other games do this?"* Then accepted. |
 | Build order | Squad slice, voice, co-op and versus at squad level, platoon, Steam Early Access, mods and pocket DM during Early Access, company, battalion | |
-| Early Access | Opens with all three settings | Picked (a). *"I don't see how this will take more than a few week's worth of work or so. I feel like you can hopefully help me make the models for the game (i will do the finished product but you can help speed it up)"* |
+| Early Access | Opens at platoon size with all three settings | Picked (a). *"I don't see how this will take more than a few week's worth of work or so. I feel like you can hopefully help me make the models for the game (i will do the finished product but you can help speed it up)"* |
 | Price | Decided closer to release | |
 | The ledger page | Olive and coyote look; code in Claude's scratch space; one link for every round | |
+| Pitch | "A tabletop game you run by talking. Command Marines, a sci-fi squad, or a fantasy party, with every roll in the open." | *"Yes"* |
+| Early Access size | Platoon, as the build order says | *"Platoon"* |
+| Pillars in sci-fi and fantasy | Each setting follows its own rules just as strictly; the Marines follow real-world norms; each setting has its own way of giving orders | *"Yeah and if you select talk like the radio, it should come with the structure of what it will and will not accept."* |
 
 ## Open questions
 
-- [ ] The one-line pitch, now that all three settings launch together
-- [ ] Early Access at squad size or platoon size (the build order puts platoon before release)
-- [ ] How pillars 1 (realism) and 3 (talk like the radio) apply to sci-fi and fantasy
+None right now.
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
