@@ -59,6 +59,9 @@ namespace FieldTable.Sim
         public List<string> Woods { get; set; } = new List<string>();
         public List<string> Ridges { get; set; } = new List<string>();
 
+        /// <summary>Last names for people: Marines, and anyone else a mission names.</summary>
+        public List<string> People { get; set; } = new List<string>();
+
         public static NamePools FromJson(string json)
         {
             try
