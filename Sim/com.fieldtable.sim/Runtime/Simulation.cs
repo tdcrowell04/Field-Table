@@ -7,7 +7,7 @@ namespace FieldTable.Sim
     /// The whole fight: map, forces, units, clock, dice, fog of war, and log.
     /// Runs one WEGO turn at a time. Orders and verbs plug in at later pieces.
     /// </summary>
-    public sealed class Simulation
+    public sealed partial class Simulation
     {
         readonly List<Force> forces = new List<Force>();
         readonly List<Unit> units = new List<Unit>();
@@ -93,6 +93,8 @@ namespace FieldTable.Sim
         public void RunTurn()
         {
             Log.Add(new TurnStarted(), Clock);
+            frames.Clear();
+            if (frameViewer != null) Snapshot();
             int steps = Clock.StepsPerTurn;
             for (int i = 0; i < steps; i++)
             {
@@ -110,8 +112,40 @@ namespace FieldTable.Sim
 
         void StepOnce()
         {
-            // Movement, fire, and verbs plug in here in later pieces.
+            StepUnits(1f / SimClock.StepsPerSecond);
             if (Clock.Step % SimClock.StepsPerSecond == 0) LookAround();
+            if (frameViewer != null && Clock.Step % frameEvery == 0) Snapshot();
+        }
+
+        // ---------- snapshots for playing a turn back ----------
+
+        Force frameViewer;
+        int frameEvery = 5;
+        readonly List<Frame> frames = new List<Frame>();
+
+        /// <summary>The snapshots taken during the last turn, oldest first.</summary>
+        public IReadOnlyList<Frame> Frames => frames;
+
+        /// <summary>
+        /// Takes a snapshot of every unit every few steps during a turn (every half second by default),
+        /// marking which ones the viewing force can see, so the table can play the turn back.
+        /// </summary>
+        public void RecordFrames(Force viewer, int everySteps = 5)
+        {
+            frameViewer = viewer;
+            frameEvery = Math.Max(1, everySteps);
+        }
+
+        void Snapshot()
+        {
+            var f = new Frame(Clock.Step);
+            var knowledge = Fog.For(frameViewer);
+            foreach (var u in units)
+            {
+                bool seen = ReferenceEquals(u.Force, frameViewer) || (knowledge.About(u.Id)?.Visible ?? false);
+                f.Units.Add(new UnitFrame(u, seen));
+            }
+            frames.Add(f);
         }
 
         static string PairKey(Force a, Force b) =>

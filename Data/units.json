@@ -1,0 +1,199 @@
+{
+  "weapons": [
+    {
+      "id": "m27",
+      "name": "M27 rifle",
+      "range": 550,
+      "burst": 3,
+      "cycle": 2.5,
+      "accuracy": 0.3,
+      "suppress": 0.15,
+      "lethality": 0.4,
+      "suppressed": true
+    },
+    {
+      "id": "m27-ar",
+      "name": "M27, automatic rifleman",
+      "range": 600,
+      "burst": 6,
+      "cycle": 2.0,
+      "accuracy": 0.32,
+      "suppress": 0.3,
+      "lethality": 0.4,
+      "suppressed": true
+    },
+    {
+      "id": "m4",
+      "name": "M4 carbine",
+      "range": 500,
+      "burst": 3,
+      "cycle": 2.5,
+      "accuracy": 0.27,
+      "suppress": 0.12,
+      "lethality": 0.4
+    },
+    {
+      "id": "m320",
+      "name": "M320 grenade launcher",
+      "range": 350,
+      "burst": 1,
+      "cycle": 8.0,
+      "accuracy": 0.3,
+      "suppress": 0.5,
+      "blast": 5,
+      "lethality": 0.5
+    },
+    {
+      "id": "grenade",
+      "name": "Hand grenade",
+      "range": 30,
+      "burst": 1,
+      "cycle": 6.0,
+      "accuracy": 0.45,
+      "suppress": 0.6,
+      "blast": 5,
+      "lethality": 0.5
+    },
+    {
+      "id": "ak",
+      "name": "AK rifle",
+      "range": 400,
+      "burst": 3,
+      "cycle": 2.5,
+      "accuracy": 0.22,
+      "suppress": 0.15,
+      "lethality": 0.4
+    },
+    {
+      "id": "pkm",
+      "name": "PKM machine gun",
+      "range": 1000,
+      "burst": 10,
+      "cycle": 2.0,
+      "accuracy": 0.3,
+      "suppress": 0.45,
+      "lethality": 0.45
+    },
+    {
+      "id": "rpg",
+      "name": "RPG-7",
+      "range": 300,
+      "burst": 1,
+      "cycle": 20,
+      "accuracy": 0.3,
+      "suppress": 0.6,
+      "blast": 6,
+      "lethality": 0.6
+    }
+  ],
+  "units": [
+    {
+      "id": "sl",
+      "name": "Squad leader",
+      "figure": "sl",
+      "weapon": "m27",
+      "ammo": 210,
+      "grenades": 2,
+      "load": 32,
+      "nightVision": true
+    },
+    {
+      "id": "tl",
+      "name": "Team leader",
+      "figure": "tl",
+      "weapon": "m27",
+      "ammo": 210,
+      "launcher": "m320",
+      "launcherAmmo": 8,
+      "grenades": 2,
+      "load": 35,
+      "nightVision": true,
+      "thermal": true
+    },
+    {
+      "id": "ar",
+      "name": "Automatic rifleman",
+      "figure": "ar",
+      "weapon": "m27-ar",
+      "ammo": 660,
+      "grenades": 2,
+      "load": 38,
+      "nightVision": true
+    },
+    {
+      "id": "aar",
+      "name": "Assistant automatic rifleman",
+      "figure": "aar",
+      "weapon": "m27",
+      "ammo": 420,
+      "grenades": 2,
+      "load": 36,
+      "nightVision": true
+    },
+    {
+      "id": "rf",
+      "name": "Rifleman",
+      "figure": "rf",
+      "weapon": "m27",
+      "ammo": 210,
+      "grenades": 2,
+      "load": 32,
+      "nightVision": true
+    },
+    {
+      "id": "dr",
+      "name": "Rifleman, drone operator",
+      "figure": "dr",
+      "weapon": "m27",
+      "ammo": 210,
+      "grenades": 2,
+      "load": 34,
+      "nightVision": true
+    },
+    {
+      "id": "doc",
+      "name": "Corpsman",
+      "figure": "doc",
+      "weapon": "m4",
+      "ammo": 150,
+      "load": 30,
+      "nightVision": true,
+      "medic": true
+    },
+    {
+      "id": "en-rf",
+      "name": "Enemy rifleman",
+      "figure": "oprf",
+      "weapon": "ak",
+      "ammo": 150,
+      "grenades": 1,
+      "load": 14
+    },
+    {
+      "id": "en-pkm",
+      "name": "Enemy machine gunner",
+      "figure": "pkm",
+      "weapon": "pkm",
+      "ammo": 400,
+      "load": 20,
+      "walkSpeed": 1.2,
+      "runSpeed": 3.0
+    },
+    {
+      "id": "en-rpg",
+      "name": "Enemy RPG gunner",
+      "figure": "rpg",
+      "weapon": "ak",
+      "ammo": 90,
+      "launcher": "rpg",
+      "launcherAmmo": 3,
+      "load": 22
+    },
+    {
+      "id": "civ",
+      "name": "Civilian",
+      "figure": "civ",
+      "load": 2
+    }
+  ]
+}

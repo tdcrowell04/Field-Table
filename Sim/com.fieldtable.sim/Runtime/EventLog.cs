@@ -83,6 +83,88 @@ namespace FieldTable.Sim
         public override string Describe() => Force.Name + " loses sight of " + Target.Name + ", last seen at " + LastSquare + ".";
     }
 
+    /// <summary>A burst, a grenade, or a rocket. Drawn as a tracer on the table.</summary>
+    public sealed class ShotFired : SimEvent
+    {
+        public Unit Shooter { get; }
+        public Vec2 From { get; }
+        public Vec2 To { get; }
+        public string Weapon { get; }
+        public bool Hit { get; }
+
+        public ShotFired(Unit shooter, Vec2 from, Vec2 to, string weapon, bool hit)
+        {
+            Shooter = shooter; From = from; To = to; Weapon = weapon; Hit = hit;
+        }
+
+        public override string Describe() => Shooter.Name + " fires " + Weapon + (Hit ? " and hits." : ".");
+    }
+
+    /// <summary>A grenade or rocket going off.</summary>
+    public sealed class BlastAt : SimEvent
+    {
+        public Unit Shooter { get; }
+        public Vec2 At { get; }
+        public WeaponDef Weapon { get; }
+
+        public BlastAt(Unit shooter, Vec2 at, WeaponDef weapon)
+        {
+            Shooter = shooter; At = at; Weapon = weapon;
+        }
+
+        public override string Describe() => Weapon.Name + " from " + Shooter.Name + " goes off.";
+    }
+
+    public sealed class UnitWounded : SimEvent
+    {
+        public Unit Unit { get; }
+        public string Cause { get; }
+        public UnitWounded(Unit unit, string cause) { Unit = unit; Cause = cause; }
+        public override string Describe() => Unit.Name + " is wounded by " + Cause + ".";
+    }
+
+    public sealed class UnitDown : SimEvent
+    {
+        public Unit Unit { get; }
+        public string Cause { get; }
+        public UnitDown(Unit unit, string cause) { Unit = unit; Cause = cause; }
+        public override string Describe() => Unit.Name + " is down, hit by " + Cause + ".";
+    }
+
+    public sealed class UnitDied : SimEvent
+    {
+        public Unit Unit { get; }
+        public string Cause { get; }
+        public UnitDied(Unit unit, string cause) { Unit = unit; Cause = cause; }
+        public override string Describe() => Unit.Name + " " + Cause + ".";
+    }
+
+    public sealed class UnitTreated : SimEvent
+    {
+        public Unit Medic { get; }
+        public Unit Patient { get; }
+        public UnitTreated(Unit medic, Unit patient) { Medic = medic; Patient = patient; }
+        public override string Describe() => Medic.Name + " treats " + Patient.Name + ".";
+    }
+
+    /// <summary>Something going wrong for one unit, like going under in deep water.</summary>
+    public sealed class UnitInTrouble : SimEvent
+    {
+        public Unit Unit { get; }
+        public string What { get; }
+        public UnitInTrouble(Unit unit, string what) { Unit = unit; What = what; }
+        public override string Describe() => Unit.Name + " " + What + ".";
+    }
+
+    /// <summary>A line on the radio net. Written from templates now; the in-game AI can voice them later.</summary>
+    public sealed class RadioCall : SimEvent
+    {
+        public Unit From { get; }
+        public string Text { get; }
+        public RadioCall(Unit from, string text) { From = from; Text = text; }
+        public override string Describe() => Text;
+    }
+
     /// <summary>Everything that happened, in order. Nothing is ever removed.</summary>
     public sealed class EventLog
     {

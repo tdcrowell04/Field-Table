@@ -156,6 +156,45 @@ namespace FieldTable.Sim
             return t.Height >= Postures.Height(unit.Posture) ? t.Concealment : t.Concealment * 0.3f;
         }
 
+        /// <summary>
+        /// Firing gives a shooter away: anyone on a hostile side with a line of sight to them spots them at once
+        /// within earshot (600 m, or 150 m with a suppressor), and at night a muzzle flash shows at any range
+        /// unless the weapon is suppressed.
+        /// </summary>
+        internal void Reveal(Simulation sim, Unit shooter, WeaponDef weapon)
+        {
+            float earshot = weapon.Suppressed ? 150f : 600f;
+            bool flash = sim.Light != LightLevel.Day && !weapon.Suppressed;
+            foreach (Force force in sim.Forces)
+            {
+                if (ReferenceEquals(force, shooter.Force) || !sim.AreHostile(force, shooter.Force)) continue;
+                Unit spotter = null;
+                foreach (Unit o in sim.Units)
+                {
+                    if (!ReferenceEquals(o.Force, force) || !o.CanAct) continue;
+                    float d = Vec2.Distance(o.Position, shooter.Position);
+                    if (d > earshot && !flash) continue;
+                    if (!Sight.Between(sim.Map, o, shooter).Clear) continue;
+                    spotter = o;
+                    break;
+                }
+                if (spotter == null) continue;
+                Contact c = For(force).Track(shooter);
+                bool wasVisible = c.Visible;
+                c.Known = true;
+                c.Visible = true;
+                c.Progress = 1f;
+                c.LastKnownPosition = shooter.Position;
+                c.LastSeenStep = sim.Clock.Step;
+                if (!wasVisible)
+                {
+                    sim.Record(new ContactSpotted(force, shooter, spotter, sim.Map.SquareOf(shooter.Position)));
+                    if (ReferenceEquals(force, sim.PlayerForce))
+                        sim.Radio(spotter, (string.IsNullOrEmpty(spotter.Team) ? spotter.Name : spotter.Team) + ": Taking fire! " + (shooter.Def.Name ?? "enemy") + " at " + sim.Map.SquareOf(shooter.Position) + ".");
+                }
+            }
+        }
+
         internal void Update(Simulation sim, float seconds)
         {
             foreach (Force force in sim.Forces)
@@ -195,6 +234,8 @@ namespace FieldTable.Sim
                             c.LastKnownPosition = target.Position;
                             c.LastSeenStep = sim.Clock.Step;
                             sim.Record(new ContactSpotted(force, target, spotter, sim.Map.SquareOf(target.Position)));
+                            if (ReferenceEquals(force, sim.PlayerForce) && sim.AreHostile(force, target.Force))
+                                sim.Radio(spotter, (string.IsNullOrEmpty(spotter.Team) ? spotter.Name : spotter.Team) + ": Contact, " + (target.Def.Name ?? "enemy").ToLowerInvariant() + " at " + sim.Map.SquareOf(target.Position) + ".");
                         }
                     }
                     else
