@@ -12,7 +12,7 @@ Pitch: *"A tabletop game you run by talking. Command Marines, a sci-fi squad, or
 - Settings at launch: Marines (today), sci-fi, and fantasy, each usable in whatever modes get released
 - Status: Concept. Code work starts now. The Field Table web prototype is the live design lab.
 - Engine: Unity 6, same as Conduits
-- Relation to Conduits: A separate project and side work. *"Field table is side work but if it's not too difficult and it gets released first then great."* Conduits stays the main build through its Steam Next Fest demo (October 2027).
+- Relation to Conduits: A separate project and side work. Conduits is the main build, through its Steam Next Fest demo (October 2027). Field Table is what Triston works on in the meantime, while waiting on the Conduits playtest and learning guitar. *"Field table is side work but if it's not too difficult and it gets released first then great."*
 - Roots: Kriegsspiel (Prussian officer training, 1820s), Chainmail and early D&D, and Marine Corps Gazette tactical decision games.
 
 ## Design pillars
@@ -24,7 +24,7 @@ Every feature has to serve at least one of these four. If it fights one, it gets
 3. Talk like the radio. Orders are given in natural language, typed or spoken, the way a leader talks on the net. Units read back and push back like real Marines.
 4. Honest fog of war. The player knows only what their units can see or are told. Bad intel is part of the game; a trap hidden in a mismatch between the map and the truth is not.
 
-In sci-fi and fantasy, each setting follows its own rules just as strictly: consistent, visible, and no movie logic. The Marines follow real-world norms. "Talk like the radio" becomes each setting's own way of giving orders: comms chatter for sci-fi, spoken commands and spells for fantasy. Picking Radio mode comes with the structure of what it will and will not accept.
+In sci-fi and fantasy, each setting follows its own rules just as strictly: consistent, visible, and no movie logic. The Marines follow real-world norms. "Talk like the radio" becomes each setting's own way of giving orders: comms chatter for sci-fi, spoken commands and spells for fantasy. Picking Radio mode comes with a guide to the structure it will and will not accept, with examples. Silly orders stay off the guide, so people figure them out on their own.
 
 ## Settings, modes, and group play
 
@@ -59,14 +59,14 @@ The player clicks a unit, then talks to it. Selecting first means the game alway
 - Typed orders: Free text.
 - Voice orders: Push-to-talk, using local speech-to-text (Whisper family). Primed with callsigns, the phonetic alphabet, building numbers, and the verb list. Spoken grids like "golf four" convert to G4. Added after typed orders work, since voice just produces text.
 - Order modes: A difficulty selector of its own, separate from the odds setting.
-  - Radio: proper radio format; sloppy orders get "say again." It comes with the structure of what it will and will not accept.
+  - Radio: proper radio format; sloppy orders get "say again." It comes with a guide to the structure it will and will not accept, with examples. Silly orders stay off the guide.
   - Plain English: normal talk.
   - Loose: anything goes and the AI sorts it out.
 - Order styles: Radio talk, plain English, and spells (for fantasy). Players can type in other languages too, if it's not too hard.
 - Verbs and blanks: Verbs are hard-coded: move, assault, overwatch, suppress, call for fire, treat casualty, carry, hold, report, and so on. Each verb has blanks for who, where, what target, and when or on what condition. The AI picks the verb and fills the blanks, locked by a grammar so it can only output units, grids, and verbs that exist.
 - Silly orders: Funny stuff like dancing is a real thing you can do, in every order mode, for the actual D&D feel. Nothing illegal. Radio mode still wants these in proper radio format.
 - Unclear orders: Answered in-world, like "Bravo, say again, which building?" The game never guesses which unit, building, or grid an order means.
-- Orders the code doesn't cover: The AI decides what happens. If it's something absolutely ridiculous, the unit answers in a clever way that fits the setting, never cringy. A bug report gets filed quietly (see AI usage), and the most-requested orders get added as real verbs.
+- Orders the code doesn't cover: The AI decides what happens, which doesn't always mean the unit does it. It can give a reason it isn't possible right now, or flatly refuse if the order is insulting or illegal. If it's something absolutely ridiculous, the unit answers in a clever way that fits the setting, never cringy. A bug report gets filed quietly (see AI usage), and the most-requested orders get added as real verbs.
 
 Example: "Alpha, once Charlie takes over, move on 4, only once Bravo and Charlie confirm" becomes assault, unit Alpha, target building 4, trigger: Bravo and Charlie report in position.
 
@@ -155,7 +155,7 @@ Every mission played in the Field Table prototype is a candidate mission for the
 - Two content sources: Hand-built branching missions for campaign or story, and missions generated from building blocks (terrain set, objective type, enemy package, complications) for replay.
 - Radio lines: Written as templates with blanks, like "Lead, [unit]. Set at [location], eyes on [target]." These can be voice-acted, with optional AI flavor on top.
 - First mission candidate: Cinder Ford, the bridge seizure, already played and debriefed.
-- Models: Triston makes the finished models. Claude helps speed up the work.
+- Models: Claude writes Blender scripts that build rough base models. Triston finishes them.
 
 ## Mods
 
@@ -178,8 +178,9 @@ Live AI is allowed in this game. This project is separate from Conduits' no-AI-a
 - Speech: Whisper-family speech-to-text, a few hundred megabytes, push-to-talk.
 - Shipping: Model files download on first launch. Local AI only at launch.
 - Cloud: Added later only if lots of players can't run the local model. If it comes, it runs through a backend we control, never with a key inside the game.
+- Guardrails: A hard no on sexual, racist, illegal, or similar content in anything the AI writes. The grammar lock keeps parsed orders to real verbs, units, and grids, and a filter covers anything the AI writes freely (orders the code doesn't cover, and the pocket DM).
 - Bug reports: When a player is connected, orders the code doesn't cover get reported quietly. Reports send the order text and the game state, never voice recordings. Players are told in the privacy policy and get an off switch in settings. No popup during play.
-- Steam: Live AI-generated content must be disclosed.
+- Steam: Disclose the live AI on the store page, with its guardrails (the grammar lock, the content filter, and the bug-report off switch). Add a line for the models: "base models made with AI help, finished by hand." Store page art and trailers are made by hand. Claude's help writing the game's code counts as a developer tool, which Steam doesn't ask about.
 
 ## Build order
 
@@ -290,8 +291,24 @@ Every call gets ruled before anything is built. Rulings only; overruled ideas ar
 | Early Access size | Platoon, as the build order says | *"Platoon"* |
 | Pillars in sci-fi and fantasy | Each setting follows its own rules just as strictly; the Marines follow real-world norms; each setting has its own way of giving orders | *"Yeah and if you select talk like the radio, it should come with the structure of what it will and will not accept."* |
 
+### 2026-10-26: ledger round 3 and Steam
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| Radio mode guide | Shows the structure Radio mode will and won't accept, with examples; silly orders stay off it | *"Just leave the silly orders off of that, see if people can figure it out on their own."* |
+| New bible sections | Settings and modes, look, progression and campaign, mods | |
+| What "the AI decides" means | The AI decides the outcome, which may be a reason it isn't possible right now or a flat refusal | *"AI decides what it will do in those instances, it doesn't necessarily mean that it will execute them. That could mean that it comes up with a reason that's not possible at that time or just give a flat out refusal if it's something insulting or illegal."* |
+| Closing note about Conduits | Kept word for word, with Triston's update below it | *"I mean yeah I changed my mind. I can't work on conduits til I hear back from the play test and learn guitar so what should I do in the meantime lol."* |
+| Conduits is the main build | Accepted | *"Yes it's the main build this is just something I want to do holy shit."* |
+| The handoff file | Left as it is; the bible is the current word | |
+| Steam's AI rule | Disclose the live AI with its guardrails; a store page line for AI-helped models; hand-made store art and trailers | *"I agree what you're saying in the response hard no on sexual, racist, illegal, etc... and I will disclose the core of the game and sure I'll have the disclaimer."* |
+| Help with models | Claude writes Blender scripts for rough base models; Triston finishes them | |
+| First build work | Claude writes a build plan for the squad slice and puts it in the repo | |
+
 ## Open questions
 
 None right now.
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
+
+*Update, Oct 26, 2026: "I mean yeah I changed my mind. I can't work on conduits til I hear back from the play test and learn guitar so what should I do in the meantime lol."*
