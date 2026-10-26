@@ -121,7 +121,8 @@ Code owns every hard fact it covers; the AI handles language. When an order fall
 - Map symbols: above company level, units show as map symbols. At company level and below, it's just the figures.
 - Last known positions: a unit you can't see right now looks different from one you can, so you know it's only where it was last seen. *"There should be something indicating if they're not still seen at a spot if it's just last known."* It shows as a faded figure with how long ago it was seen ("last seen 2 min ago"), fading more the older it gets.
 - 3D, from the angled camera: *"Ensure the maps are 3D as well so units can go in and out and they can hide and all that."* *"And viewed from that angled camera from earlier"*
-- The figures page's look: *"I really liked how the html looked that you gave me earlier too btw, with some tweaks that could look super cool"* The phone playtest page uses it. The game's own look is still open (see open questions): *"I actually like the drawn figures a look. I don't know which one of these to pick"*
+- The figures page's look: *"I really liked how the html looked that you gave me earlier too btw, with some tweaks that could look super cool"* The phone playtest page uses it.
+- The game's own look: real 3D ground and buildings (hills, floors, going in and out), with drawn figures standing on them like paper miniatures, the way the figures page works. Modders draw a figure instead of building a 3D model. (Ledger round 10, option c.)
 - Buildings: every building has doors and windows. Units go in and out through doors, or through a wall they breach. Inside, a unit is either at a window (sees out, can be seen and shot at, gets the wall's cover) or back from the windows (hidden, can't see out). Village buildings have 1 or 2 floors, town buildings 1 to 3; upstairs windows see farther and over walls and hedges.
 - Hiding: tall crops, reeds, trees, gullies, and walls hide you, more so lying down and holding still. A unit told to hide gets low, holds still, and picks the best concealment nearby.
 
@@ -223,6 +224,10 @@ Live AI is allowed in this game. This project is separate from Conduits' no-AI-a
 - Shipping: Model files download on first launch. Local AI only at launch. The model file stays out of the repo; during development it lives only on Triston's PC.
 - Players' own AI models: an advanced setting to load their own local model file. Local files only, no cloud keys. The content filter always stays on. In co-op and versus, everyone uses the host's model. Labeled "use at your own risk," with a short list of tested models.
 - Phone playtesting: a playtest page runs the same simulation in a phone's browser, with Haiku reading typed orders as a stand-in for the local model. Nothing from it ships. *"Use Haiku for this please so I don't eat up my usage and it should feel closer to what's in the final thing right"*
+  - You open it from a link on your phone, like the ledger. Nothing to install.
+  - It runs the same simulation code the game uses, built for the browser with .NET's WebAssembly tools.
+  - Its code lives in the repo, in `Playtest/`.
+  - What it has: the figures-page look on a generated bridge-seizure map, the 13-Marine squad, typed orders read by Haiku, and turns that play out.
 - Cloud: Added later only if lots of players can't run the local model. If it comes, it runs through a backend we control, never with a key inside the game.
 - Guardrails: A hard no on sexual, racist, illegal, or similar content in anything the AI writes. The grammar lock keeps parsed orders to real verbs, units, and grids, and a filter covers anything the AI writes freely (orders the code doesn't cover, and the pocket DM).
 - Bug reports: When a player is connected, orders the code doesn't cover get reported quietly. Reports send the order text and the game state, never voice recordings. Players are told in the privacy policy and get an off switch in settings. No popup during play.
@@ -484,9 +489,19 @@ Every call gets ruled before anything is built. Rulings only; overruled ideas ar
 | A mobile version, after the PC Early Access release, newer phones only | Accepted | |
 | The phone playtest page next | Accepted | *"Where do I do that at?"* |
 
+### 2026-10-26: ledger round 10
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| The game's own look | (c): real 3D ground and buildings, with drawn figures standing on them like paper miniatures | |
+| Where you play the playtest page: a link on your phone | Accepted | |
+| How it runs: the same simulation, built for the browser with .NET's WebAssembly tools | Accepted | |
+| Where its code lives: `Playtest/` in the repo | Accepted | |
+| Build the playtest page | Accepted | |
+
 ## Open questions
 
-- [ ] The game's own look: 3D models, drawn figures, or both (ledger round 10)
+- None right now.
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 
