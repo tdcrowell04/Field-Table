@@ -305,9 +305,24 @@ Every call gets ruled before anything is built. Rulings only; overruled ideas ar
 | Help with models | Claude writes Blender scripts for rough base models; Triston finishes them | |
 | First build work | Claude writes a build plan for the squad slice and puts it in the repo | |
 
+### 2026-10-26: ledger round 4 (the squad slice plan)
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| The slice uses the Marines and the Cinder Ford bridge seizure | Accepted | |
+| The simulation is plain C# kept apart from Unity | Accepted | |
+| Units, verbs, and maps are data files from day one | Accepted | |
+| Verbs in the slice | 25 verbs (the list goes to round 5) | *"Let's get 25 verbs made."* |
+| Plain English mode only in the slice | Accepted | *"Sure."* |
+| The order reader | The AI reads orders from the start, with nothing of Triston's personal license in the released game (how it's done goes to round 5) | *"Let's get the local model or you running in it first as long as it'll release with no traces of my personal license or anything in the game later."* |
+| Orders the code doesn't cover go to a local log until the bug-report server exists | Accepted | |
+| The 14 pieces of the slice, in order | Accepted | |
+| Every decision goes in an updated ledger, saved as a rule in `CLAUDE.md` | Accepted | *"I always want an updated ledger ok"* |
+
 ## Open questions
 
-None right now.
+- [ ] The 25 verbs for the slice (round 5)
+- [ ] How the AI reads orders from the start: local model or Claude (round 5)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 
