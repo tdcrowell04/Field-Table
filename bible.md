@@ -121,7 +121,9 @@ Code owns every hard fact it covers; the AI handles language. When an order fall
 - Map symbols: above company level, units show as map symbols. At company level and below, it's just the figures.
 - Last known positions: a unit you can't see right now looks different from one you can, so you know it's only where it was last seen. *"There should be something indicating if they're not still seen at a spot if it's just last known."* It shows as a faded figure with how long ago it was seen ("last seen 2 min ago"), fading more the older it gets.
 - 3D, from the angled camera: *"Ensure the maps are 3D as well so units can go in and out and they can hide and all that."* *"And viewed from that angled camera from earlier"*
-- The figures page's look: *"I really liked how the html looked that you gave me earlier too btw, with some tweaks that could look super cool"*
+- The figures page's look: *"I really liked how the html looked that you gave me earlier too btw, with some tweaks that could look super cool"* The phone playtest page uses it. The game's own look is still open (see open questions): *"I actually like the drawn figures a look. I don't know which one of these to pick"*
+- Buildings: every building has doors and windows. Units go in and out through doors, or through a wall they breach. Inside, a unit is either at a window (sees out, can be seen and shot at, gets the wall's cover) or back from the windows (hidden, can't see out). Village buildings have 1 or 2 floors, town buildings 1 to 3; upstairs windows see farther and over walls and hedges.
+- Hiding: tall crops, reeds, trees, gullies, and walls hide you, more so lying down and holding still. A unit told to hide gets low, holds still, and picks the best concealment nearby.
 
 ## Maps
 
@@ -132,7 +134,10 @@ Code owns every hard fact it covers; the AI handles language. When an order fall
 - Terrain values (speed, cover, height, how much it blocks sight, how well it hides you) live in `Data/terrain.json`. Game data lives in `Data/`, the same way a mod's files would.
 - The 15 map features, any of which can be in a map but don't have to be: hills, ridgelines and cliffs, rivers too deep to wade, creeks, lakes and ponds, marsh and reeds, forest, woodlots and orchards, hedgerows and stone walls, farm fields (plowed, stubble, and tall crops that hide you), roads and trails, bridges, villages and farms, towns, and gullies. Sci-fi and fantasy can add their own later.
 - Deep water: crossing a river takes a bridge, a boat, or a swim. *"don't miss the chance for a player to tell a fully kitted up marine to swim across the river and they can't and drown. Everything should be that custom."*
-- Each map gets a random mix of features. A start state can require some (a bridge seizure needs water and a bridge); the rest is random.
+- Each map gets 3 to 11 of the 15 features at random, plus whatever the start state requires (a bridge seizure needs water and a bridge). Maps are 8 by 6 squares of 100 m by default; a start state can set its own.
+- With bridges in play, every road that crosses water gets a bridge. Without them, roads keep to one bank of a river and cross creeks at fords. Trails never run through deep water.
+- Villages have 4 to 9 buildings; towns are a street grid with 2 to 6 buildings per block. Both prefer a road but move off it if they must. Building sizes from the kit: shed 6×5 m, house 10×8, farmhouse 14×10, long house 18×9, barn 20×12, warehouse 30×20 (towns only). Buildings are numbered north to south, then west to east.
+- Cliffs run along part of a ridge's face, broken wherever a road, a settlement, or water crosses. Place names come from `Data/names.json`, so each setting can bring its own.
 - Before a mission, players can ask the game master for anything specific (a 100 m hill, a town, no river) and the generator builds it in.
 - Maps are written down in one map format, like a save file, so generated maps can be saved and replayed, players can write maps by hand for their own missions, and maps can be shared on Steam Workshop.
 
@@ -142,6 +147,7 @@ Code owns every hard fact it covers; the AI handles language. When an order fall
 - Spotting builds up while someone is in view, with no dice: about half a second for someone standing in the open at 100 m, 6 seconds at 600 m, much slower if they're prone, still, or hidden.
 - Day and night are both in from the start: day, twilight, and night, with NODs and thermals. *"No dude it was already in the little artifact game you made, why can't you include it in something you're actually thinking about?"*
 - Ranges: the naked eye spots a person at 1,000 m by day, 400 m at twilight, 50 m at night. NODs reach 300 m at twilight or night, spot 40% slower, and don't help by day. A thermal reaches 1,500 m day or night and sees body heat through reeds and grass, not through trees or walls.
+- Friction: in about one mission in five, one or two things go wrong on their own (a Marine left his NODs behind, a radio battery dies, a weapon jams, a guide is late, the map is out of date), picked at random from a list. The debrief says what happened. *"let's do more like 20%"*
 - Gear isn't guaranteed. Each start state sets who carries what, and sometimes someone is missing something. *"Not necessarily, what if you were out for a short op and it went bad and now someone didn't pack his nods because he didn't want to have to worry aobut it. Shit like that shouldn't happen every game or people will get sick of it but shit should just happen like that, not even just in gear but in other stuff too."*
 - Illumination rounds and flares light an area up to twilight for a short time (built with call for fire).
 - Firing at night shows the shooter to anyone with a line of sight, even past eye range (built with fire). *"Unless using something to compensate for that if the gear is meant for night"*
@@ -231,6 +237,7 @@ Each step is a complete, playable game on its own. Don't start a step until the 
 3. Co-op and versus at squad level.
 4. Platoon: Three squads plus attachments; the radio net and platoon sergeant problems.
 5. Release on Steam Early Access at platoon size, with all three settings (Marines, sci-fi, fantasy).
+   - Later, after the PC Early Access release: a mobile version for newer phones only (8 GB of memory or more), with mod sharing and online play through other services, since Steam isn't on phones.
 6. Mods and pocket DM during Early Access.
 7. Company: Full individual models and the first real autoresolve.
 8. Battalion and up: The abstract layer with drill-down into any company fight.
@@ -456,9 +463,30 @@ Every call gets ruled before anything is built. Rulings only; overruled ideas ar
 | The camera | *"And viewed from that angled camera from earlier"* |
 | The look | *"I really liked how the html looked that you gave me earlier too btw, with some tweaks that could look super cool"* |
 
+### 2026-10-26: ledger round 9
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| The phone page in the figures-page look | Accepted | |
+| The game's own look | Undecided | Picked (a), with *"I actually like the drawn figures a look. I don't know which one of these to pick"* |
+| Going in and out of buildings | Accepted | |
+| Upper floors | Accepted | |
+| Hiding outside | Accepted | |
+| Friction | Accepted, about one mission in five | *"let's do more like 20%"* |
+| Map size | Accepted | |
+| How many features | Accepted | |
+| Roads and water | Accepted | |
+| Villages and towns | Accepted | |
+| Building sizes | Accepted | |
+| Place names | Accepted | |
+| Cliffs | Accepted | |
+| Building numbers | Accepted | |
+| A mobile version, after the PC Early Access release, newer phones only | Accepted | |
+| The phone playtest page next | Accepted | *"Where do I do that at?"* |
+
 ## Open questions
 
-- [ ] The look, going in and out of buildings, friction, the map generator's calls, and a mobile version (ledger round 9)
+- [ ] The game's own look: 3D models, drawn figures, or both (ledger round 10)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 
