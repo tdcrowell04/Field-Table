@@ -23,6 +23,7 @@ Field Table is Triston's game. Triston is the designer; Claude is the coder.
 - `squad-slice-plan.md`: the build plan for step 1, the squad slice.
 - `field-table-handoff.md`: the handoff from the session before this repo existed. Kept as a record; don't edit it.
 - `field-table-figures.html`: the figures page. Published at https://claude.ai/artifact/Hbqx4vtEoRbHamyprSCqEW
+- `Playtest/`: the phone playtest page. `build.sh` builds it into `Playtest/out/`; publish `out/playtest.html` with everything in `out/` as its files, to https://claude.ai/artifact/A9AH1SGi5o5Rt2Uoe4bu9y
 
 ## The workspace
 

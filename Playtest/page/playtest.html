@@ -1,0 +1,1604 @@
+<title>Field Table Playtest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@700;800&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a field desk at night, phone first. The sand table fills the top of the screen; the net, the squad, the brief, and the dice sit under it in tabs, with the order box pinned at the bottom. On a wide screen the table takes the left and the desk the right. One dark look, on purpose, matching the figures page. */
+:root {
+  color-scheme: dark;
+  --bg: #191b16;
+  --panel: #22251e;
+  --panel-2: #2b2f25;
+  --line: #3a3f32;
+  --fg: #e7e1cf;
+  --muted: #a39e8a;
+  --sand: #d4b46a;
+  --ink: #1b1a14;
+  --friend: #78aee0;
+  --enemy: #e2675c;
+  --civ: #efe9da;
+  --tracer: #ffd166;
+  --good: #8fc27a;
+  --warn: #e0a24f;
+  --display: "Big Shoulders Stencil Display", "Arial Narrow", Impact, sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; background: var(--bg); }
+body { color: var(--fg); font: 15px/1.45 var(--body); margin: 0; overflow: hidden; }
+button, textarea { font: inherit; color: inherit; }
+button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--sand); outline-offset: 2px; }
+
+.app {
+  height: 100%; box-sizing: border-box;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px 10px;
+  display: grid; gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(180px, 52fr) minmax(0, 48fr) auto;
+  grid-template-areas: "top" "table" "desk" "orders";
+}
+.top { grid-area: top; display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.top h1 { margin: 0; font: 800 24px/1 var(--display); letter-spacing: .03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.top .eyebrow { font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--sand); white-space: nowrap; }
+.clock { margin-left: auto; font: 500 12px/1 var(--mono); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.table { grid-area: table; position: relative; min-height: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); background: #11120e; }
+.table canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+.table canvas:active { cursor: grabbing; }
+.zoom { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 6px; }
+.tbtn {
+  min-width: 36px; height: 36px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line);
+  background: rgba(25, 27, 22, .86); color: var(--fg); font: 500 15px/1 var(--mono); cursor: pointer;
+}
+.tbtn:hover { background: var(--panel-2); }
+.tbtn[aria-pressed="true"] { background: var(--sand); color: var(--ink); border-color: var(--sand); }
+.card {
+  position: absolute; top: 8px; left: 8px; max-width: min(250px, calc(100% - 70px));
+  background: rgba(25, 27, 22, .92); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px 10px;
+  display: flex; flex-direction: column; gap: 4px; font-size: 13px;
+}
+.card .nm { font-weight: 600; font-size: 15px; line-height: 1.2; }
+.card .meta { color: var(--muted); line-height: 1.35; }
+.card .row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.card .row button { font: 500 12px/1 var(--mono); padding: 7px 9px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; }
+.card .row button.primary { background: var(--sand); color: var(--ink); border-color: var(--sand); }
+.playbar { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); display: flex; gap: 6px; align-items: center; background: rgba(25, 27, 22, .9); border: 1px solid var(--line); border-radius: 8px; padding: 5px; }
+.playbar .t { font: 500 12px/1 var(--mono); color: var(--muted); padding: 0 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dice { position: absolute; left: 8px; bottom: 56px; display: flex; flex-direction: column; gap: 5px; pointer-events: none; max-width: calc(100% - 16px); }
+.die { display: flex; gap: 8px; align-items: center; background: rgba(25, 27, 22, .92); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font: 12px/1.3 var(--mono); animation: pop .25s ease-out; }
+.die b { font: 800 20px/1 var(--display); min-width: 30px; text-align: center; padding: 3px 4px; border-radius: 4px; background: var(--fg); color: var(--ink); }
+.die.ok b { background: var(--good); } .die.bad b { background: var(--enemy); }
+@keyframes pop { from { transform: translateY(6px); opacity: 0; } }
+.banner { position: absolute; inset: auto 12px 50% 12px; transform: translateY(50%); text-align: center; background: rgba(25, 27, 22, .94); border: 1px solid var(--sand); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.banner h2 { margin: 0; font: 800 32px/1 var(--display); letter-spacing: .03em; }
+.banner p { margin: 0; color: var(--muted); }
+.boot { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; text-align: center; padding: 20px; background: #11120e; }
+.boot h2 { margin: 0; font: 800 30px/1 var(--display); letter-spacing: .04em; }
+.boot p { margin: 0; color: var(--muted); max-width: 34ch; }
+.boot .bar { width: min(220px, 70%); height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.boot .bar i { display: block; height: 100%; width: 30%; background: var(--sand); animation: slide 1.2s ease-in-out infinite; }
+@keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+
+.desk { grid-area: desk; min-height: 0; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); flex: none; }
+.tabs button { flex: 1; background: none; border: 0; padding: 10px 6px 9px; font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+.tabs button[aria-selected="true"] { color: var(--sand); border-bottom-color: var(--sand); }
+.tabs .count { font-variant-numeric: tabular-nums; color: var(--fg); }
+.pane { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px 12px; }
+
+.net { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.net li { display: grid; grid-template-columns: 50px minmax(0, 1fr); gap: 8px; font: 13px/1.4 var(--mono); padding: 3px 0; }
+.net .t { color: var(--muted); font-variant-numeric: tabular-nums; }
+.net .who { color: var(--friend); font-weight: 500; }
+.net li.you .who { color: var(--sand); }
+.net li.you .x { color: var(--fg); }
+.net li.event .x { color: var(--muted); }
+.net li.bad .x { color: var(--enemy); }
+.net li.warn .x { color: var(--warn); }
+.net li.turn { grid-template-columns: minmax(0, 1fr); color: var(--muted); border-top: 1px solid var(--line); margin-top: 6px; padding-top: 7px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+
+.squad { display: flex; flex-direction: column; gap: 12px; }
+.team h3, .mini { margin: 0 0 5px; font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--sand); }
+.mate { width: 100%; display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 4px 9px; align-items: baseline; text-align: left; background: none; border: 0; border-radius: 5px; padding: 6px 6px; cursor: pointer; }
+.mate:hover, .mate[aria-pressed="true"] { background: var(--panel-2); }
+.mate .dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--friend); box-sizing: border-box; align-self: center; }
+.mate .dot.wounded { border-color: var(--warn); background: var(--warn); }
+.mate .dot.down { border-color: var(--enemy); background: var(--enemy); }
+.mate .dot.dead { border-color: var(--muted); background: var(--muted); }
+.mate .n { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mate .n small { font-weight: 400; color: var(--muted); font-size: 13px; }
+.mate .a { font: 12px/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.mate .o { grid-column: 2 / 4; font: 12px/1.3 var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.brief { display: flex; flex-direction: column; gap: 12px; max-width: 68ch; }
+.brief h2 { margin: 0; font: 800 26px/1 var(--display); letter-spacing: .03em; text-wrap: balance; }
+.brief ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.brief p { margin: 0; color: var(--muted); }
+.brief .says { font: 13px/1.5 var(--mono); color: var(--fg); background: var(--panel-2); border-radius: 6px; padding: 8px 10px; }
+.brief .acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.rolls { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.rolls li { display: grid; grid-template-columns: 50px minmax(0, 1fr) 40px; gap: 8px; font: 12px/1.35 var(--mono); padding: 3px 0; align-items: baseline; }
+.rolls .t { color: var(--muted); font-variant-numeric: tabular-nums; }
+.rolls .r { text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; }
+.rolls .r.ok { color: var(--good); } .rolls .r.bad { color: var(--enemy); }
+.rolls li.big .x { color: var(--fg); } .rolls li:not(.big) .x { color: var(--muted); }
+.empty { color: var(--muted); font-size: 14px; }
+
+.preview { display: flex; flex-direction: column; gap: 8px; }
+.ocard { border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; background: var(--bg); }
+.ocard .h { font-weight: 600; }
+.ocard .h small { font: 12px/1 var(--mono); color: var(--muted); font-weight: 400; margin-left: 6px; }
+.ocard .rb { font: 13px/1.4 var(--mono); color: var(--friend); }
+.ocard ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font: 12px/1.35 var(--mono); }
+.ocard li.ok { color: var(--muted); } .ocard li.ok::before { content: "✓ "; color: var(--good); }
+.ocard li.no { color: var(--enemy); } .ocard li.no::before { content: "✗ "; }
+.ocard li.warn { color: var(--warn); } .ocard li.warn::before { content: "! "; }
+.ocard.say { border-color: var(--warn); }
+.ocard.nc { border-style: dashed; }
+
+.orders { grid-area: orders; display: flex; gap: 8px; align-items: flex-end; }
+.orders textarea {
+  flex: 1; min-width: 0; resize: none; box-sizing: border-box; height: 44px; max-height: 120px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; font-size: 16px; line-height: 1.3;
+}
+.orders textarea::placeholder { color: var(--muted); }
+.btn { height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); font-weight: 600; cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--sand); border-color: var(--sand); color: var(--ink); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.small { height: 34px; padding: 0 11px; font-size: 14px; }
+
+@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "top top" "table desk" "table orders";
+    padding-block: 14px;
+  }
+}
+@media (max-width: 420px) { .top .eyebrow { display: none; } }
+@media (prefers-reduced-motion: reduce) { .die, .boot .bar i { animation: none; } }
+</style>
+
+<div class="app">
+  <header class="top">
+    <span class="eyebrow">Field Table · playtest</span>
+    <h1 id="title">Field Table</h1>
+    <span class="clock" id="clock">Loading</span>
+  </header>
+
+  <div class="table" id="tableBox">
+    <canvas id="cv" aria-label="The sand table: drag to move, pinch or scroll to zoom, tap a Marine to select, tap the ground to name a spot"></canvas>
+    <div class="zoom">
+      <button class="tbtn" id="zin" type="button" aria-label="Zoom in">+</button>
+      <button class="tbtn" id="zout" type="button" aria-label="Zoom out">−</button>
+      <button class="tbtn" id="zfit" type="button" aria-label="Show the whole map">⤢</button>
+    </div>
+    <div class="card" id="card" hidden></div>
+    <div class="dice" id="dice" aria-live="polite"></div>
+    <div class="playbar" id="playbar" hidden>
+      <button class="tbtn" id="ppause" type="button">Pause</button>
+      <button class="tbtn" data-speed="2" type="button">2×</button>
+      <button class="tbtn" data-speed="4" type="button">4×</button>
+      <button class="tbtn" data-speed="8" type="button">8×</button>
+      <span class="t" id="ptime">0:00</span>
+      <button class="tbtn" id="pskip" type="button">Skip</button>
+    </div>
+    <div class="banner" id="banner" hidden></div>
+    <div class="boot" id="boot">
+      <h2>Field Table</h2>
+      <p id="bootMsg">Loading the simulation. It's about 11 MB, so the first load takes a moment.</p>
+      <div class="bar"><i></i></div>
+    </div>
+  </div>
+
+  <section class="desk" aria-label="The desk">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-tab="net" aria-selected="true">Net</button>
+      <button type="button" role="tab" data-tab="squad" aria-selected="false">Squad</button>
+      <button type="button" role="tab" data-tab="brief" aria-selected="false">Brief</button>
+      <button type="button" role="tab" data-tab="dice" aria-selected="false">Dice</button>
+    </div>
+    <div class="pane" id="pane" role="tabpanel" tabindex="0"></div>
+  </section>
+
+  <form class="orders" id="orderForm" autocomplete="off">
+    <textarea id="orderBox" rows="1" placeholder="Orders for the squad" aria-label="Orders to the squad"></textarea>
+    <button class="btn" id="sendBtn" type="submit" disabled>Send</button>
+    <button class="btn primary" id="playBtn" type="button" disabled>Play turn</button>
+  </form>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  // ================================================================== the figures, from the figures page (field-table-figures.html)
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const H = (a, b) => { const s = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return s - Math.floor(s); };
+  function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function shade(hex, f) {
+    const n = parseInt(hex.slice(1), 16);
+    return "rgb(" + Math.round((n >> 16 & 255) * f) + "," + Math.round((n >> 8 & 255) * f) + "," + Math.round((n & 255) * f) + ")";
+  }
+  const COL = { friend: "#78aee0", enemy: "#e2675c", civ: "#efe9da", tracer: "#ffd166" };
+  const css = getComputedStyle(document.documentElement);
+  const FD = css.getPropertyValue("--display").trim(), FM = css.getPropertyValue("--mono").trim(), FB = css.getPropertyValue("--body").trim();
+
+  // ------------------------------------------------------------------ camo and colors
+  function camo(cols, seed) {
+    const N = 40, c = document.createElement("canvas"); c.width = c.height = N;
+    const x = c.getContext("2d"), r = rng(seed);
+    const waves = Array.from({ length: 5 }, () => ({ fx: 1 + Math.floor(r() * 3), fy: 1 + Math.floor(r() * 3), sx: r() < 0.5 ? 1 : -1, ph: r() * 6.283, a: 0.6 + r() * 0.6 }));
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      let v = 0; waves.forEach(w => { v += w.a * Math.sin(6.283 * (w.sx * w.fx * i + w.fy * j) / N + w.ph); });
+      v = v / 2.2 + (r() - 0.5) * 0.9;
+      x.fillStyle = cols[v < -0.55 ? 3 : v < -0.05 ? 2 : v < 0.45 ? 0 : 1]; x.fillRect(i, j, 1, 1);
+    }
+    return c;
+  }
+  const CAMO = { dry: camo(["#c2ad86", "#a48d68", "#87704f", "#62513c"], 7), green: camo(["#6e7350", "#4d5536", "#64543c", "#2b2a22"], 7) };
+  const CAMO_AVG = { dry: "#a48d68", green: "#5d6143" };
+  const PATS = new WeakMap();
+  function pat(ctx, canvas) {
+    let m = PATS.get(ctx); if (!m) PATS.set(ctx, m = new Map());
+    let p = m.get(canvas); if (!p) { p = ctx.createPattern(canvas, "repeat"); m.set(canvas, p); }
+    return p;
+  }
+  const INK_DAY = { gun: "#232323", wood: "#7b4a29", olive: "#4b5132", tube: "#5c5b3b", tip: "#4f4a2e", box: "#4a4a3a", pouch: "#66583f", pad: "#34332e", radio: "#4b4636", ant: "#3a372c", bag: "#6a5c42", med: "#5f6a45", drone: "#2a2b2d", screen: "#86c3e6", eye: "#1c2023", cup: "#5e5444", nvg: "#1f1f1d", far: "rgba(0,0,0,0.22)", flash: "#ffcf73", flashCore: "#fff5dc", shadow: "rgba(0,0,0,0.28)" };
+  const INK_IR = { gun: "#7a7a7a", wood: "#8d8d8d", olive: "#8a8a8a", tube: "#8e8e8e", tip: "#8a8a8a", box: "#8a8a8a", pouch: "#a3a3a3", pad: "#b5b5b5", radio: "#bdbdbd", ant: "#9a9a9a", bag: "#adadad", med: "#b0b0b0", drone: "#d8d8d8", screen: "#f4f4f4", eye: "#e2e2e2", cup: "#cfcfcf", nvg: "#9a9a9a", far: "rgba(0,0,0,0.12)", flash: "#ffffff", flashCore: "#ffffff", shadow: "rgba(0,0,0,0)" };
+  let INK = INK_DAY;
+  const THERM = { shirt: "#d2d2d2", pants: "#c6c6c6", vest: "#aaaaaa", headC: "#bebebe", boots: "#9a9a9a", skin: "#ffffff", glove: "#e8e8e8", camo: null };
+
+  // ------------------------------------------------------------------ the figures
+  const MARINES = {
+    sl:  { name: "Squad leader", line: "M27 rifle and the squad radio", weapon: "m27", skin: "#c99a73", radio: true },
+    tl:  { name: "Team leader", line: "M27 with a grenade launcher; leads a team of four", weapon: "m27g", skin: "#8d5b3c" },
+    ar:  { name: "Automatic rifleman", line: "M27 with a bipod, fires in bursts", weapon: "m27b", skin: "#b07a55" },
+    aar: { name: "Assistant automatic rifleman", line: "M27 and the team's spare magazines", weapon: "m27", skin: "#6b4430", pack: true },
+    rf:  { name: "Rifleman", line: "M27 rifle", weapon: "m27", skin: "#e0b996" },
+    dr:  { name: "Drone operator", line: "A rifleman trained to fly the squad's attack drones", weapon: "m27", skin: "#a8774f", drone: true },
+    doc: { name: "Corpsman", line: "M4 carbine and an aid bag; Navy, with the platoon", weapon: "m4", skin: "#d6a982", medbag: true, chip: "Navy" }
+  };
+  const OTHERS = {
+    oprf: { name: "Enemy rifleman", line: "Assault rifle and a chest rig", side: "op", weapon: "ak", head: "wrap", skin: "#b4835e", shirt: "#5d6248", pants: "#4f5560", vest: "#2e2d29", headC: "#c9bfa7", boots: "#3b3128" },
+    pkm:  { name: "Machine gunner", line: "Belt-fed machine gun", side: "op", weapon: "pkm", head: "cap", skin: "#9a6a48", shirt: "#6b5a45", pants: "#3f4652", vest: "#2e2d29", headC: "#2f3a2a", boots: "#3b3128" },
+    rpg:  { name: "RPG gunner", line: "Rocket launcher", side: "op", weapon: "rpg", head: "wrap", skin: "#c39370", shirt: "#4c5640", pants: "#6a5f4f", vest: "#2e2d29", headC: "#7b6a55", boots: "#3b3128" },
+    civ:  { name: "Civilian", line: "Unarmed", side: "civ", weapon: "none", head: "hair", skin: "#c08c66", shirt: "#cfc6b0", pants: "#4b5568", headC: "#2b2420", boots: "#4a3b2e" }
+  };
+  const SPECS = {};
+  let ground = "green";
+  function buildSpecs() {
+    Object.keys(MARINES).forEach(id => {
+      SPECS[id] = Object.assign({ side: "us", head: "helmet", camo: CAMO[ground], shirt: CAMO_AVG[ground], pants: CAMO_AVG[ground], headC: CAMO_AVG[ground], vest: "#7a6a4d", boots: "#93795a", glove: "#3b3a35" }, MARINES[id]);
+    });
+    Object.keys(OTHERS).forEach(id => { SPECS[id] = Object.assign({}, OTHERS[id]); });
+  }
+  buildSpecs();
+  const ORDER_US = ["sl", "tl", "ar", "aar", "rf", "dr", "doc"], ORDER_OP = ["oprf", "pkm", "rpg", "civ"];
+  const SIDE_NAME = { us: "Marine", op: "Enemy", civ: "Civilian" };
+  const MUZ = { m27: 37, m27b: 37, m27g: 37, m4: 29, ak: 29, pkm: 36, rpg: 40 };
+  const paint = (ctx, sp, key) => sp.camo && (key === "shirt" || key === "pants" || key === "headC") ? pat(ctx, sp.camo) : sp[key];
+
+  const uvec = l => ({ x: Math.sin(l), y: -Math.cos(l) });
+  const rot = (a, v) => ({ x: v.x * Math.cos(a) - v.y * Math.sin(a), y: v.x * Math.sin(a) + v.y * Math.cos(a) });
+  function ik(S, E, L1, L2, sign) {
+    const dx = E.x - S.x, dy = E.y - S.y, a = Math.atan2(dy, dx);
+    let d = Math.hypot(dx, dy); d = clamp(d, Math.abs(L1 - L2) + 0.01, L1 + L2 - 0.01);
+    const b = Math.acos(clamp((L1 * L1 + d * d - L2 * L2) / (2 * L1 * d), -1, 1));
+    const ang = a - sign * b;
+    return { x: S.x + L1 * Math.cos(ang), y: S.y + L1 * Math.sin(ang) };
+  }
+
+  function pose(sp, name, t, o) {
+    o = o || {};
+    const armed = sp.weapon !== "none";
+    const P = { hip: { x: 0, y: -48 }, lean: 0.05, feet: [{ x: -5, y: 0 }, { x: 6, y: 0 }], knee: [null, null], legSign: [1, 1], firing: false, drop: null, hands: null, grip: null, ang: 0, ctrl: false };
+    if (name === "stand") P.hip.y += Math.sin(t * 1.8) * 0.5;
+    else if (name === "move") {
+      const ph = t * 6, s = Math.sin(ph) * 12, c = Math.cos(ph);
+      P.lean = 0.13; P.hip.y = -47.5 - Math.abs(c) * 1.4;
+      P.feet = [{ x: -s, y: -Math.max(0, -c) * 6 }, { x: s, y: -Math.max(0, c) * 6 }];
+    } else if (name === "kneel") {
+      P.hip = { x: -4, y: armed ? -29 : -25 }; P.lean = armed ? 0.16 : 0.55;
+      P.feet = [{ x: -31, y: -3 }, { x: 17, y: 0 }]; P.knee = [{ x: -9, y: -3 }, null];
+    } else if (name === "prone") {
+      P.hip = { x: -12, y: -8 }; P.lean = Math.PI / 2 - 0.04;
+      P.feet = [{ x: -60, y: -3 }, { x: -57, y: -7 }]; P.legSign = [-1, -1];
+    } else if (name === "down") {
+      P.hip = { x: 10, y: -8 }; P.lean = -Math.PI / 2 + 0.05;
+      P.feet = [{ x: 56, y: -4 }, { x: 50, y: -13 }]; P.legSign = [1, -1];
+    }
+    const u = uvec(P.lean), sh = { x: P.hip.x + u.x * 27, y: P.hip.y + u.y * 27 }, hd = { x: P.hip.x + u.x * 41, y: P.hip.y + u.y * 41 };
+    if (!armed) {
+      if (name === "stand" || name === "move") { const sw = name === "move" ? Math.sin(t * 6) * 7 : 0; P.hands = [{ x: sh.x + 3 + sw, y: sh.y + 25 }, { x: sh.x - 2 - sw, y: sh.y + 25 }]; }
+      else if (name === "kneel") P.hands = [{ x: hd.x + 6, y: hd.y - 6 }, { x: hd.x - 1, y: hd.y - 8 }];
+      else if (name === "prone") P.hands = [{ x: hd.x + 7, y: hd.y - 2 }, { x: hd.x + 6, y: hd.y - 7 }];
+      else P.hands = [{ x: sh.x + 2, y: sh.y + 6 }, { x: sh.x + 12, y: sh.y - 7 }];
+      return P;
+    }
+    const w = sp.weapon;
+    if (name === "down") { P.drop = { g: { x: 22, y: -3 }, ang: 0.03 }; P.hands = [{ x: sh.x + 6, y: sh.y + 3 }, { x: sh.x + 14, y: sh.y - 8 }]; return P; }
+    if (o.ctrl) { P.ctrl = true; P.hands = [{ x: sh.x + 10, y: sh.y + 12 }, { x: sh.x + 9, y: sh.y + 9 }]; return P; }
+    const shouldered = name === "kneel" || name === "prone" || w === "rpg" || (o.aim && name === "stand");
+    if (shouldered) { P.grip = { x: sh.x + (w === "rpg" ? 3 : 8), y: sh.y + (w === "rpg" ? 1 : 3) }; P.ang = w === "rpg" ? -0.1 : (name === "prone" ? 0 : -0.03); }
+    else { P.grip = { x: sh.x + 7, y: sh.y + (w === "pkm" ? 19 : 16) + (name === "move" ? Math.sin(t * 12) * 0.6 : 0) }; P.ang = w === "pkm" ? 0.2 : 0.62; }
+    const fr = w === "rpg" ? 11 : w === "pkm" ? 17 : 14, fh = rot(P.ang, { x: fr, y: w === "pkm" ? 1 : 0 });
+    P.hands = [P.grip, { x: P.grip.x + fh.x, y: P.grip.y + fh.y }];
+    P.firing = (name === "kneel" || name === "prone" || (o.aim && name === "stand")) && !o.still;
+    return P;
+  }
+
+  function line(ctx, a, b, w, c, cap) { ctx.lineCap = cap || "round"; ctx.lineWidth = w; ctx.strokeStyle = c; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+  function poly(ctx, pts, c) { ctx.fillStyle = c; ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fill(); }
+  function quad(ctx, a, b, c, d) { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.closePath(); ctx.fill(); }
+
+  function flashOn(w, t) {
+    if (w === "m27b" || w === "pkm") return (t % 1.7) < 0.7 && (t * 13 % 1) < 0.45;
+    if (w === "rpg") return (t % 3.2) < 0.14;
+    return (t * 2.6 % 1) < 0.09;
+  }
+  function drawFlash(ctx, x, y, r) {
+    ctx.fillStyle = INK.flash; ctx.beginPath();
+    for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, rr = i % 2 ? r * 0.35 : r * (i % 4 ? 0.7 : 1); ctx.lineTo(x + Math.cos(a) * rr * 1.3, y + Math.sin(a) * rr); }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = INK.flashCore; ctx.beginPath(); ctx.arc(x, y, r * 0.32, 0, 7); ctx.fill();
+  }
+
+  function drawWeapon(ctx, w, g, ang, firing, t) {
+    if (w === "none") return;
+    ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(ang);
+    const dark = INK.gun, wood = INK.wood;
+    let fr = 5.5;
+    if (w === "m27" || w === "m27b" || w === "m27g" || w === "m4") {
+      const m4 = w === "m4";
+      poly(ctx, [[-20, -2.6], [-9, -2.8], [-9, 3], [-12, 3], [-19, 4.4]], dark);
+      ctx.fillStyle = dark;
+      ctx.fillRect(-9, -3.6, 18, 5.2);
+      ctx.fillRect(9, -3.4, m4 ? 10 : 15, 4.6);
+      if (m4) ctx.fillRect(19, -1.6, 10, 1.6);
+      else { ctx.fillRect(24, -1.6, 2.5, 1.8); ctx.fillRect(26, -2.5, 11, 4); fr = 3.2; }
+      ctx.fillRect(-0.5, -5.6, 2.6, 2.2); ctx.fillRect(5, -5.6, 2.2, 2.2);
+      ctx.fillRect(-3, -8.4, 11, 3.2); ctx.fillRect(7, -9, 2.8, 4.4);
+      poly(ctx, [[1.5, 1.5], [5.5, 1.5], [6.8, 9.6], [2.8, 10.3]], dark);
+      poly(ctx, [[-3, 1.5], [0, 1.5], [-1, 7], [-4, 7]], dark);
+      if (w === "m27b") { line(ctx, { x: 21, y: 1 }, { x: 17, y: 9.5 }, 1.1, dark); line(ctx, { x: 22, y: 1 }, { x: 26, y: 9.5 }, 1.1, dark); }
+      else if (w === "m27g") { ctx.fillStyle = INK.olive; ctx.fillRect(9.5, 1.2, 13, 4.4); ctx.fillStyle = dark; ctx.fillRect(12, 5.4, 2, 2.4); }
+      else { ctx.fillStyle = dark; ctx.fillRect(14.5, 1.2, 2.2, 4.2); }
+    } else if (w === "ak") {
+      poly(ctx, [[-21, -1.5], [-8, -2.5], [-8, 3], [-21, 5]], wood);
+      ctx.fillStyle = dark; ctx.fillRect(-8, -3, 17, 4.5); ctx.fillRect(9, -3.6, 10, 1.2); ctx.fillRect(18, -1.2, 11, 1.5);
+      ctx.fillStyle = wood; ctx.fillRect(9, -2.5, 9, 4);
+      poly(ctx, [[2, 1.5], [6, 1.5], [9, 9], [4.5, 10.5]], dark);
+      poly(ctx, [[-3, 1.5], [0, 1.5], [-1, 7], [-4, 7]], dark);
+    } else if (w === "pkm") {
+      poly(ctx, [[-23, -1.5], [-8, -3], [-8, 3], [-22, 4]], wood);
+      ctx.fillStyle = dark; ctx.fillRect(-8, -4, 20, 6); ctx.fillRect(12, -1.5, 24, 2); ctx.fillRect(0, -6, 6, 2);
+      ctx.fillStyle = INK.box; ctx.fillRect(-1, 2, 9, 8);
+      line(ctx, { x: 27, y: 0 }, { x: 23, y: 8 }, 1, dark); line(ctx, { x: 28, y: 0 }, { x: 32, y: 8 }, 1, dark);
+      poly(ctx, [[-3, 2], [0, 2], [-1, 7], [-4, 7]], dark);
+      fr = 7;
+    } else if (w === "rpg") {
+      ctx.fillStyle = INK.tube; ctx.fillRect(-26, -3.5, 52, 5);
+      ctx.fillStyle = wood; ctx.fillRect(-4, -4.5, 10, 7);
+      poly(ctx, [[0, 1.5], [3, 1.5], [2, 7], [-1, 7]], dark); poly(ctx, [[10, 1.5], [13, 1.5], [12, 7], [9, 7]], dark);
+      poly(ctx, [[26, -6], [30, -6], [40, -1], [30, 4], [26, 4]], INK.tip);
+      fr = 7;
+      if (firing && flashOn(w, t)) { ctx.fillStyle = "rgba(220,210,190,0.55)"; ctx.beginPath(); ctx.ellipse(-36, -1, 12, 6, 0, 0, 7); ctx.fill(); }
+    }
+    if (firing && flashOn(w, t)) drawFlash(ctx, MUZ[w] + 3, -0.5, fr);
+    ctx.restore();
+  }
+
+  function drawHead(ctx, sp, hd, lean) {
+    ctx.save(); ctx.translate(hd.x, hd.y); ctx.rotate(lean);
+    ctx.fillStyle = sp.skin; ctx.beginPath(); ctx.arc(0, 0, 7, 0, 7); ctx.fill();
+    if (sp.head === "helmet") {
+      // ear protection, the high-cut helmet in a camo cover, night-vision mount, goggles flipped up, eye protection
+      ctx.fillStyle = INK.cup; ctx.beginPath(); ctx.ellipse(-2.8, 1.6, 2.5, 3, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = paint(ctx, sp, "headC");
+      ctx.beginPath(); ctx.moveTo(-9.3, -0.8); ctx.arc(-0.4, -0.8, 8.9, Math.PI, Math.PI * 2); ctx.lineTo(-4.6, -0.8); ctx.lineTo(-5.4, 2.4); ctx.lineTo(-8.6, 2.8); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fillRect(-4.6, -1.6, 13.1, 1.2);
+      ctx.fillStyle = INK.pouch; ctx.fillRect(-6.5, -4.2, 11, 1.5);
+      ctx.fillStyle = INK.nvg; ctx.fillRect(4.6, -8.8, 3.4, 3.2);
+      ctx.beginPath(); ctx.moveTo(6.5, -9.4); ctx.lineTo(11.4, -11.6); ctx.lineTo(12.4, -9.4); ctx.lineTo(8, -7.4); ctx.closePath(); ctx.fill();
+      line(ctx, { x: 3.4, y: 0.3 }, { x: 7.3, y: 0.5 }, 1.7, INK.eye);
+    } else if (sp.head === "wrap") {
+      ctx.fillStyle = sp.headC; ctx.beginPath(); ctx.arc(-0.3, 0, 8.2, 0, 7); ctx.fill();
+      ctx.fillStyle = sp.skin; ctx.beginPath(); ctx.ellipse(3.6, 0.6, 3.6, 3.4, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#2a2722"; ctx.fillRect(4.6, 0, 1.5, 1.5);
+    } else if (sp.head === "cap") {
+      ctx.fillStyle = sp.headC; ctx.beginPath(); ctx.arc(0, -0.8, 7.6, Math.PI, Math.PI * 2); ctx.closePath(); ctx.fill(); ctx.fillRect(2, -2.2, 9, 2);
+      ctx.fillStyle = "#2a2722"; ctx.fillRect(4.5, 1.4, 1.5, 1.5);
+    } else {
+      ctx.fillStyle = sp.headC; ctx.beginPath(); ctx.arc(-0.8, -0.8, 7.5, Math.PI * 0.75, Math.PI * 2.02); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#2a2722"; ctx.fillRect(4.5, 1.2, 1.5, 1.5);
+    }
+    ctx.restore();
+  }
+
+  function drawLeg(ctx, sp, leg, far) {
+    ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.lineWidth = 8.5;
+    ctx.beginPath(); ctx.moveTo(leg.h.x, leg.h.y); ctx.lineTo(leg.k.x, leg.k.y); ctx.lineTo(leg.f.x, leg.f.y);
+    ctx.strokeStyle = paint(ctx, sp, "pants"); ctx.stroke();
+    if (far) { ctx.strokeStyle = INK.far; ctx.stroke(); }
+    if (sp.side === "us") {
+      const kp = { x: lerp(leg.k.x, leg.f.x, 0.14), y: lerp(leg.k.y, leg.f.y, 0.14) };
+      ctx.fillStyle = far ? shade(INK.pad, 0.8) : INK.pad; ctx.beginPath(); ctx.arc(kp.x, kp.y, 4.4, 0, 7); ctx.fill();
+    }
+    const d = { x: leg.f.x - leg.k.x, y: leg.f.y - leg.k.y }, b = rot(-Math.PI / 2, d), a = Math.atan2(b.y, b.x);
+    ctx.save(); ctx.translate(leg.f.x, leg.f.y); ctx.rotate(a); ctx.fillStyle = far ? shade(sp.boots, 0.8) : sp.boots; ctx.fillRect(-3.5, -3, 11.5, 6); ctx.restore();
+  }
+  function drawArm(ctx, sp, sh, hand, far) {
+    const el = ik(sh, hand, 14, 13, -1);
+    ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(sh.x, sh.y); ctx.lineTo(el.x, el.y); ctx.lineTo(hand.x, hand.y);
+    ctx.strokeStyle = paint(ctx, sp, "shirt"); ctx.stroke();
+    if (far) { ctx.strokeStyle = INK.far; ctx.stroke(); }
+    const hc = sp.glove || sp.skin;
+    ctx.fillStyle = far ? shade(hc, 0.82) : hc; ctx.beginPath(); ctx.arc(hand.x, hand.y, 2.9, 0, 7); ctx.fill();
+  }
+
+  function drawSide(ctx, sp, name, t, o) {
+    o = o || {};
+    const P = pose(sp, name, t, o), u = uvec(P.lean), n = { x: -Math.cos(P.lean), y: -Math.sin(P.lean) };
+    const at = d => ({ x: P.hip.x + u.x * d, y: P.hip.y + u.y * d });
+    const off = (p, f) => ({ x: p.x - n.x * f, y: p.y - n.y * f });
+    const box = (p, w, h, c) => { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(P.lean); ctx.fillStyle = c; ctx.fillRect(-w / 2, -h / 2, w, h); ctx.restore(); };
+    const sh = at(27), neck = at(33), hd = at(41), lying = name === "prone" || name === "down", us = sp.side === "us";
+    if (!o.noShadow) {
+      ctx.fillStyle = INK.shadow; ctx.beginPath();
+      ctx.ellipse(lying ? (P.hip.x + hd.x) / 2 - (name === "prone" ? 14 : -10) : 0, 1, lying ? 54 : 20, 3.5, 0, 0, 7); ctx.fill();
+    }
+    if (P.drop) drawWeapon(ctx, sp.weapon, P.drop.g, P.drop.ang, false, t);
+    if (P.ctrl) drawWeapon(ctx, sp.weapon, off(at(15), -8), P.lean - Math.PI / 2 - 0.4, false, t);
+    const legs = [0, 1].map(i => ({ h: P.hip, f: P.feet[i], k: P.knee[i] || ik(P.hip, P.feet[i], 25, 25, P.legSign[i]) }));
+    drawLeg(ctx, sp, legs[0], true);
+    drawArm(ctx, sp, sh, P.hands[1], true);
+    // on the back
+    if (sp.radio) {
+      const c = off(at(18), -10.5); box(c, 9, 18, INK.radio);
+      const top = { x: c.x + u.x * 9, y: c.y + u.y * 9 };
+      line(ctx, top, { x: top.x + (u.x + n.x * 0.35) * 26, y: top.y + (u.y + n.y * 0.35) * 26 }, 1.2, INK.ant);
+    }
+    if (sp.pack) box(off(at(17), -11), 10, 20, INK.bag);
+    if (sp.drone) {
+      box(off(at(15), -10.5), 8, 15, INK.bag);
+      const q = off(at(30), -10);
+      ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(P.lean);
+      ctx.fillStyle = INK.drone; ctx.fillRect(-7.5, -1.2, 15, 2.4); ctx.fillRect(-3, -3.4, 6, 4);
+      ctx.fillStyle = "rgba(40,40,40,0.45)"; ctx.beginPath(); ctx.ellipse(-7.5, -2.6, 5, 1.3, 0, 0, 7); ctx.ellipse(7.5, -2.6, 5, 1.3, 0, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+    if (sp.medbag) box(off(at(5), -10.5), 8, 10, INK.med);
+    // the body and what's worn on it
+    line(ctx, P.hip, neck, 15, paint(ctx, sp, "shirt"));
+    if (us) {
+      line(ctx, at(1), at(6), 16.5, INK.pouch, "butt");
+      line(ctx, at(8), at(30), 18.5, sp.vest, "butt");
+      box(off(at(14), 9.6), 4, 10, INK.pouch);
+      box(off(at(24), 9.6), 3, 5.5, INK.pouch);
+      box(off(at(19), -9.8), 3, 17, INK.pouch);
+      if (sp.drone) box(off(at(22), 10.6), 2.2, 8, INK.drone);
+    } else if (sp.side === "op") {
+      line(ctx, at(7), at(29), 17, sp.vest, "butt");
+      [12, 20].forEach(d => box(off(at(d), 7.5), 4.4, 6.4, shade(sp.vest, 0.75)));
+    } else {
+      line(ctx, at(1), at(3), 15.5, shade(sp.pants, 0.7), "butt");
+    }
+    drawLeg(ctx, sp, legs[1], false);
+    drawHead(ctx, sp, hd, P.lean);
+    if (P.ctrl) {
+      const a = P.hands[0], b = P.hands[1], m = { x: (a.x + b.x) / 2 + 1, y: (a.y + b.y) / 2 - 1 };
+      ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(P.lean - 0.5);
+      ctx.fillStyle = INK.drone; ctx.fillRect(-5.5, -3.2, 11, 6.4); ctx.fillStyle = INK.screen; ctx.fillRect(-4, -2.2, 8, 4);
+      ctx.restore();
+    } else if (P.grip) drawWeapon(ctx, sp.weapon, P.grip, P.ang, P.firing, t);
+    drawArm(ctx, sp, sh, P.hands[0], false);
+  }
+
+  // ------------------------------------------------------------------ figures on the table, outlined so they never blend into the ground
+  const SPR = document.createElement("canvas"), SIL = document.createElement("canvas");
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  const OUT = Math.max(1, Math.round((window.devicePixelRatio || 1) * 0.9));
+  function stamp(ctx, sp, s, t, k, flip, ir, x, y) {
+    const W = Math.ceil(184 * k) + 6, Hh = Math.ceil(132 * k) + 6, ox = Math.round(W / 2), oy = Math.ceil(118 * k) + 3;
+    if (SPR.width < W || SPR.height < Hh) { SPR.width = SIL.width = Math.max(W, SPR.width); SPR.height = SIL.height = Math.max(Hh, SPR.height); }
+    const g = SPR.getContext("2d");
+    flat(g); g.clearRect(0, 0, W, Hh);
+    g.setTransform(flip ? -k : k, 0, 0, k, ox, oy);
+    INK = ir ? INK_IR : INK_DAY;
+    drawSide(g, sp, s.pose, t, s.opts);
+    INK = INK_DAY;
+    const q = SIL.getContext("2d");
+    flat(q); q.globalCompositeOperation = "source-over"; q.clearRect(0, 0, W, Hh);
+    q.drawImage(SPR, 0, 0, W, Hh, 0, 0, W, Hh);
+    q.globalCompositeOperation = "source-in"; q.fillStyle = ir ? "rgba(255,255,255,0.5)" : "rgba(20,18,13,0.92)"; q.fillRect(0, 0, W, Hh);
+    q.globalCompositeOperation = "source-over";
+    flat(ctx);
+    const X = Math.round(x) - ox, Y = Math.round(y) - oy;
+    for (const [dx, dy] of DIRS) ctx.drawImage(SIL, 0, 0, W, Hh, X + dx * OUT, Y + dy * OUT, W, Hh);
+    ctx.drawImage(SPR, 0, 0, W, Hh, X, Y, W, Hh);
+  }
+
+  // ================================================================== the playtest
+  const $ = id => document.getElementById(id);
+  const cv = $("cv"), ctx = cv.getContext("2d");
+  const flat = c2 => c2.setTransform(1, 0, 0, 1, 0, 0);
+  const onGround = (c2, c, z) => c2.setTransform(c.a, c.b, c.c, c.d, c.e, c.f - c.s * c.V * (z || 0));
+  const P3 = (c, x, y, z) => ({ x: c.a * x + c.c * y + c.e, y: c.b * x + c.d * y + c.f - c.s * c.V * (z || 0) });
+  const K = 0.72, VV = 0.7, LIFT = VV / K;
+  let DPR = 1;
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
+  const fmt = sec => { sec = Math.max(0, Math.floor(sec)); return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0"); };
+  function ih(x, y) { let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+
+  // Ground colors: a temperate sand table, flocked like a tabletop.
+  const TCOL = {
+    grass: "#8d955f", stubble: "#c2ae79", plowed: "#86694a", corn: "#9a9a4c", scrub: "#7d8551", rocky: "#a09685",
+    cliff: "#6e675d", forest: "#56653a", orchard: "#83915a", marsh: "#738467", yard: "#b8a682", hedge: "#435a30",
+    gully: "#887b5b", creek: "#7c9ba1", river: "#5d8290", lake: "#59808f", road: "#cdb98e", trail: "#b09d76",
+    wall: "#a8987b", building: "#6d6354", bridge: "#8b6b46"
+  };
+  const PATTERN = { plowed: 1, corn: 2, stubble: 3, scrub: 4, rocky: 5, marsh: 6, creek: 7, river: 7, lake: 7, forest: 8, orchard: 8, road: 9, yard: 9, trail: 9, cliff: 5 };
+  const LK = { deck: "#8b6b46", plank: "#6e5236", rail: "#4f3a24", wall: "#cfc6b0", roof: "#a39886", edge: "#7d7466", win: "#2e2f2c", stone: "#a8987b", stoneTop: "#beb092", tree: "#3f5d2c", treeHi: "#557540", scrub: "#5d6b3a", trunk: "#3d2f1f", shadow: "rgba(18,24,8,0.30)", num: "#2b2a26" };
+  const ROLE = { sl: "Squad leader", doc: "Corpsman", tl: "Team leader", ar: "Automatic rifleman", aar: "Asst. automatic rifleman", rf: "Rifleman", dr: "Drone operator", oprf: "Rifleman", pkm: "Machine gunner", rpg: "RPG gunner", civ: "Civilian" };
+
+  // How each weapon looks when it fires: rounds per burst shown, seconds between rounds, and lobbed or rocket shots.
+  const BURST = { m27: 3, "m27-ar": 5, m4: 3, ak: 3, pkm: 6 };
+  const RATE = { m27: 0.16, "m27-ar": 0.09, m4: 0.16, ak: 0.12, pkm: 0.075 };
+  const PROJ = { m320: { fl: 1.0, arc: 14 }, grenade: { fl: 1.1, arc: 5 }, rpg: { fl: 0.55, arc: 0, rocket: true } };
+
+  const S = { cam: { x: 400, y: 300, s: 1 }, fitS: 1, roster: [], state: null, log: [], rolls: [], flip: {}, sel: -1, tap: null, pending: null, busy: false, speed: 4, tab: "net", mw: 800, mh: 600, sq: 100 };
+  let P = null;  // the turn being played back
+  let raf = 0;
+
+  // ------------------------------------------------------------------ talking to the simulation
+  async function call(method, ...args) {
+    const out = JSON.parse(await DotNet.invokeMethodAsync("FieldTable.Playtest", method, ...args));
+    if (out.error) throw new Error(out.error);
+    return out;
+  }
+
+  // ------------------------------------------------------------------ the ground, drawn once per map at 3 pixels a meter
+  function b64(s) { const bin = atob(s), a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
+  function decodeCells(s, n) { const r = b64(s), out = new Uint8Array(n); let o = 0; for (let i = 0; i + 1 < r.length; i += 2) { out.fill(r[i], o, o + r[i + 1]); o += r[i + 1]; } return out; }
+  function decodeHeights(s, n) { const r = b64(s), dv = new DataView(r.buffer), out = new Float32Array(n); for (let i = 0; i < n; i++) out[i] = dv.getInt16(i * 2, true) / 10; return out; }
+
+  let G = null;
+  const GPX = 3;  // ground pixels per meter
+  function buildGround(m) {
+    const W = m.w, Hh = m.h, cell = m.cell, cells = decodeCells(m.cells, W * Hh);
+    const hw = m.hw, hh = m.hh, hs = m.hstep, hts = decodeHeights(m.heights, hw * hh);
+    S.cells = cells; S.cw = W; S.chh = Hh; S.cell = cell;
+    const ids = m.terrains.map(t => t.id);
+    const rgb = ids.map(id => { const n = parseInt((TCOL[id] || "#8a8a6a").slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; });
+    const kind = ids.map(id => PATTERN[id] || 0);
+    const base = document.createElement("canvas"); base.width = W; base.height = Hh;
+    const bx = base.getContext("2d"), img = bx.createImageData(W, Hh), d = img.data;
+    const hAt = (x, y) => hts[Math.min(hh - 1, Math.max(0, y)) * hw + Math.min(hw - 1, Math.max(0, x))];
+    for (let y = 0; y < Hh; y++) {
+      const gy = Math.min(hh - 1, (y / hs) | 0), lastRow = y % hs === hs - 1;
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x, t = cells[i], gx = Math.min(hw - 1, (x / hs) | 0), n = ih(x, y);
+        let v = 1 + (n - 0.5) * 0.09;
+        switch (kind[t]) {
+          case 1: if ((y + ((x >> 5) & 1)) % 3 === 0) v -= 0.13; break;
+          case 2: v += y % 2 === 0 ? -0.12 : 0.03; break;
+          case 3: v += (y >> 1) & 1 ? 0.05 : -0.03; break;
+          case 4: if (ih(x + 31, y + 7) > 0.82) v -= 0.2; break;
+          case 5: { const q = ih(x + 3, y + 17); if (q > 0.78) v += 0.16; else if (q < 0.18) v -= 0.16; break; }
+          case 6: { const q = ih(x + 11, y + 5); if (q > 0.8) v -= 0.18; else if (q < 0.08) v += 0.1; break; }
+          case 7: v += Math.sin(x * 0.35 + y * 0.12 + n * 2) * 0.025; break;
+          case 8: v += (ih(x + 9, y + 13) - 0.5) * 0.12; break;
+          case 9: v -= (n - 0.5) * 0.05; break;
+        }
+        // Light from the northwest, and a contour line every 2 meters.
+        const h = hAt(gx, gy);
+        const dzdx = (hAt(gx + 1, gy) - hAt(gx - 1, gy)) / (2 * hs), dzdy = (hAt(gx, gy + 1) - hAt(gx, gy - 1)) / (2 * hs);
+        v *= clamp(1 + (dzdx * 0.6 + dzdy * 0.8) * 1.1, 0.64, 1.32);
+        const c0 = Math.floor(h / 2);
+        if ((x % hs === hs - 1 && Math.floor(hAt(gx + 1, gy) / 2) !== c0) || (lastRow && Math.floor(hAt(gx, gy + 1) / 2) !== c0)) v *= 0.84;
+        if ((x + 1 < W && cells[i + 1] !== t) || (y + 1 < Hh && cells[i + W] !== t)) v *= 0.9;
+        const c = rgb[t], o = i * 4;
+        d[o] = clamp(c[0] * v, 0, 255); d[o + 1] = clamp(c[1] * v, 0, 255); d[o + 2] = clamp(c[2] * v, 0, 255); d[o + 3] = 255;
+      }
+    }
+    bx.putImageData(img, 0, 0);
+    const mw = W * cell, mh = Hh * cell;
+    G = document.createElement("canvas"); G.width = Math.round(mw * GPX); G.height = Math.round(mh * GPX);
+    const g = G.getContext("2d");
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+    g.drawImage(base, 0, 0, G.width, G.height);
+    g.setTransform(GPX, 0, 0, GPX, 0, 0);
+    drawLines(g, m.lines);
+    // Building shadows fall to the southeast, the way the figures page lights them.
+    g.fillStyle = LK.shadow;
+    for (const b of m.buildings) {
+      const dx = b.z * 0.5, dy = b.z * 0.35;
+      g.beginPath(); g.moveTo(b.x, b.y); g.lineTo(b.x + b.w, b.y); g.lineTo(b.x + b.w + dx, b.y + dy); g.lineTo(b.x + b.w + dx, b.y + b.h + dy); g.lineTo(b.x + dx, b.y + b.h + dy); g.lineTo(b.x, b.y + b.h); g.closePath(); g.fill();
+    }
+    drawTrees(g, plantTrees(cells, W, Hh, ids, cell));
+  }
+
+  function strokePath(g, p) { g.beginPath(); g.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) g.lineTo(p[i], p[i + 1]); g.stroke(); }
+  function drawLines(g, lines) {
+    for (const L of lines) {
+      const w = L.w, p = L.p;
+      g.lineJoin = "round"; g.lineCap = "round"; g.setLineDash([]);
+      switch (L.t) {
+        case "road":
+          g.strokeStyle = "rgba(70,55,35,0.35)"; g.lineWidth = w + 1.2; strokePath(g, p);
+          g.strokeStyle = TCOL.road; g.lineWidth = w; strokePath(g, p);
+          g.strokeStyle = "rgba(255,245,220,0.12)"; g.lineWidth = w * 0.35; strokePath(g, p);
+          break;
+        case "river": case "lake": case "creek":
+          g.strokeStyle = "rgba(40,55,40,0.35)"; g.lineWidth = w + 1.6; strokePath(g, p);
+          g.strokeStyle = TCOL[L.t]; g.lineWidth = w; strokePath(g, p);
+          g.strokeStyle = "rgba(255,255,255,0.09)"; g.lineWidth = Math.max(1, w * 0.3); strokePath(g, p);
+          break;
+        case "bridge":
+          g.lineCap = "butt";
+          g.strokeStyle = LK.rail; g.lineWidth = w + 1.4; strokePath(g, p);
+          g.strokeStyle = LK.deck; g.lineWidth = w; strokePath(g, p);
+          g.strokeStyle = LK.plank; g.lineWidth = w * 0.92; g.setLineDash([0.25, 0.85]); strokePath(g, p); g.setLineDash([]);
+          break;
+        case "wall":
+          g.save(); g.translate(0.7, 0.5); g.strokeStyle = LK.shadow; g.lineWidth = w + 0.3; strokePath(g, p); g.restore();
+          g.strokeStyle = LK.stone; g.lineWidth = w; strokePath(g, p);
+          g.strokeStyle = LK.stoneTop; g.lineWidth = w * 0.45; strokePath(g, p);
+          break;
+        case "hedge":
+          g.save(); g.translate(1.2, 0.8); g.strokeStyle = LK.shadow; g.lineWidth = w; strokePath(g, p); g.restore();
+          g.strokeStyle = TCOL.hedge; g.lineWidth = w; strokePath(g, p);
+          g.strokeStyle = "rgba(120,150,80,0.35)"; g.lineWidth = w * 0.5; g.setLineDash([0.8, 1.0]); strokePath(g, p); g.setLineDash([]);
+          break;
+        case "cliff":
+          g.strokeStyle = "#5b544b"; g.lineWidth = w; strokePath(g, p);
+          g.strokeStyle = "rgba(25,22,18,0.45)"; g.lineWidth = w * 1.1; g.setLineDash([0.4, 0.9]); strokePath(g, p); g.setLineDash([]);
+          break;
+        default:
+          g.strokeStyle = TCOL[L.t] || "#8a8a6a"; g.lineWidth = w; strokePath(g, p);
+      }
+    }
+  }
+
+  function plantTrees(cells, W, Hh, ids, cell) {
+    const out = [], F = ids.indexOf("forest"), O = ids.indexOf("orchard"), SC = ids.indexOf("scrub");
+    const at = (x, y) => { const cx = (x / cell) | 0, cy = (y / cell) | 0; return cx < 0 || cy < 0 || cx >= W || cy >= Hh ? -1 : cells[cy * W + cx]; };
+    const mw = W * cell, mh = Hh * cell;
+    for (let y = 2; y < mh; y += 5) for (let x = 2; x < mw; x += 5) {
+      const jx = x + (ih(x, y) - 0.5) * 4, jy = y + (ih(y, x) - 0.5) * 4, t = at(jx, jy);
+      if (t === F && ih(x + 7, y + 3) < 0.88) out.push({ x: jx, y: jy, r: 2.6 + ih(x, y + 9) * 1.3, z: 4.5 + ih(x + 1, y) * 2, k: 0 });
+      else if (t === SC && ih(x + 5, y + 11) < 0.22) out.push({ x: jx, y: jy, r: 1.1 + ih(x, y + 2) * 0.6, z: 0, k: 2 });
+    }
+    if (O >= 0) for (let y = 3; y < mh; y += 7) for (let x = 3; x < mw; x += 7) if (at(x, y) === O) out.push({ x, y, r: 1.9, z: 2.2, k: 1 });
+    return out.sort((a, b) => a.y - b.y);
+  }
+  function drawTrees(g, trees) {
+    g.fillStyle = LK.shadow;
+    for (const t of trees) { g.beginPath(); g.ellipse(t.x + t.r * 0.7 + t.z * 0.25, t.y + t.r * 0.5 + t.z * 0.18, t.r * 1.05, t.r * 0.85, 0, 0, 7); g.fill(); }
+    for (const t of trees) {
+      const cy = t.z ? t.y - LIFT * (t.z + t.r * 0.8) : t.y - LIFT * t.r * 0.6;
+      if (t.z) { g.strokeStyle = LK.trunk; g.lineWidth = 0.45; g.lineCap = "round"; g.beginPath(); g.moveTo(t.x, t.y); g.lineTo(t.x, t.y - LIFT * t.z); g.stroke(); }
+      g.fillStyle = shade(t.k === 2 ? LK.scrub : LK.tree, 0.88 + ih(t.x * 10, t.y * 10) * 0.24);
+      g.beginPath(); g.ellipse(t.x, cy, t.r, t.r / K, 0, 0, 7); g.fill();
+      g.strokeStyle = "rgba(15,22,8,0.35)"; g.lineWidth = 0.25; g.stroke();
+      g.globalAlpha = 0.75; g.fillStyle = LK.treeHi;
+      g.beginPath(); g.ellipse(t.x - t.r * 0.28, cy - t.r * 0.3 / K, t.r * 0.5, t.r * 0.5 / K, 0, 0, 7); g.fill();
+      g.globalAlpha = 1;
+    }
+  }
+
+  // ------------------------------------------------------------------ the camera: a slight angle from the south, like the figures page
+  function camera() {
+    const W = cv.width, H = cv.height, s = S.cam.s;
+    const c = { s, K, V: VV, yaw: 0, si: 0, co: 1, a: s, b: 0, c: 0, d: s * K, W, H };
+    c.e = W / 2 - s * S.cam.x;
+    c.f = H / 2 - s * K * S.cam.y;
+    c.fig = clamp(s * 7, 28 * DPR, 84 * DPR);
+    c.k = c.fig / 97;
+    return c;
+  }
+  const MAXS = 12;  // closest zoom, in screen pixels a meter
+  function fitScale() { return Math.min(cv.width / (S.mw + 50), cv.height / ((S.mh + 50) * K + 30 * LIFT * K)); }
+  function fit() { S.fitS = fitScale(); S.cam = { x: S.mw / 2, y: S.mh / 2 - 8, s: S.fitS }; need(); }
+  // The opening view: the squad and the objective, with room around them.
+  function frameStart() {
+    S.fitS = fitScale();
+    const pts = S.roster.map((r, i) => r.side === "us" && S.state.units[i]).filter(Boolean).map(u => [u.x, u.y]);
+    pts.push([S.m.objective.x, S.m.objective.y]);
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    const x0 = Math.min(...xs) - 60, x1 = Math.max(...xs) + 60, y0 = Math.min(...ys) - 60, y1 = Math.max(...ys) + 60;
+    const s = clamp(Math.min(cv.width / (x1 - x0), cv.height / ((y1 - y0) * K + 20 * LIFT * K)), S.fitS, MAXS * DPR * 0.5);
+    S.cam = { x: (x0 + x1) / 2, y: (y0 + y1) / 2, s };
+    clampCam(); need();
+  }
+  function zoomAt(sx, sy, f) {
+    const c = camera(), mx = (sx - c.e) / c.s, my = (sy - c.f) / (c.s * K);
+    const s2 = clamp(S.cam.s * f, S.fitS * 0.85, MAXS * DPR);
+    S.cam.s = s2;
+    S.cam.x = (c.W / 2 - sx) / s2 + mx;
+    S.cam.y = (c.H / 2 - sy) / (s2 * K) + my;
+    clampCam(); need();
+  }
+  function clampCam() { S.cam.x = clamp(S.cam.x, 0, S.mw); S.cam.y = clamp(S.cam.y, -20, S.mh); }
+  function lookAt(x, y, minFig) {
+    S.cam.x = x; S.cam.y = y;
+    if (minFig) S.cam.s = Math.max(S.cam.s, Math.min(MAXS * DPR, minFig * DPR / 7));
+    clampCam(); need();
+  }
+
+  // ------------------------------------------------------------------ what each unit looks like right now
+  const POSTURES = ["stand", "kneel", "prone"], CONDS = ["ok", "wounded", "down", "dead"];
+  function fromState(i) {
+    const u = S.state && S.state.units[i];
+    if (!u) return null;
+    const r = S.roster[i];
+    return { x: u.x, y: u.y, face: u.facing || 0, posture: u.seen ? POSTURES.indexOf(u.posture) : 0, cond: u.seen ? CONDS.indexOf(u.condition) : 0, moving: false, firing: false, seen: u.seen, lastSeen: u.lastSeen, side: r.side };
+  }
+  function fromFrames(i, t) {
+    const T = P.T, F = T.frames, step = T.startStep + t * 10;
+    let k = 0;
+    while (k + 1 < F.length && F[k + 1].s <= step) k++;
+    const a = F[k].u[i], b = k + 1 < F.length ? F[k + 1].u[i] : null;
+    if (!a) return null;
+    let x = a[0] / 10, y = a[1] / 10, face = a[2];
+    if (b && k + 1 < F.length) {
+      const p = clamp((step - F[k].s) / (F[k + 1].s - F[k].s), 0, 1);
+      x = lerp(x, b[0] / 10, p); y = lerp(y, b[1] / 10, p);
+      let df = ((b[2] - face + 540) % 360) - 180; face = face + df * p;
+    }
+    const fl = a[3];
+    return { x, y, face, posture: fl & 3, cond: (fl >> 2) & 3, moving: !!(fl & 16), firing: !!(fl & 32), emote: a[4], seen: true, side: S.roster[i].side };
+  }
+  function disp(i, t) { return P ? fromFrames(i, t) : fromState(i); }
+  function poseOf(d) {
+    if (!d.seen) return { pose: "stand", opts: { still: true, noShadow: true } };
+    const name = d.cond >= 2 ? "down" : d.moving ? (d.posture === 2 ? "prone" : "move") : POSTURES[d.posture] || "stand";
+    return { pose: name, opts: { still: !d.firing, noShadow: true, aim: d.firing && name === "stand" } };
+  }
+  function flipOf(i, d) {
+    const vx = Math.sin(d.face * Math.PI / 180);
+    if (Math.abs(vx) > 0.12) S.flip[i] = vx < 0;
+    else if (S.flip[i] == null) S.flip[i] = d.side === "op";
+    return S.flip[i];
+  }
+  function muzzleAt(c, i, d, t) {
+    const sp = SPECS[S.roster[i].figure] || SPECS.rf, ps = poseOf(d), Pq = pose(sp, ps.pose, t, ps.opts), f = P3(c, d.x, d.y, 0), fl = flipOf(i, d);
+    if (!Pq.grip) return { x: f.x, y: f.y - 70 * c.k };
+    const m = rot(Pq.ang, { x: (MUZ[sp.weapon] || 30) + 2, y: -0.5 }), lx = Pq.grip.x + m.x, ly = Pq.grip.y + m.y;
+    return { x: f.x + (fl ? -lx : lx) * c.k, y: f.y + ly * c.k };
+  }
+
+  // ------------------------------------------------------------------ drawing a frame
+  function drawTable(c) {
+    flat(ctx);
+    const g = ctx.createLinearGradient(0, 0, 0, c.H); g.addColorStop(0, "#11120e"); g.addColorStop(1, "#1d1f18");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, c.W, c.H);
+    const M = 14, a = P3(c, -M, S.mh + M, 0), b = P3(c, S.mw + M, S.mh + M, 0), a2 = P3(c, -M, S.mh + M, -24), b2 = P3(c, S.mw + M, S.mh + M, -24);
+    ctx.fillStyle = "#3a2817"; quad(ctx, a, b, b2, a2);
+    onGround(ctx, c, 0);
+    ctx.fillStyle = "#5a3f27"; ctx.fillRect(-M, -M, S.mw + 2 * M, S.mh + 2 * M);
+    ctx.strokeStyle = "rgba(255,225,180,0.14)"; ctx.lineWidth = 1.5; ctx.strokeRect(-M + 1, -M + 1, S.mw + 2 * M - 2, S.mh + 2 * M - 2);
+    ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.fillRect(-2, -2, S.mw + 4, S.mh + 4);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+    if (G) ctx.drawImage(G, 0, 0, S.mw, S.mh);
+    flat(ctx);
+  }
+
+  let taken = [];
+  function halo(text, x, y, font, color, align, must) {
+    ctx.font = font;
+    if (must !== undefined) {
+      const w = ctx.measureText(text).width, h = 13 * DPR, l = align === "left" ? x : x - w / 2;
+      if (!must && taken.some(r => l < r[2] && l + w > r[0] && y - h / 2 < r[3] && y + h / 2 > r[1])) return;
+      taken.push([l, y - h / 2, l + w, y + h / 2]);
+    } ctx.textAlign = align || "center"; ctx.textBaseline = "middle";
+    ctx.lineJoin = "round"; ctx.lineWidth = 3 * DPR; ctx.strokeStyle = "rgba(17,18,14,0.82)"; ctx.strokeText(text, x, y);
+    ctx.fillStyle = color; ctx.fillText(text, x, y);
+  }
+
+  function drawGrid(c) {
+    flat(ctx);
+    ctx.lineWidth = Math.max(1, DPR * 0.8); ctx.strokeStyle = "rgba(24,28,14,0.42)";
+    ctx.beginPath();
+    for (let x = S.sq; x < S.mw; x += S.sq) { const a = P3(c, x, 0, 0), b = P3(c, x, S.mh, 0); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); }
+    for (let y = S.sq; y < S.mh; y += S.sq) { const a = P3(c, 0, y, 0), b = P3(c, S.mw, y, 0); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); }
+    ctx.stroke();
+    const font = "500 " + Math.round(11 * DPR) + "px " + FM, top = Math.max(P3(c, 0, 0, 0).y, 0) + 9 * DPR, left = Math.max(P3(c, 0, 0, 0).x, 0) + 8 * DPR;
+    for (let col = 0; col * S.sq < S.mw; col++) { const p = P3(c, col * S.sq + S.sq / 2, 0, 0); if (p.x > 0 && p.x < c.W) halo(String.fromCharCode(65 + col), p.x, top, font, "rgba(231,225,207,0.9)"); }
+    for (let row = 0; row * S.sq < S.mh; row++) { const p = P3(c, 0, row * S.sq + S.sq / 2, 0); if (p.y > 0 && p.y < c.H) halo(String(row + 1), left, p.y, font, "rgba(231,225,207,0.9)"); }
+  }
+
+  function drawBuilding(c, b, cut) {
+    const x0 = b.x, y0 = b.y, x1 = b.x + b.w, y1 = b.y + b.h, z = b.z;
+    flat(ctx);
+    ctx.globalAlpha = cut ? 0.38 : 1;
+    ctx.fillStyle = shade(LK.wall, 0.86);
+    quad(ctx, P3(c, x0, y1, 0), P3(c, x1, y1, 0), P3(c, x1, y1, z), P3(c, x0, y1, z));
+    const n = Math.max(1, Math.floor(b.w / 3.2)), hw = 0.45;
+    ctx.fillStyle = LK.win;
+    for (let j = 0; j < n; j++) {
+      const m = x0 + (j + 0.5) * b.w / n;
+      quad(ctx, P3(c, m - hw, y1, z * 0.4), P3(c, m + hw, y1, z * 0.4), P3(c, m + hw, y1, z * 0.74), P3(c, m - hw, y1, z * 0.74));
+    }
+    onGround(ctx, c, z);
+    ctx.fillStyle = LK.roof; ctx.fillRect(x0, y0, b.w, b.h);
+    ctx.strokeStyle = LK.edge; ctx.lineWidth = 0.35; ctx.strokeRect(x0 + 0.6, y0 + 0.6, b.w - 1.2, b.h - 1.2);
+    const side = Math.min(b.w, b.h);
+    if (side * c.s * 0.45 > 9 * DPR) {
+      ctx.fillStyle = LK.num; ctx.font = "800 " + (side * 0.45).toFixed(2) + "px " + FD; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(b.n, x0 + b.w / 2, y0 + b.h / 2 + side * 0.04);
+    }
+    ctx.globalAlpha = 1;
+    flat(ctx);
+  }
+
+  function ringColor(d) {
+    if (d.side === "us") return d.cond === 3 ? "#7d7a6c" : d.cond === 2 ? "#e0a24f" : COL.friend;
+    return d.side === "op" ? COL.enemy : COL.civ;
+  }
+  function drawUnit(c, i, d, t) {
+    const sp = SPECS[S.roster[i].figure] || SPECS.rf, ps = poseOf(d);
+    let alpha = 1;
+    if (!d.seen) { const age = ((S.state ? S.state.step : 0) - (d.lastSeen || 0)) / 600; alpha = clamp(0.5 - age * 0.08, 0.18, 0.5); }
+    else if (d.cond === 3) alpha = 0.6;
+    const r = c.fig * 0.3 / c.s;
+    onGround(ctx, c, 0);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.beginPath(); ctx.arc(d.x, d.y, r, 0, 7); ctx.fill();
+    ctx.lineWidth = 2.6 * DPR / c.s; ctx.strokeStyle = ringColor(d); ctx.setLineDash(d.seen ? [] : [3 * DPR / c.s, 3 * DPR / c.s]); ctx.stroke(); ctx.setLineDash([]);
+    if (S.sel === i) { ctx.lineWidth = 2 * DPR / c.s; ctx.strokeStyle = "#d4b46a"; ctx.setLineDash([5 * DPR / c.s, 4 * DPR / c.s]); ctx.beginPath(); ctx.arc(d.x, d.y, r * 1.5, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+    flat(ctx);
+    const f = P3(c, d.x, d.y, 0);
+    stamp(ctx, sp, ps, t, c.k, flipOf(i, d), false, f.x, f.y);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawItems(c, t) {
+    const L = [], ds = [];
+    for (let i = 0; i < S.roster.length; i++) { const d = disp(i, t); ds[i] = d; if (d) L.push({ d: d.y - (d.cond >= 2 ? 0.5 : 0), f: () => drawUnit(c, i, d, t) }); }
+    for (const b of S.map.buildings) {
+      const inside = ds.some(d => d && d.x > b.x - 0.5 && d.x < b.x + b.w + 0.5 && d.y > b.y - 0.5 && d.y < b.y + b.h + 0.5);
+      L.push({ d: inside ? b.y - 0.1 : b.y + b.h, f: () => drawBuilding(c, b, inside) });
+    }
+    L.sort((a, b) => a.d - b.d).forEach(it => it.f());
+    return ds;
+  }
+
+  function drawPlaces(c) {
+    const big = c.s > S.fitS * 1.5, bigger = c.s > S.fitS * 2.6;
+    const fontA = "500 " + Math.round(11 * DPR) + "px " + FM, fontW = "italic 500 " + Math.round(13 * DPR) + "px " + FB;
+    for (const p of S.map.places) {
+      const water = / (River|Creek)$/.test(p.label), village = p.kind === "area" && (p.note === "village" || p.note === "town");
+      const obj = S.m && p.label === S.m.objective.label;
+      const pri = obj || village ? 3 : water ? 2 : 1;
+      if ((pri === 2 && !big) || (pri === 1 && !bigger) || p.kind === "control") continue;
+      const f = P3(c, p.x, p.y, 0);
+      if (f.x < -50 || f.y < -20 || f.x > c.W + 50 || f.y > c.H + 20) continue;
+      if (water) halo(p.label, f.x, f.y, fontW, "rgba(190,215,225,0.95)", "center", false);
+      else halo(p.label.toUpperCase(), f.x, f.y + (obj ? 26 * DPR : 0), fontA, obj ? "#d4b46a" : village ? "rgba(239,233,218,0.95)" : "rgba(231,225,207,0.8)", "center", obj || village);
+    }
+  }
+
+  function drawObjective(c) {
+    if (!S.m) return;
+    const o = S.m.objective;
+    onGround(ctx, c, 0);
+    ctx.strokeStyle = "rgba(212,180,106,0.9)"; ctx.lineWidth = 2 * DPR / c.s;
+    ctx.setLineDash([6 * DPR / c.s, 5 * DPR / c.s]);
+    ctx.beginPath(); ctx.arc(o.x, o.y, 15, 0, 7); ctx.stroke();
+    ctx.setLineDash([]);
+    flat(ctx);
+  }
+
+  function drawRoutes(c) {
+    if (!S.pending || P) return;
+    onGround(ctx, c, 0);
+    ctx.lineWidth = 2 * DPR / c.s; ctx.strokeStyle = "rgba(120,174,224,0.85)"; ctx.setLineDash([5 * DPR / c.s, 4 * DPR / c.s]);
+    for (const ch of S.pending.checks) {
+      if (!ch.ok || !ch.path || ch.u < 0) continue;
+      const u = S.state.units[ch.u];
+      ctx.beginPath(); ctx.moveTo(u.x, u.y);
+      for (let i = 0; i < ch.path.length; i += 2) ctx.lineTo(ch.path[i], ch.path[i + 1]);
+      ctx.stroke();
+      const ex = ch.path[ch.path.length - 2], ey = ch.path[ch.path.length - 1], r = 4 * DPR / c.s;
+      ctx.beginPath(); ctx.moveTo(ex - r, ey - r); ctx.lineTo(ex + r, ey + r); ctx.moveTo(ex + r, ey - r); ctx.lineTo(ex - r, ey + r); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    flat(ctx);
+  }
+
+  function drawTags(c, ds) {
+    const near = c.fig >= 46 * DPR, font = "500 " + Math.round(11 * DPR) + "px " + FM;
+    const teams = {};
+    ds.forEach((d, i) => {
+      if (!d) return;
+      const r = S.roster[i], f = P3(c, d.x, d.y, 0), below = f.y + 12 * DPR;
+      if (r.side === "us") {
+        if (d.cond < 2 && r.team) { const tm = teams[r.team] || (teams[r.team] = { x: 0, y: 0, n: 0 }); tm.x += d.x; tm.y += d.y; tm.n++; }
+        if (near || S.sel === i) halo(r.name, f.x, below, font, S.sel === i ? "#d4b46a" : "rgba(231,225,207,0.92)", "center", S.sel === i);
+        if (d.cond === 2) halo("DOWN", f.x, f.y - c.fig - 6 * DPR, "600 " + Math.round(10 * DPR) + "px " + FM, "#e0a24f");
+      } else if (!d.seen) {
+        const age = Math.max(0, Math.round(((S.state ? S.state.step : 0) - (d.lastSeen || 0)) / 600));
+        halo(r.name + " · last seen " + (age < 1 ? "just now" : age + " min ago"), f.x, below, font, "rgba(226,103,92,0.85)", "center", S.sel === i);
+      } else if (near || S.sel === i || r.side === "op") {
+        halo(r.name, f.x, below, font, r.side === "op" ? "#f0a39b" : "rgba(239,233,218,0.85)", "center", S.sel === i);
+      }
+    });
+    if (!near) for (const k in teams) {
+      const tm = teams[k], f = P3(c, tm.x / tm.n, tm.y / tm.n, 0);
+      halo(k.toUpperCase(), f.x, f.y - c.fig - 8 * DPR, "600 " + Math.round(11 * DPR) + "px " + FM, COL.friend, "center", false);
+    }
+  }
+
+  function drawTap(c) {
+    if (!S.tap) return;
+    onGround(ctx, c, 0);
+    const r = 6 * DPR / c.s;
+    ctx.strokeStyle = "#d4b46a"; ctx.lineWidth = 2 * DPR / c.s;
+    ctx.beginPath(); ctx.arc(S.tap.x, S.tap.y, r, 0, 7); ctx.moveTo(S.tap.x - r * 1.8, S.tap.y); ctx.lineTo(S.tap.x + r * 1.8, S.tap.y); ctx.moveTo(S.tap.x, S.tap.y - r * 1.8); ctx.lineTo(S.tap.x, S.tap.y + r * 1.8); ctx.stroke();
+    flat(ctx);
+  }
+
+  // ------------------------------------------------------------------ effects during a turn
+  function puff(c, x, y, rad, color) {
+    onGround(ctx, c, 0);
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, rad, 0, 7); ctx.fill();
+    flat(ctx);
+  }
+  function drawEffects(c, t, ds) {
+    if (!P) return;
+    const sp = P.speed, TR = 0.22 * sp, DUST = 0.5 * sp, minR = 3 * DPR / c.s;
+    flat(ctx);
+    const tw = Math.max(1.6 * DPR, 0.16 * c.s);
+    for (const tr of P.tracers) {
+      const dt = t - tr.t;
+      if (dt < 0 || dt > TR + DUST) continue;
+      if (dt <= TR) {
+        const d = ds[tr.u], from = d ? muzzleAt(c, tr.u, d, t) : P3(c, tr.x0, tr.y0, 1.2), to = P3(c, tr.x, tr.y, tr.z), p = dt / TR, p0 = Math.max(0, p - 0.3);
+        line(ctx, { x: lerp(from.x, to.x, p0), y: lerp(from.y, to.y, p0) }, { x: lerp(from.x, to.x, p), y: lerp(from.y, to.y, p) }, tw, COL.tracer);
+      } else if (tr.miss) {
+        const q = (dt - TR) / DUST;
+        puff(c, tr.x, tr.y, Math.max(minR, 0.4 + q * 1.6), "rgba(118,92,58," + (0.5 * (1 - q)).toFixed(3) + ")");
+      }
+    }
+    for (const pr of P.proj) {
+      const fl = pr.fl * sp, dt = t - pr.t;
+      if (dt < 0 || dt > fl) continue;
+      const p = dt / fl, gx = lerp(pr.x0, pr.x1, p), gy = lerp(pr.y0, pr.y1, p), z = 1.2 + pr.arc * 4 * p * (1 - p);
+      const at = P3(c, gx, gy, z), r = Math.max(2 * DPR, 0.35 * c.s);
+      if (pr.rocket) {
+        const from = P3(c, pr.x0, pr.y0, 1.2);
+        line(ctx, from, at, Math.max(1.5 * DPR, 0.3 * c.s), "rgba(235,228,215,0.6)");
+        ctx.fillStyle = "#ffd27a";
+      } else {
+        puff(c, gx, gy, Math.max(minR * 0.6, 0.3), "rgba(0,0,0,0.25)");
+        ctx.fillStyle = "#3c3a30";
+      }
+      ctx.beginPath(); ctx.arc(at.x, at.y, r, 0, 7); ctx.fill();
+    }
+    for (const b of P.blasts) {
+      const dur = 1.1 * sp, dt = t - b.t;
+      if (dt < 0 || dt > dur) continue;
+      const q = dt / dur, R = Math.max(b.r, 10 * DPR / c.s);
+      if (q < 0.25) puff(c, b.x, b.y, R * (0.35 + q * 2), "rgba(255,190,90," + (1 - q * 3).toFixed(3) + ")");
+      puff(c, b.x, b.y, R * (0.5 + q * 1.2), "rgba(110,98,82," + (0.55 * (1 - q)).toFixed(3) + ")");
+    }
+    for (const r of P.pulses) {
+      const dur = 0.9 * sp, dt = t - r.t, d = ds[r.u];
+      if (dt < 0 || dt > dur || !d) continue;
+      onGround(ctx, c, 0);
+      ctx.strokeStyle = "rgba(244,226,170," + (0.95 * (1 - dt / dur)).toFixed(3) + ")";
+      ctx.lineWidth = 2.4 * DPR / c.s; ctx.beginPath(); ctx.arc(d.x, d.y, (c.fig * 0.35 + dt / dur * c.fig * 0.5) / c.s, 0, 7); ctx.stroke();
+      flat(ctx);
+    }
+  }
+
+  function draw(now) {
+    if (!S.m) return;
+    const c = camera(), t = P ? P.t : now / 1000;
+    S.c = c;
+    taken = [];
+    drawTable(c);
+    drawGrid(c);
+    drawObjective(c);
+    drawRoutes(c);
+    drawPlaces(c);
+    const ds = drawItems(c, t);
+    drawEffects(c, t, ds);
+    drawTags(c, ds);
+    drawTap(c);
+  }
+
+  function need() { if (!raf) raf = requestAnimationFrame(frame); }
+  let last = 0;
+  function frame(now) {
+    raf = 0;
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0;
+    last = now;
+    if (P && P.playing) {
+      P.t = Math.min(P.dur + P.tail * P.speed, P.t + dt * P.speed);
+      flushQueue();
+      $("ptime").textContent = fmt(P.T.startStep / 10 + Math.min(P.t, P.dur));
+      clockText();
+      if (P.t >= P.dur + P.tail * P.speed) { draw(now); endPlayback(); return; }
+    }
+    draw(now);
+    if (P) raf = requestAnimationFrame(frame); else last = 0;
+  }
+
+  // ------------------------------------------------------------------ playing a turn back
+  function startPlayback(T) {
+    const rand = rng(T.turn * 7919 + S.seed), t0 = s => (s - T.startStep) / 10;
+    const tracers = [], proj = [], blasts = [], pulses = [], queue = [];
+    for (const sh of T.shots) {
+      if (PROJ[sh.w]) { proj.push(Object.assign({ t: t0(sh.s), x0: sh.x0, y0: sh.y0, x1: sh.x1, y1: sh.y1 }, PROJ[sh.w])); continue; }
+      const n = BURST[sh.w] || 3, rate = RATE[sh.w] || 0.12, j = sh.hit ? 0.5 : 3;
+      for (let k = 0; k < n; k++) tracers.push({ t: t0(sh.s) + k * rate, u: sh.u, x0: sh.x0, y0: sh.y0, x: sh.x1 + (rand() - 0.5) * 2 * j, y: sh.y1 + (rand() - 0.5) * 2 * j, z: 0.5 + rand() * 0.9, miss: !sh.hit });
+    }
+    const speed = S.speed;
+    for (const b of T.blasts) blasts.push({ t: t0(b.s) + (PROJ[b.w] ? PROJ[b.w].fl * speed : 0), x: b.x, y: b.y, r: b.r });
+    for (const r of T.radio) {
+      if (r.u >= 0) pulses.push({ t: t0(r.s), u: r.u });
+      const k = r.text.indexOf(": ");
+      queue.push({ t: t0(r.s), e: { kind: /Man down|going under|I'm hit/.test(r.text) ? "radio bad" : "radio", step: r.s, who: k > 0 ? r.text.slice(0, k) : "", text: k > 0 ? r.text.slice(k + 2) : r.text } });
+    }
+    const spotted = new Set();
+    for (const e of T.events) {
+      if (e.kind === "lost") continue;
+      if (e.kind === "spotted") { if (spotted.has(e.u)) continue; spotted.add(e.u); }
+      const ours = e.u >= 0 && S.roster[e.u].side === "us";
+      queue.push({ t: t0(e.s), e: { kind: "event" + (ours && (e.kind === "down" || e.kind === "died") ? " bad" : ""), step: e.s, text: e.text } });
+    }
+    for (const r of T.rolls) if (r.big) queue.push({ t: t0(r.s), toast: r });
+    queue.sort((a, b) => a.t - b.t);
+    const dur = T.frames.length ? (T.frames[T.frames.length - 1].s - T.startStep) / 10 : 60;
+    P = { T, t: 0, speed, playing: true, dur, tail: 0.6, tracers, proj, blasts, pulses, queue };
+    addLog({ kind: "turn", text: "Turn " + T.turn });
+    $("playbar").hidden = false;
+    syncSpeed();
+    $("ppause").textContent = "Pause";
+    setButtons();
+    need();
+  }
+  function flushQueue(quiet) {
+    while (P.queue.length && P.queue[0].t <= P.t) {
+      const q = P.queue.shift();
+      if (q.e) addLog(q.e); else if (!quiet) toast(q.toast);
+    }
+  }
+  function endPlayback() {
+    if (!P) return;
+    P.t = P.dur + 100; flushQueue(true);
+    const T = P.T;
+    P = null;
+    S.state = T.state;
+    S.rolls = T.rolls;
+    $("playbar").hidden = true;
+    if (T.state.outcome) showOutcome(T.state);
+    logDb("turns", { turn: T.turn, outcome: T.state.outcome || null, marinesDown: S.roster.filter((r, i) => r.side === "us" && T.state.units[i] && /down|dead/.test(T.state.units[i].condition)).length, shots: T.shots.length });
+    clockText(); setButtons(); renderPane(); renderCard(); need();
+  }
+  function syncSpeed() { document.querySelectorAll("[data-speed]").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.speed === S.speed))); }
+
+  function toast(r) {
+    const box = $("dice"), m = /\((\d+)%\)/.exec(r.why), need100 = m ? +m[1] : null;
+    const el = document.createElement("div");
+    el.className = "die" + (need100 != null ? (r.r <= need100 ? " ok" : " bad") : "");
+    el.innerHTML = "<b>" + r.r + "</b><span>" + esc(r.who) + " · d" + r.d + " · " + esc(r.why) + "</span>";
+    box.appendChild(el);
+    while (box.children.length > 3) box.firstChild.remove();
+    setTimeout(() => el.remove(), 2600);
+  }
+
+  function showOutcome(st) {
+    const won = st.outcome === "success", b = $("banner");
+    b.innerHTML = "<h2>" + (won ? "Bridge seized" : "Mission failed") + "</h2><p>" + esc(st.outcomeText) + "</p><button class=\"btn primary small\" type=\"button\" id=\"againBtn\">New map</button>";
+    b.hidden = false;
+    $("againBtn").onclick = () => newMission(randomSeed());
+    addLog({ kind: "event" + (won ? "" : " bad"), step: st.step, text: st.outcomeText });
+  }
+
+  // ------------------------------------------------------------------ the net, the squad, the brief, the dice
+  function addLog(e) {
+    if (e.step == null) e.step = S.state ? S.state.step : 0;
+    S.log.push(e);
+    if (S.tab === "net") renderPane(true);
+  }
+  function clockText() {
+    if (!S.state) return;
+    const step = P ? P.T.startStep + Math.min(P.t, P.dur) * 10 : S.state.step;
+    const turn = P ? P.T.turn : S.state.turn;
+    $("clock").textContent = "Turn " + turn + " of " + S.state.turnLimit + " · " + fmt(step / 10);
+  }
+  function status(u) {
+    const parts = [];
+    if (u.condition !== "ok") parts.push(u.condition + (u.stable ? ", stable" : ""));
+    if (u.order) parts.push(orderText(u.order)); else if (u.condition === "ok") parts.push("No orders");
+    return parts;
+  }
+  function orderText(o) { return o ? [o.verb, o.where, o.target].filter(Boolean).join(" · ") : ""; }
+
+  function renderPane(keepBottom) {
+    const pane = $("pane");
+    document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+    if (!S.m) { pane.innerHTML = "<p class=\"empty\">The squad is getting ready.</p>"; return; }
+    if (S.tab === "net") {
+      const nearBottom = pane.scrollHeight - pane.scrollTop - pane.clientHeight < 60;
+      pane.innerHTML = "<ol class=\"net\">" + S.log.map(e => {
+        if (e.kind === "turn") return "<li class=\"turn\">" + esc(e.text) + "</li>";
+        return "<li class=\"" + esc(e.kind) + "\"><span class=\"t\">" + fmt(e.step / 10) + "</span><span>" + (e.who ? "<span class=\"who\">" + esc(e.who) + ":</span> " : "") + "<span class=\"x\">" + esc(e.text) + "</span></span></li>";
+      }).join("") + "</ol>" + previewHtml();
+      if (!keepBottom || nearBottom) pane.scrollTop = pane.scrollHeight;
+      return;
+    }
+    if (S.tab === "squad") {
+      const groups = [["", "Headquarters"], ["Alpha", "Alpha"], ["Bravo", "Bravo"], ["Charlie", "Charlie"]];
+      pane.innerHTML = "<div class=\"squad\">" + groups.map(([k, label]) => {
+        const rows = S.roster.map((r, i) => [r, i]).filter(([r]) => r.side === "us" && (r.team || "") === k);
+        if (!rows.length) return "";
+        return "<div class=\"team\"><h3>" + label + "</h3>" + rows.map(([r, i]) => {
+          const u = S.state.units[i], extra = (u.launcher ? " · M320 " + u.launcher : "") + (u.grenades ? " · " + u.grenades + " gren" : "");
+          return "<button type=\"button\" class=\"mate\" data-u=\"" + i + "\" aria-pressed=\"" + (S.sel === i) + "\"><i class=\"dot " + esc(u.condition) + "\"></i>"
+            + "<span class=\"n\">" + esc(r.name) + " <small>" + esc(ROLE[r.figure] || r.kind) + "</small></span><span class=\"a\">" + u.ammo + " rds" + esc(extra) + "</span>"
+            + "<span class=\"o\">" + esc(status(u).concat(u.grid).join(" · ")) + "</span></button>";
+        }).join("") + "</div>";
+      }).join("") + "</div>";
+      return;
+    }
+    if (S.tab === "brief") {
+      const m = S.m;
+      pane.innerHTML = "<div class=\"brief\"><h2>" + esc(m.title) + "</h2><ul>" + m.brief.map(b => "<li>" + esc(b) + "</li>").join("") + "</ul>"
+        + "<div><h3 class=\"mini\">How it ends</h3><p>You win with a Marine within 15 meters of " + esc(m.objective.label) + " and no enemy still fighting within 250 meters, held at the end of two turns in a row. You lose with 7 Marines down, or after turn " + S.state.turnLimit + ".</p></div>"
+        + "<div><h3 class=\"mini\">Giving orders</h3><p>Say who, then what, then where. Tap a Marine to name them, or tap the ground to name a spot. Send reads the orders and shows what each Marine will do; Play turn plays one minute.</p></div>"
+        + "<p class=\"says\">Alpha, suppress the PKM gunner.<br>Bravo, run to building 4.<br>Charlie, take cover.<br>Doc, treat Tran.</p>"
+        + "<p>" + esc(readerNote()) + "</p>"
+        + "<div class=\"acts\"><span class=\"empty\">Map " + S.seed + "</span><button class=\"btn small\" type=\"button\" id=\"newMapBtn\">New map</button><span id=\"newMapAsk\"></span></div></div>";
+      $("newMapBtn").onclick = () => {
+        $("newMapAsk").innerHTML = "Start over on a new map? <button class=\"btn small primary\" type=\"button\" id=\"newMapYes\">Yes, new map</button>";
+        $("newMapYes").onclick = () => newMission(randomSeed());
+      };
+      return;
+    }
+    if (S.tab === "dice") {
+      if (!S.rolls.length) { pane.innerHTML = "<p class=\"empty\">No rolls yet. After each turn, every roll that touches one of your Marines shows here, with the chance it needed.</p>"; return; }
+      pane.innerHTML = "<ul class=\"rolls\">" + S.rolls.map(r => {
+        const m = /\((\d+)%\)/.exec(r.why), cls = m ? (r.r <= +m[1] ? "ok" : "bad") : "";
+        return "<li class=\"" + (r.big ? "big" : "") + "\"><span class=\"t\">" + fmt(r.s / 10) + "</span><span class=\"x\">" + esc(r.who) + " · " + esc(r.why) + " · d" + r.d + "</span><span class=\"r " + cls + "\">" + r.r + "</span></li>";
+      }).join("") + "</ul>";
+    }
+  }
+
+  function previewHtml() {
+    const pd = S.pending;
+    if (S.reading) return "<div class=\"preview\" style=\"margin-top:10px\"><div class=\"ocard\"><span class=\"empty\">Reading your orders…</span></div></div>";
+    if (!pd) return "";
+    const r = pd.read, out = [];
+    r.orders.forEach((o, i) => {
+      const checks = pd.checks.filter(c => c.order === i);
+      const rb = r.readbacks.find(x => x.who && x.who.toLowerCase() === o.who.toLowerCase());
+      const blanks = [o.where, o.target, o.speed, o.posture, o.kind, o.swim ? "swim" : null].filter(Boolean).join(" · ");
+      out.push("<div class=\"ocard\"><span class=\"h\">" + esc(o.who) + " · " + esc(o.verb) + (blanks ? "<small>" + esc(blanks) + "</small>" : "") + "</span>"
+        + (rb ? "<span class=\"rb\">" + esc(rb.text) + "</span>" : "")
+        + "<ul>" + checks.map(c => {
+          const nm = c.u >= 0 ? S.roster[c.u].name : c.who;
+          if (!c.ok) return "<li class=\"no\">" + esc(nm) + ": " + esc(/^not covered/.test(c.problem || "") ? "Not covered yet: " + o.verb : c.problem) + "</li>";
+          return "<li class=\"ok\">" + esc(nm) + (c.meters != null ? ", " + Math.round(c.meters) + " m" : "") + "</li>" + c.warnings.map(w => "<li class=\"warn\">" + esc(w) + "</li>").join("");
+        }).join("") + "</ul></div>");
+    });
+    r.sayAgain.forEach(s => out.push("<div class=\"ocard say\"><span class=\"rb\">" + esc(s) + "</span></div>"));
+    r.notCovered.forEach(n => out.push("<div class=\"ocard nc\"><span class=\"h\">Not covered yet<small>" + esc(n.who || "") + "</small></span><span class=\"empty\">" + esc(n.text) + ". Saved so it can be built.</span></div>"));
+    if (!out.length) out.push("<div class=\"ocard say\"><span class=\"rb\">Lead, say again? No orders came through.</span></div>");
+    const ok = pd.checks.some(c => c.ok);
+    return "<div class=\"preview\" style=\"margin-top:10px\"><h3 class=\"mini\">Orders ready" + (pd.reader === "simple" ? " · read by the simple reader" : " · read by Haiku") + "</h3>" + out.join("")
+      + "<span class=\"empty\">" + (ok ? "Play turn sends the ✓ orders and plays one minute. Type new orders to replace these." : "Nothing here can be carried out. Type new orders, or play the turn as things stand.") + "</span></div>";
+  }
+
+  function renderCard() {
+    const card = $("card");
+    if (P || !S.m) { card.hidden = true; return; }
+    if (S.sel >= 0) {
+      const r = S.roster[S.sel], u = S.state.units[S.sel];
+      if (!u) { card.hidden = true; return; }
+      if (r.side === "us") {
+        card.innerHTML = "<span class=\"nm\">" + esc(r.name) + "</span><span class=\"meta\">" + esc(ROLE[r.figure] || r.kind) + (r.team ? ", " + esc(r.team) : "") + " · " + esc(u.grid) + "<br>"
+          + esc(u.condition) + (u.stable ? ", stable" : "") + " · " + u.ammo + " rds" + (u.launcher ? " · M320 " + u.launcher : "") + (u.grenades ? " · " + u.grenades + " grenades" : "")
+          + "<br>" + esc(u.order ? "Now: " + orderText(u.order) : "No orders") + "</span><div class=\"row\"><button type=\"button\" class=\"primary\" data-say=\"" + esc(r.name) + ", \">Order " + esc(r.name) + "</button>"
+          + (r.team ? "<button type=\"button\" data-say=\"" + esc(r.team) + ", \">Order " + esc(r.team) + "</button>" : "") + "</div>";
+      } else {
+        const age = Math.max(0, Math.round((S.state.step - (u.lastSeen || 0)) / 600));
+        card.innerHTML = "<span class=\"nm\">" + esc(r.name) + "</span><span class=\"meta\">" + (u.seen ? "Seen now at " + esc(u.grid) + (u.condition && u.condition !== "ok" ? ", " + esc(u.condition) : "") : "Last seen " + (age < 1 ? "just now" : age + " min ago") + " at " + esc(u.grid)) + "</span>"
+          + "<div class=\"row\"><button type=\"button\" class=\"primary\" data-say=\"" + esc(r.name) + "\">Use as target</button></div>";
+      }
+      card.hidden = false;
+      return;
+    }
+    if (S.tap) {
+      card.innerHTML = "<span class=\"nm\">" + esc(S.tap.name) + "</span><span class=\"meta\">" + esc(S.tap.grid) + " · " + esc(S.tap.ground) + "</span><div class=\"row\"><button type=\"button\" class=\"primary\" data-say=\"" + esc(S.tap.name) + "\">Use " + esc(S.tap.name) + "</button></div>";
+      card.hidden = false;
+      return;
+    }
+    card.hidden = true;
+  }
+
+  // ------------------------------------------------------------------ taps, drags, pinches
+  const gridOf = (x, y) => String.fromCharCode(65 + clamp(Math.floor(x / S.sq), 0, 25)) + (clamp(Math.floor(y / S.sq), 0, 98) + 1);
+  function groundName(x, y) {
+    const cx = clamp((x / S.cell) | 0, 0, S.cw - 1), cy = clamp((y / S.cell) | 0, 0, S.chh - 1);
+    const t = S.map.terrains[S.cells[cy * S.cw + cx]];
+    return t ? t.name : "";
+  }
+  function tapAt(sx, sy) {
+    const c = S.c;
+    if (!c || P) return;
+    let best = -1, bd = 1e9;
+    for (let i = 0; i < S.roster.length; i++) {
+      const d = fromState(i);
+      if (!d) continue;
+      const f = P3(c, d.x, d.y, 0), fig = c.fig;
+      if (sx > f.x - fig * 0.38 && sx < f.x + fig * 0.38 && sy > f.y - fig && sy < f.y + fig * 0.15) {
+        const dist = Math.abs(sx - f.x) + Math.abs(sy - (f.y - fig * 0.45)) - d.y * 0.001;
+        if (dist < bd) { bd = dist; best = i; }
+      }
+    }
+    if (best >= 0) { S.sel = best; S.tap = null; renderCard(); if (S.tab === "squad") renderPane(); need(); return; }
+    S.sel = -1;
+    for (const b of S.map.buildings) {
+      const a = P3(c, b.x, b.y, b.z), z = P3(c, b.x + b.w, b.y + b.h, 0);
+      if (sx >= a.x && sx <= z.x && sy >= a.y && sy <= z.y) {
+        S.tap = { x: b.x + b.w / 2, y: b.y + b.h / 2, name: b.label, grid: gridOf(b.x + b.w / 2, b.y + b.h / 2), ground: "Stone building" };
+        renderCard(); need(); return;
+      }
+    }
+    const mx = (sx - c.e) / c.s, my = (sy - c.f) / (c.s * K);
+    if (mx < 0 || my < 0 || mx >= S.mw || my >= S.mh) { S.tap = null; renderCard(); need(); return; }
+    const o = S.m.objective, onObj = Math.hypot(mx - o.x, my - o.y) < 18;
+    S.tap = { x: mx, y: my, name: onObj ? o.label : gridOf(mx, my), grid: gridOf(mx, my), ground: groundName(mx, my) };
+    renderCard(); need();
+  }
+
+  const ptrs = new Map();
+  let pinch = null, dragged = false;
+  cv.addEventListener("pointerdown", e => {
+    cv.setPointerCapture(e.pointerId);
+    ptrs.set(e.pointerId, { x: e.offsetX * DPR, y: e.offsetY * DPR });
+    dragged = ptrs.size > 1;
+    if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()];
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), s: S.cam.s };
+    }
+  });
+  cv.addEventListener("pointermove", e => {
+    const p = ptrs.get(e.pointerId);
+    if (!p) return;
+    const x = e.offsetX * DPR, y = e.offsetY * DPR;
+    if (ptrs.size === 1) {
+      const dx = x - p.x, dy = y - p.y;
+      if (!dragged && Math.hypot(dx, dy) < 7 * DPR) return;
+      dragged = true;
+      S.cam.x -= dx / S.cam.s; S.cam.y -= dy / (S.cam.s * K);
+      clampCam(); p.x = x; p.y = y; need();
+    } else if (ptrs.size === 2 && pinch) {
+      p.x = x; p.y = y;
+      const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, (pinch.s * d / pinch.d) / S.cam.s);
+    }
+  });
+  const up = e => {
+    const p = ptrs.get(e.pointerId);
+    if (p && ptrs.size === 1 && !dragged) tapAt(e.offsetX * DPR, e.offsetY * DPR);
+    ptrs.delete(e.pointerId);
+    if (ptrs.size < 2) pinch = null;
+  };
+  cv.addEventListener("pointerup", up);
+  cv.addEventListener("pointercancel", e => { ptrs.delete(e.pointerId); pinch = null; });
+  cv.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.offsetX * DPR, e.offsetY * DPR, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
+  $("zin").onclick = () => zoomAt(cv.width / 2, cv.height / 2, 1.6);
+  $("zout").onclick = () => zoomAt(cv.width / 2, cv.height / 2, 1 / 1.6);
+  $("zfit").onclick = fit;
+
+  function resize() {
+    const box = $("tableBox"), wasFit = Math.abs(S.cam.s - S.fitS) < 1e-6;
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.max(1, Math.round(box.clientWidth * DPR));
+    cv.height = Math.max(1, Math.round(box.clientHeight * DPR));
+    S.fitS = fitScale();
+    if (wasFit || S.cam.s < S.fitS * 0.85) fit(); else need();
+  }
+  new ResizeObserver(resize).observe($("tableBox"));
+
+  // ------------------------------------------------------------------ the order box
+  const box = $("orderBox");
+  function autosize() {
+    box.style.height = "44px";
+    if (box.value) box.style.height = Math.min(120, Math.max(44, box.scrollHeight + 2)) + "px";
+  }
+  box.addEventListener("input", () => { autosize(); setButtons(); });
+  box.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+  function insert(text) {
+    const a = box.selectionStart ?? box.value.length, b = box.selectionEnd ?? box.value.length, before = box.value.slice(0, a);
+    const pad = before && !/\s$/.test(before) ? " " : "";
+    box.value = before + pad + text + box.value.slice(b);
+    const at = (before + pad + text).length;
+    box.focus(); box.setSelectionRange(at, at); autosize(); setButtons();
+  }
+  $("card").addEventListener("click", e => { const b = e.target.closest("[data-say]"); if (b) insert(b.dataset.say); });
+  $("pane").addEventListener("click", e => {
+    const m = e.target.closest(".mate");
+    if (!m) return;
+    const i = +m.dataset.u, u = S.state.units[i];
+    S.sel = i; S.tap = null;
+    if (u) lookAt(u.x, u.y, 46);
+    renderCard(); renderPane();
+  });
+  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; renderPane(); });
+  $("orderForm").addEventListener("submit", e => { e.preventDefault(); send(); });
+  $("playBtn").onclick = () => playTurn();
+  $("ppause").onclick = () => { if (!P) return; P.playing = !P.playing; $("ppause").textContent = P.playing ? "Pause" : "Play"; last = 0; need(); };
+  $("pskip").onclick = () => { if (P) { P.t = P.dur + P.tail * P.speed; endPlayback(); } };
+  document.querySelectorAll("[data-speed]").forEach(b => b.onclick = () => { S.speed = +b.dataset.speed; if (P) P.speed = S.speed; syncSpeed(); });
+
+  function setButtons() {
+    const live = !!S.m && !P && !S.busy && !(S.state && S.state.outcome);
+    $("sendBtn").disabled = !live || !box.value.trim();
+    $("playBtn").disabled = !live;
+    box.disabled = !S.m || !!(S.state && S.state.outcome);
+  }
+
+  // ------------------------------------------------------------------ reading orders: Haiku, or a simple reader when Haiku isn't available
+  const caps = { sample: null, db: null, reader: "starting" };
+  (async () => {
+    try { caps.sample = window.claude && window.claude.use ? await window.claude.use("sample") : null; } catch (e) { caps.sample = null; }
+    caps.reader = caps.sample ? "haiku" : "simple";
+    if (S.tab === "brief") renderPane();
+  })();
+  (async () => {
+    try { caps.db = window.claude && window.claude.use ? await window.claude.use("db") : null; } catch (e) { caps.db = null; }
+  })();
+  function readerNote() {
+    if (caps.reader === "haiku") return "Haiku reads your orders. The first time, Claude asks you to allow it.";
+    if (caps.reader === "off") return "Haiku isn't allowed in this view, so a simple built-in reader takes your orders. It knows who, the verbs, grid squares, and place names.";
+    if (caps.reader === "simple") return "Haiku isn't available in this view, so a simple built-in reader takes your orders. It knows who, the verbs, grid squares, and place names.";
+    return "Checking whether Haiku can read your orders.";
+  }
+  async function logDb(coll, data) {
+    try { if (caps.db) await caps.db.collection(coll).add(Object.assign({ at: new Date().toISOString(), seed: S.seed, title: S.m ? S.m.title : "" }, data)); } catch (e) { /* the log is a nice-to-have */ }
+  }
+
+  const VERB_HELP = [
+    "- move: go to a place. where (required). speed: \"walk\", \"run\", or \"crawl\" if said. swim: true only if told to swim.",
+    "- assault: attack and move through a place or contact. where or target.",
+    "- hold: stay put and fight from there.",
+    "- fire: shoot at a contact or a place. target (a contact name) or where.",
+    "- suppress: keep fire on a contact or a place to pin it down. target or where.",
+    "- take cover: get into the best cover nearby.",
+    "- hide: get low and out of sight nearby.",
+    "- change posture: posture \"stand\", \"kneel\", or \"prone\" (get down means prone).",
+    "- withdraw: fall back. where if given; without it they fall back the way they came.",
+    "- follow: follow another Marine or team. target is who to follow.",
+    "- observe: watch a place or contact. where or target.",
+    "- report: report what they see.",
+    "- treat casualty: give first aid. target is the casualty's name, if given.",
+    "- throw grenade: a hand grenade, 35 meters at most. where or target.",
+    "- drop: drop heavy gear, needed before swimming deep water.",
+    "- emote: kind, like \"dance\", \"salute\", or \"wave\"."
+  ].join("\n");
+  const SHAPE = '{"orders": [{"who": "Alpha", "verb": "move", "where": "building 4", "target": null, "speed": "run", "posture": null, "swim": false, "kind": null}],\n "readbacks": [{"who": "Alpha", "text": "Alpha, moving to building 4."}],\n "sayAgain": ["Bravo: Say again, which building?"],\n "notCovered": [{"who": "Charlie", "text": "fly the drone over the village"}]}';
+  function buildPrompt(text) {
+    const L = [], st = S.state.units;
+    L.push("You read radio orders for Field Table, a squad tactics game. The player is the squad leader (\"Lead\") of a Marine rifle squad. Turn what the player said into orders the game can run.");
+    L.push("", "Reply with only JSON, in this shape:", SHAPE);
+    L.push("", "WHO: use exactly one of \"squad\" (everyone), a team (\"Alpha\", \"Bravo\", or \"Charlie\"), or one Marine by last name. The squad:");
+    S.roster.forEach((r, i) => {
+      if (r.side !== "us") return;
+      const u = st[i];
+      L.push("- " + r.name + ": " + (ROLE[r.figure] || r.kind).toLowerCase() + (r.team ? ", " + r.team : "") + " (also called " + r.calls.join(", ") + "), at " + u.grid + (u.condition !== "ok" ? ", " + u.condition : "") + (u.order ? ", now doing: " + orderText(u.order) : ""));
+    });
+    L.push("", "VERBS: use exactly one of these per order, with the blanks shown:", VERB_HELP);
+    L.push("", "WHERE: a grid square (columns A to " + String.fromCharCode(64 + S.map.cols) + ", rows 1 to " + S.map.rows + ", 100 meters each, like \"E3\"), a place below written exactly as shown, or a Marine or team name.", "PLACES:");
+    S.map.places.forEach(p => { if (p.kind !== "control") L.push("- " + p.label + " (" + p.grid + ")" + (p.note ? ", " + p.note : "")); });
+    S.map.buildings.forEach(b => L.push("- " + b.label + " (" + gridOf(b.x + b.w / 2, b.y + b.h / 2) + ")"));
+    L.push("", "CONTACTS the squad has seen. Use these names for target:");
+    let any = false;
+    S.roster.forEach((r, i) => {
+      const u = st[i];
+      if (r.side === "us" || !u) return;
+      any = true;
+      const age = Math.max(0, Math.round((S.state.step - (u.lastSeen || 0)) / 600));
+      L.push("- " + r.name + " (" + (r.side === "civ" ? "civilian" : "enemy") + "): " + (u.seen ? "seen now at " + u.grid : "last seen " + (age < 1 ? "just now" : age + " min ago") + " at " + u.grid));
+    });
+    if (!any) L.push("- none yet");
+    L.push("", "RULES:",
+      "- Use the smallest who that fits: a team when the player names a team, one Marine when they name one Marine.",
+      "- \"On me\" or \"to me\" means where Lead is: where \"Lead\".",
+      "- Leave out blanks the player didn't give. Don't make up places, Marines, or contacts. If a place or name isn't in the lists, add a short line to sayAgain in a Marine's voice instead, like \"Bravo: Say again, which building?\"",
+      "- If the player asks for something none of the verbs cover, add it to notCovered with who and a plain summary, and leave it out of orders.",
+      "- readbacks: one short line per order in a Marine's radio voice, from whoever got it.",
+      "- Keep the player's meaning. Don't add orders the player didn't give.");
+    L.push("", "THE ORDERS, as the player gave them:", "\"\"\"" + text + "\"\"\"");
+    return L.join("\n");
+  }
+  function cleanRead(r) {
+    const out = { orders: [], readbacks: [], sayAgain: [], notCovered: [] };
+    if (!r || typeof r !== "object") return out;
+    const str = v => typeof v === "string" && v.trim() ? v.trim() : undefined;
+    (Array.isArray(r.orders) ? r.orders : []).forEach(o => {
+      if (!o || !str(o.who) || !str(o.verb)) return;
+      const c = { who: str(o.who), verb: str(o.verb).toLowerCase() };
+      for (const k of ["where", "target", "speed", "posture", "kind"]) if (str(o[k])) c[k] = str(o[k]);
+      if (o.swim === true) c.swim = true;
+      out.orders.push(c);
+    });
+    (Array.isArray(r.readbacks) ? r.readbacks : []).forEach(x => { if (x && str(x.text)) out.readbacks.push({ who: str(x.who) || "", text: str(x.text) }); else if (str(x)) out.readbacks.push({ who: "", text: str(x) }); });
+    (Array.isArray(r.sayAgain) ? r.sayAgain : []).forEach(x => { if (str(x)) out.sayAgain.push(str(x)); });
+    (Array.isArray(r.notCovered) ? r.notCovered : []).forEach(x => { if (x && str(x.text)) out.notCovered.push({ who: str(x.who) || "", text: str(x.text) }); else if (str(x)) out.notCovered.push({ who: "", text: str(x) }); });
+    return out;
+  }
+
+  // The simple reader: who, a verb by its everyday words, then a place, a grid square, or a contact.
+  const WORDS = [
+    ["throw grenade", /\b(grenade|frag)\b/], ["treat casualty", /\b(treat|patch|first aid|aid)\b/], ["take cover", /\b(take cover|get to cover|cover)\b/],
+    ["hide", /\bhide\b/], ["withdraw", /\b(withdraw|fall back|pull back|retreat)\b/], ["suppress", /\bsuppress/], ["assault", /\b(assault|attack|clear|storm)\b/],
+    ["fire", /\b(fire|engage|shoot|light up)\b/], ["follow", /\bfollow\b/], ["observe", /\b(observe|watch|overwatch|eyes on)\b/], ["report", /\breport\b/],
+    ["drop", /\b(drop|ditch)\b.*\b(gear|kit|packs?)\b/], ["emote", /\b(dance|salute|wave)\b/], ["change posture", /\b(get down|go prone|prone|kneel|stand up)\b/],
+    ["hold", /\b(hold|stay|halt|stop|freeze)\b/], ["move", /\b(move|go|run|rush|sprint|crawl|head|push|bound|get to|cross)\b/]
+  ];
+  function localRead(text) {
+    const out = { orders: [], readbacks: [], sayAgain: [], notCovered: [] };
+    const names = [];
+    S.roster.forEach(r => { if (r.side === "us") { names.push([r.name, r.name]); r.calls.forEach(c => names.push([c, r.name])); if (r.team) names.push([r.team, r.team]); } });
+    names.push(["squad", "squad"], ["everyone", "squad"], ["all", "squad"]);
+    names.sort((a, b) => b[0].length - a[0].length);
+    const places = S.map.places.map(p => p.label).concat(S.map.buildings.map(b => b.label)).sort((a, b) => b.length - a.length);
+    const contacts = S.roster.filter((r, i) => r.side !== "us" && S.state.units[i]).map(r => r.name).sort((a, b) => b.length - a.length);
+    let who = null;
+    for (const raw of text.split(/[.;\n!?]+/)) {
+      const s = raw.trim(), lo = s.toLowerCase();
+      if (!s) continue;
+      const w = names.find(([n]) => new RegExp("(^|\\W)" + n.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(\\W|$)").test(lo));
+      if (w) who = w[1];
+      if (!who) { out.sayAgain.push("Say again, who is that for?"); continue; }
+      const verb = (WORDS.find(([, re]) => re.test(lo)) || [])[0];
+      if (!verb) { out.sayAgain.push(who + ": Say again, what do you want us to do?"); continue; }
+      const o = { who, verb };
+      const place = places.find(p => lo.includes(p.toLowerCase()));
+      const grid = /\b([a-z])\s?([1-9])\b/i.exec(s.replace(/\b(a|i)\b/gi, ""));
+      const contact = contacts.find(n => lo.includes(n.toLowerCase())) || (/\b(pkm|machine gun|gunner)\b/.test(lo) && contacts.find(n => /PKM/.test(n))) || (/\brpg\b/.test(lo) && contacts.find(n => /RPG/.test(n)));
+      if (/\b(on me|to me)\b/.test(lo)) o.where = "Lead";
+      else if (place) o.where = place;
+      else if (grid) o.where = grid[1].toUpperCase() + grid[2];
+      if (contact && !(verb === "move" && o.where)) o.target = contact;
+      if (verb === "follow") { const f = names.find(([n]) => n.toLowerCase() !== who.toLowerCase() && lo.includes(n.toLowerCase())); if (f) o.target = f[1]; }
+      if (/\b(run|rush|sprint)\b/.test(lo)) o.speed = "run"; else if (/\bcrawl\b/.test(lo)) o.speed = "crawl";
+      if (verb === "change posture") o.posture = /kneel/.test(lo) ? "kneel" : /stand/.test(lo) ? "stand" : "prone";
+      if (verb === "emote") o.kind = (/\b(dance|salute|wave)\b/.exec(lo) || [])[1];
+      if (/\bswim\b/.test(lo)) o.swim = true;
+      out.orders.push(o);
+      out.readbacks.push({ who, text: who + ", " + verb + (o.where ? ", " + o.where : o.target ? ", " + o.target : "") + ", wilco." });
+    }
+    return out;
+  }
+
+  async function send() {
+    const text = box.value.trim();
+    if (!text || S.busy || P || !S.m || S.state.outcome) return;
+    S.busy = true; S.reading = true; S.pending = null; setButtons();
+    S.tab = "net";
+    addLog({ kind: "you", who: "Lead", text });
+    box.value = ""; autosize();
+    renderPane();
+    let read = null, reader = "simple", note = null;
+    if (caps.sample) {
+      try { read = await caps.sample.json(buildPrompt(text), { model: "claude-haiku-5-5", modelTier: "quick" }); reader = "haiku"; }
+      catch (e) {
+        const code = e && e.code;
+        if (code === "not_granted" || code === "sampling_disabled" || code === "not_declared" || code === "capability_disabled" || code === "capability_removed") { caps.sample = null; caps.reader = "off"; note = "Haiku isn't allowed here, so the simple reader took these orders."; }
+        else if (code === "rate_limited") note = "Haiku is busy right now, so the simple reader took these orders.";
+        else note = "Haiku couldn't read that (" + (code || "error") + "), so the simple reader took it.";
+      }
+    }
+    if (!read) read = localRead(text);
+    read = cleanRead(read);
+    if (note) addLog({ kind: "event warn", text: note });
+    let checks = [];
+    try { if (read.orders.length) checks = (await call("CheckOrders", JSON.stringify(read.orders))).checks; }
+    catch (e) { addLog({ kind: "event bad", text: "The simulation couldn't check those orders: " + e.message }); }
+    S.pending = { text, read, checks, reader };
+    S.reading = false; S.busy = false;
+    logDb("orders", { turn: S.state.turn, text, reader, orders: read.orders, sayAgain: read.sayAgain, notCovered: read.notCovered, problems: checks.filter(c => !c.ok).map(c => c.problem) });
+    setButtons(); renderPane(); need();
+  }
+
+  async function playTurn() {
+    if (S.busy || P || !S.m || S.state.outcome) return;
+    if (box.value.trim() && !S.pending) { await send(); addLog({ kind: "event", text: "Check the orders, then press Play turn." }); return; }
+    S.busy = true; setButtons();
+    S.sel = -1; S.tap = null; renderCard();
+    try {
+      const pd = S.pending;
+      if (pd) {
+        const okOrders = pd.read.orders.filter((o, i) => pd.checks.some(c => c.order === i && c.ok));
+        if (okOrders.length) {
+          const g = await call("GiveOrders", JSON.stringify(okOrders));
+          S.state = g.state;
+        }
+        pd.read.orders.forEach((o, i) => {
+          const cs = pd.checks.filter(c => c.order === i);
+          if (cs.some(c => c.ok)) {
+            const rb = pd.read.readbacks.find(x => x.who && x.who.toLowerCase() === o.who.toLowerCase());
+            addLog({ kind: "radio", who: rb ? rb.who : o.who, text: rb ? rb.text.replace(new RegExp("^" + rb.who.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[,:]\\s*", "i"), "") : "Wilco." });
+          } else {
+            const bad = cs.find(c => c.problem);
+            if (bad) addLog({ kind: "radio warn", who: o.who, text: /^not covered/.test(bad.problem) ? "We can't do that yet: " + o.verb + "." : bad.problem });
+          }
+        });
+        pd.read.sayAgain.forEach(s => addLog({ kind: "radio warn", who: "", text: s }));
+        S.pending = null;
+      }
+      const T = await call("RunTurn");
+      S.busy = false;
+      startPlayback(T);
+    } catch (e) {
+      S.busy = false;
+      addLog({ kind: "event bad", text: "The turn didn't run: " + e.message });
+      setButtons();
+    }
+  }
+
+  // ------------------------------------------------------------------ starting up
+  const randomSeed = () => 10000 + Math.floor(Math.random() * 90000);
+  function bootMsg(text, failed) {
+    $("boot").hidden = false;
+    $("bootMsg").textContent = text;
+    document.querySelector("#boot .bar").hidden = !!failed;
+  }
+  async function newMission(seed) {
+    bootMsg("Building map " + seed + ".");
+    $("banner").hidden = true;
+    P = null; $("playbar").hidden = true;
+    await new Promise(r => setTimeout(r, 30));
+    try {
+      const m = await call("NewMission", S.data.t, S.data.u, S.data.n, seed);
+      S.m = m; S.seed = seed; S.map = m.map; S.roster = m.roster; S.state = m.state;
+      S.mw = m.map.w * m.map.cell; S.mh = m.map.h * m.map.cell; S.sq = m.map.square;
+      S.log = []; S.rolls = []; S.flip = {}; S.sel = -1; S.tap = null; S.pending = null; S.busy = false;
+      buildGround(m.map);
+      $("title").textContent = m.title;
+      document.title = "Field Table Playtest";
+      addLog({ kind: "turn", text: m.title });
+      m.brief.forEach(b => addLog({ kind: "event", who: "", text: b }));
+      addLog({ kind: "event", text: "Tap a Marine to select them. Type orders below, then Send." });
+      $("boot").hidden = true;
+      S.tab = "net";
+      frameStart(); clockText(); setButtons(); renderPane(); renderCard();
+    } catch (e) {
+      bootMsg("The map didn't build: " + e.message, true);
+    }
+  }
+  async function boot() {
+    try {
+      // Artifact paths can't start with "_", so the files live in framework/ instead of _framework/.
+      await Blazor.start({ loadBootResource: (type, name, defaultUri) => defaultUri.replace("_framework/", "framework/") });
+      const files = await Promise.all(["terrain.json", "units.json", "names.json"].map(f => fetch(f).then(r => { if (!r.ok) throw new Error(f + " is missing"); return r.text(); })));
+      S.data = { t: files[0], u: files[1], n: files[2] };
+      await newMission(randomSeed());
+    } catch (e) {
+      bootMsg("The simulation didn't load: " + (e && e.message ? e.message : e) + ". Reload the page to try again.", true);
+    }
+  }
+  const loader = document.createElement("script");
+  loader.src = "framework/blazor.webassembly.js";
+  loader.setAttribute("autostart", "false");
+  loader.onload = boot;
+  loader.onerror = () => bootMsg("Couldn't load the simulation files. Reload the page to try again.", true);
+  document.body.appendChild(loader);
+  renderPane();
+  resize();
+})();
+</script>

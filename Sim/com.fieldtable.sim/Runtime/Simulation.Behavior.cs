@@ -290,6 +290,8 @@ namespace FieldTable.Sim
                 // Climbing slows you down.
                 float climb = Map.InBounds(target) ? Math.Max(0f, Map.GroundAt(target) - Map.GroundAt(u.Position)) / Math.Max(dist, 1f) : 0f;
                 float step = Math.Min(dist, budget / (1f + 3f * climb));
+                // A budget too small to move on rounds the step to zero; stop rather than loop forever.
+                if (step <= 0f) break;
                 u.Facing = Bearing(u.Position, target);
                 u.Position = u.Position + delta * (step / dist);
                 budget -= step * (1f + 3f * climb);

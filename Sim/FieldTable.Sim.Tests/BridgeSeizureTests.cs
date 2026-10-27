@@ -95,6 +95,20 @@ namespace FieldTable.Sim.Tests
         }
 
         [Fact]
+        public void ATurnFinishesOnTheMapThatOnceFroze()
+        {
+            // Seed 55555 once left a step so small it rounded to nothing, and the turn never ended.
+            var m = Make(55555);
+            string b = m.Objective.Label;
+            m.Sim.GiveOrder(m.Marines, "Alpha", new Order { Verb = Verbs.Move, Where = b, Speed = "run" });
+            m.Sim.GiveOrder(m.Marines, "Bravo", new Order { Verb = Verbs.Move, Where = b });
+            m.Sim.GiveOrder(m.Marines, "Charlie", new Order { Verb = Verbs.TakeCover });
+            var turn = System.Threading.Tasks.Task.Run(() => m.Sim.RunTurn());
+            Assert.True(turn.Wait(System.TimeSpan.FromSeconds(30)), "The turn never finished.");
+            Assert.Equal(2, m.Sim.Clock.Turn);
+        }
+
+        [Fact]
         public void TakingTheBridgeWithNoEnemyLeftWins()
         {
             var m = Make(6);

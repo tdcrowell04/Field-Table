@@ -36,3 +36,6 @@ TestResults/
 .idea/
 .DS_Store
 Thumbs.db
+
+# The playtest page build
+/Playtest/out/
