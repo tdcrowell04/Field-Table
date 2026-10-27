@@ -61,8 +61,19 @@ namespace FieldTable.Sim.Tests
             Assert.True(m.Director.Apply(Director.Reinforcements));
             int added = m.Sim.Units.Count(u => u.Force == m.Enemy) - before;
             Assert.InRange(added, 2, 4);
-            Assert.Contains(m.Sim.Log.Events.OfType<RadioCall>(), r => r.Text.StartsWith("Raider 6: Drone feed shows a truck dropping off " + added + " fighters"));
+            Assert.Contains(m.Sim.Log.Events.OfType<RadioCall>(), r => r.Text.StartsWith("Raider 6: Drone feed shows a truck dropping off " + added + " soldiers"));
             Assert.All(m.Sim.Units.Where(u => u.Force == m.Enemy).Skip(before), u => Assert.NotNull(u.Order));
+        }
+
+        [Fact]
+        public void NoReinforcementsOnceNobodyIsLeftWithARadio()
+        {
+            var m = Make();
+            Turns(m, 11);
+            var radios = m.Sim.Units.Where(u => u.Force == m.Enemy && u.Def.Radio).ToList();
+            Assert.NotEmpty(radios);
+            foreach (var r in radios) r.Condition = Condition.Dead;
+            Assert.DoesNotContain(m.Director.Options(), o => o.Id == Director.Reinforcements);
         }
 
         [Fact]

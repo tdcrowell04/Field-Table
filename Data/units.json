@@ -247,6 +247,25 @@
       "load": 14
     },
     {
+      "id": "en-sl",
+      "name": "Enemy squad leader",
+      "figure": "opsl",
+      "weapon": "ak",
+      "ammo": 150,
+      "grenades": 1,
+      "load": 18,
+      "radio": true
+    },
+    {
+      "id": "en-tl",
+      "name": "Enemy team leader",
+      "figure": "oprf",
+      "weapon": "ak",
+      "ammo": 150,
+      "grenades": 2,
+      "load": 15
+    },
+    {
       "id": "en-pkm",
       "name": "Enemy machine gunner",
       "figure": "pkm",

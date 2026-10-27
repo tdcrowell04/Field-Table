@@ -399,7 +399,7 @@ namespace FieldTable.Sim
                     k.LastKnownPosition = c.LastKnownPosition;
                     k.LastSeenStep = c.LastSeenStep;
                 }
-                told.Add(Article(c.Unit.Def.Name ?? "fighter") + " at " + Map.SquareOf(c.LastKnownPosition));
+                told.Add(Article(c.Unit.Def.Name ?? "soldier") + " at " + Map.SquareOf(c.LastKnownPosition));
             }
             string through = SameLanguage(u.Force, p.Force) ? "" : ", through the interpreter,";
             Radio(u, u.Name + ": " + p.Name + through + (told.Count == 0 ? " didn't see anything." : " says they saw " + JoinAnd(told) + "."), "info", p.Position, p.Name);

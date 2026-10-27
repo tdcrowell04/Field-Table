@@ -115,6 +115,9 @@ namespace FieldTable.Sim
 
         /// <summary>Speaks the local language as well as English, so the squad can talk to people through him.</summary>
         public bool Interpreter { get; set; }
+
+        /// <summary>Carries the radio that talks to higher, like an enemy squad leader. With none left up, they can't call for help.</summary>
+        public bool Radio { get; set; }
     }
 
     /// <summary>
@@ -141,7 +144,7 @@ namespace FieldTable.Sim
     {
         public string Id { get; }
         public string Name { get; set; }
-        public UnitDef Def { get; }
+        public UnitDef Def { get; internal set; }
         public Force Force { get; }
 
         /// <summary>The team inside the force, like "Alpha". Empty for loners.</summary>

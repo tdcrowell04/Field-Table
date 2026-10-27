@@ -40,7 +40,7 @@ namespace FieldTable.Sim.Tests
             var delay = Make(1, "delay");
             var seen = delay.Sim.Units.Where(u => u.Force == delay.Enemy).ToList();
             var square = delay.Sim.Map.SquareOf(new Vec2(seen.Average(u => u.Position.X), seen.Average(u => u.Position.Y)));
-            Assert.Matches(@"A few fighters were seen watching the road from about \d+ m beyond the bridge, around " + square + @"\.", delay.Brief[2]);
+            Assert.Matches(@"A few soldiers were seen watching the road from about \d+ m beyond the bridge, around " + square + @"\.", delay.Brief[2]);
         }
 
         [Fact]

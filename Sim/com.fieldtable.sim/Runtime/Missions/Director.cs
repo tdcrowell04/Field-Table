@@ -87,8 +87,9 @@ namespace FieldTable.Sim
             var enemy = Sim.Units.Where(u => ReferenceEquals(u.Force, m.Enemy) && !u.Gone).ToList();
 
             int enemyLost = enemy.Count(u => !u.CanAct);
-            if (!Done(Reinforcements) && turn >= 8 && (at.Slow?.Invoke() ?? !m.MarineOnObjective) && (turn >= 12 || enemyLost >= 2))
-                list.Add(new AddInOption(Reinforcements, "Enemy reinforcements: 2 to 4 more fighters arrive on " + at.FarWord + " and head for " + at.FocusWord + ". " + at.SlowWhy));
+            // Reinforcements need someone left with a radio to call them.
+            if (!Done(Reinforcements) && turn >= 8 && enemy.Any(u => u.CanAct && u.Def.Radio) && (at.Slow?.Invoke() ?? !m.MarineOnObjective) && (turn >= 12 || enemyLost >= 2))
+                list.Add(new AddInOption(Reinforcements, "Enemy reinforcements: 2 to 4 more soldiers arrive on " + at.FarWord + " and head for " + at.FocusWord + ". " + at.SlowWhy));
 
             var lastTurn = Sim.Log.Events.Where(e => e.Turn == turn - 1).ToList();
             var landed = lastTurn.OfType<ShotFired>().Select(e => e.To).Concat(lastTurn.OfType<BlastAt>().Select(e => e.At)).ToList();
@@ -175,7 +176,7 @@ namespace FieldTable.Sim
                 var to = FarSideSpot(50f, 120f, (p, t) => t.Cover + (Sight.Trace(map, p, 1.1f, Focus, 1f).Clear ? 1f : 0f)) ?? Focus;
                 if (!Sim.Give(u, new Order { Verb = Verbs.Move, Where = Sim.Coordinates(to), Speed = "run" }).Ok) Send(u, Verbs.Move, Focus - at, 200f);
             }
-            Sim.Radio(null, "Raider 6: Drone feed shows a truck dropping off " + count + " fighters at " + map.SquareOf(drop) + " on " + at.FarWord + ".", "info", drop, "Raider 6");
+            Sim.Radio(null, "Raider 6: Drone feed shows a truck dropping off " + count + " soldiers at " + map.SquareOf(drop) + " on " + at.FarWord + ".", "info", drop, "Raider 6");
         }
 
         void CiviliansPanic()

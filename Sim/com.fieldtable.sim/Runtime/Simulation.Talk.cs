@@ -78,14 +78,14 @@ namespace FieldTable.Sim
             if (roll >= 5)
             {
                 var told = friends.GroupBy(x => Map.SquareOf(x.Position).ToString())
-                    .Select(g => (g.Count() == 1 ? "one fighter" : g.Count() + " fighters") + " at " + g.Key).ToList();
+                    .Select(g => (g.Count() == 1 ? "one soldier" : g.Count() + " soldiers") + " at " + g.Key).ToList();
                 claim = told.Count == 0 ? "says he's the last of them" : (friends.Count == 1 ? "says there's " : "says there are ") + JoinAnd(told);
                 string why = plan?.Said(plan.Goal);
                 if (why != null) claim += ", and " + why;
             }
             else
             {
-                // A lie: fighters somewhere none are (and no Marine is either), and the wrong idea of what they're up to.
+                // A lie: soldiers somewhere none are (and no Marine is either), and the wrong idea of what they're up to.
                 var real = new HashSet<string>(friends.Select(x => Map.SquareOf(x.Position).ToString()));
                 foreach (var m in units.Where(x => ReferenceEquals(x.Force, u.Force) && !x.Gone && !x.Def.Flying)) real.Add(Map.SquareOf(m.Position).ToString());
                 var squares = new List<GridRef>();

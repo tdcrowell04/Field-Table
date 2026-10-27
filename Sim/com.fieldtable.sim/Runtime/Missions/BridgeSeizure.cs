@@ -197,6 +197,7 @@ namespace FieldTable.Sim
                     break;
                 }
             }
+            Organize(data, made);
             foreach (var u in made) u.Force.Plan = plan;
             return (made, plan);
         }
@@ -214,10 +215,10 @@ namespace FieldTable.Sim
 
         static readonly Dictionary<string, string> Hints = new Dictionary<string, string>
         {
-            { EnemyPlan.Hold, "Fighters were seen digging in near the bridge." },
-            { EnemyPlan.Delay, "A few fighters were seen watching the road from about {0} m beyond the bridge, around {1}." },
+            { EnemyPlan.Hold, "Soldiers were seen digging in near the bridge." },
+            { EnemyPlan.Delay, "A few soldiers were seen watching the road from about {0} m beyond the bridge, around {1}." },
             { EnemyPlan.Blow, "A farmer saw men carrying heavy boxes onto the bridge at dawn." },
-            { EnemyPlan.Ambush, "Locals say the fighters pulled out this morning, but nobody saw them go." },
+            { EnemyPlan.Ambush, "Locals say the soldiers pulled out this morning, but nobody saw them go." },
         };
 
         /// <summary>

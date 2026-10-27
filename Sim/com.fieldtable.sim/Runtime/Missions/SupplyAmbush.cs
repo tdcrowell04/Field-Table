@@ -96,6 +96,7 @@ namespace FieldTable.Sim
                 scout = Fighter(data, mission.Enemy, party, numbered, "en-rf", "Scout", path[0], Posture.Standing, path[Math.Min(1, path.Count - 1)]);
                 scout.Gone = true;
             }
+            Organize(data, party);
             foreach (var u in party) { u.Force.Plan = plan; }
 
             var formation = StartOutOfSight(sim, middle, p => DistanceTo(p, trail) >= 100f && !InSettlement(map, p), new List<Unit>(), StartDistance, StartNearest, Inside(map, middle + Turn(Unit(trail[trail.Count - 1] - trail[0]), Math.PI / 2) * StartDistance));
@@ -120,7 +121,7 @@ namespace FieldTable.Sim
             var village = Settlement(map, middle);
             if (village != null) AddCivilians(sim, mission.Civilians, data, rng, BuildingsIn(map, village), Between(rng, 2, 4), 1);
 
-            // The party: on the trail at their turn, walking it in file; once ambushed the fighters fight and the porters
+            // The party: on the trail at their turn, walking it in file; once ambushed the riflemen fight and the porters
             // run for whichever end is nearer. A scout who sees Marines turns them all back.
             var walk = new Dictionary<Unit, List<Vec2>>();
             bool came = false, contact = false, turnedBack = false;
@@ -231,7 +232,7 @@ namespace FieldTable.Sim
             string ends = map.SquareOf(trail[0]) + " to " + map.SquareOf(trail[trail.Count - 1]);
             mission.Brief.Add("Task: ambush a party carrying weapons along " + trailName + " (" + ends + "), stop it, and take the weapons.");
             mission.Brief.Add("Intent: the weapons off the trail, and one of them alive to question.");
-            mission.Brief.Add("Enemy: intel says 4 to 6 fighters on foot with crates, expected about turn " + Expected + " from the " + Compass(expectedFrom - middle) + " end of the trail. Intel isn't sure: they could come from the other end, come late, or turn out to be shepherds. " + Hints[goal]);
+            mission.Brief.Add("Enemy: intel says 4 to 6 soldiers on foot with crates, expected about turn " + Expected + " from the " + Compass(expectedFrom - middle) + " end of the trail. Intel isn't sure: they could come from the other end, come late, or turn out to be shepherds. " + Hints[goal]);
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: shepherds use the trail" + (village != null ? ", and there are villagers in " + village.Label : "") + ". " + RoeLine(mission.Roe));
             int back = (int)Math.Round(DistanceTo(lead, trail) / 50f) * 50;

@@ -60,7 +60,7 @@ namespace FieldTable.Sim.Tests
                 s.Sim.RunTurn();
                 var said = Assert.Single(s.Events<RadioCall>(), r => r.Text.StartsWith("reyes: prisoner"));
                 if (said.Text.Contains("won't say anything")) refused = true;
-                else if (said.Text.Contains("2 fighters at E2") && said.Text.Contains("rigged to blow")) truth = true;
+                else if (said.Text.Contains("2 soldiers at E2") && said.Text.Contains("rigged to blow")) truth = true;
                 else lied = true;
                 Assert.Equal("prisoner", said.Speaker);
                 // His word isn't a sighting.

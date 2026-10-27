@@ -72,6 +72,7 @@ namespace FieldTable.Sim
                     Fighter(data, mission.Enemy, enemy, numbered, gun ? "en-pkm" : "en-rf", gun ? "PKM gunner" : "Rifleman", Indoors(b, i), Posture.Kneeling, v + (b.Center - v) * 3f);
                 }
             }
+            Organize(data, enemy);
             foreach (var u in enemy) u.Force.Plan = plan;
 
             var formation = StartOutOfSight(sim, v, p => !Near(village, p, 100f) && !InSettlement(map, p), enemy, StartDistance, StartNearest, OutAlong(map, v, new Vec2(0f, 1f), StartDistance));
@@ -125,8 +126,8 @@ namespace FieldTable.Sim
             string list = JoinAnd(marked.Select(Number).ToList());
             string grid = map.SquareOf(v).ToString();
             mission.Brief.Add("Task: clear the " + marked.Count + " buildings higher has marked in " + village.Label + " (" + grid + "): buildings " + list + ".");
-            mission.Brief.Add("Intent: the village clear of fighters, its families unhurt, and the houses left standing.");
-            mission.Brief.Add("Enemy: fighters are in some of the marked buildings; strength unknown. " + Hints[goal]);
+            mission.Brief.Add("Intent: the village clear of enemy soldiers, its families unhurt, and the houses left standing.");
+            mission.Brief.Add("Enemy: soldiers are in some of the marked buildings; strength unknown. " + Hints[goal]);
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: families live in some of the marked buildings. " + RoeLine(mission.Roe));
             int back = (int)Math.Round(Vec2.Distance(lead, v) / 50f) * 50;
@@ -158,9 +159,9 @@ namespace FieldTable.Sim
 
         static readonly Dictionary<string, string> Hints = new Dictionary<string, string>
         {
-            { HouseToHouse, "Fighters have been seen moving between the houses." },
-            { RiggedDoor, "Most of the fighters were seen leaving yesterday." },
-            { SlipOut, "The fighters have always pulled out before when troops came." },
+            { HouseToHouse, "Soldiers have been seen moving between the houses." },
+            { RiggedDoor, "Most of the soldiers were seen leaving yesterday." },
+            { SlipOut, "They have always pulled out before when our troops came." },
         };
 
         static string Number(Landmark b) => b.Label.StartsWith("building ", StringComparison.Ordinal) ? b.Label.Substring(9) : b.Label;

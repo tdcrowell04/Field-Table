@@ -128,6 +128,7 @@ namespace FieldTable.Sim
                     break;
                 }
             }
+            Organize(data, made);
             foreach (var u in made) { u.Force.Plan = plan; sim.AddUnit(u); }
             foreach (var g in groups) PlanGroup(map, rng, c, squad, g);
 
@@ -166,7 +167,7 @@ namespace FieldTable.Sim
             mission.Brief.Add(SquadLine("at the crossroads, having come in from the " + Compass(home)) + " Relief comes up the same road, some time between turn " + ReliefFirst + " and turn " + ReliefLast + ".");
             mission.MainObjective = "Hold the crossroads (" + grid + ") until relief arrives.";
             mission.WinText = "Still holding the crossroads when relief arrives, at the end of a turn between " + ReliefFirst + " and " + ReliefLast + " that nobody tells you. Holding it means a Marine who can fight within " + HoldWithin + " m of the crossing.";
-            mission.LoseText = Mission.CombatIneffective + " Marines down, or the enemy holding the crossroads (a fighter within " + HoldWithin + " m and no Marine) at the end of two turns in a row.";
+            mission.LoseText = Mission.CombatIneffective + " Marines down, or the enemy holding the crossroads (a soldier within " + HoldWithin + " m and no Marine) at the end of two turns in a row.";
 
             mission.Secondary.Add(new SecondaryObjective("civilians", "No villagers hurt", m => m.AnyoneHurt(m.Civilians)));
             mission.Secondary.Add(new SecondaryObjective("never-lost", "The crossroads never lost", m => everLost));
@@ -224,7 +225,7 @@ namespace FieldTable.Sim
             switch (goal)
             {
                 case Probe: return "Scouts have been seen watching the village for two days.";
-                case TwoSides: return "Fighters were seen gathering in more than one place.";
+                case TwoSides: return "Soldiers were seen gathering in more than one place.";
                 default: return "A machine gun team was seen moving in, and others were seen off to the " + Compass(second) + ".";
             }
         }

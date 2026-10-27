@@ -121,6 +121,7 @@ namespace FieldTable.Sim
             }
             hvt.Callsigns.AddRange(new[] { "the wanted man", "wanted man", "HVT", "the target" });
             hvt.Facing = Bearing(hvt.Position, At(hd + 100f, 0f));
+            Organize(data, made);
             var enemy = new List<Unit> { hvt };
             enemy.AddRange(made);
             foreach (var u in enemy) u.Force.Plan = plan;
@@ -175,9 +176,9 @@ namespace FieldTable.Sim
 
             mission.Title = "Operation " + Pick(names.Routes, rng) + " Latch";
             string farmGrid = map.SquareOf(c).ToString(), pickupGrid = map.SquareOf(pickup.Center).ToString();
-            mission.Brief.Add("Task: detain the man code-named " + codeName + " at " + farmName + " (" + farmGrid + ") and bring him to the pickup point (" + pickupGrid + ").");
+            mission.Brief.Add("Task: detain the enemy intelligence officer code-named " + codeName + " at " + farmName + " (" + farmGrid + ") and bring him to the pickup point (" + pickupGrid + ").");
             mission.Brief.Add("Intent: " + codeName + " alive to question, and his family unhurt.");
-            mission.Brief.Add("Enemy: armed men are with him; strength unknown. " + Hints[goal]);
+            mission.Brief.Add("Enemy: soldiers guard him; strength unknown. " + Hints[goal]);
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: his family lives at the farm" + (village != null ? ", and there are villagers in " + village.Label : "") + ". " + RoeLine(mission.Roe));
             int back = (int)Math.Round(Vec2.Distance(lead, c) / 50f) * 50;
@@ -207,7 +208,7 @@ namespace FieldTable.Sim
 
         static readonly Dictionary<string, string> Hints = new Dictionary<string, string>
         {
-            { Guard, "A neighbor says armed men have been at the farm all week." },
+            { Guard, "A neighbor says soldiers have been at the farm all week." },
             { Slip, "He's got away from a raid once before." },
             { Gone, "This intel is two days old." },
         };

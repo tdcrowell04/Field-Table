@@ -46,13 +46,47 @@ namespace FieldTable.Sim
             sim.AddWeapons(data.Weapons);
             var mission = new Mission { Kind = kind, Sim = sim, MapData = mapData };
             mission.Marines = sim.AddForce(new Force { Id = "marines", Name = "Raider 2", Faction = "marines" });
-            mission.Enemy = sim.AddForce(new Force { Id = "enemy", Name = "Enemy", Faction = "insurgents" });
-            // The villagers and the fighters don't speak English, so talking to them takes the interpreter.
+            mission.Enemy = sim.AddForce(new Force { Id = "enemy", Name = EnemyName, Faction = "enemy-army" });
+            // The villagers and the enemy soldiers don't speak English, so talking to them takes the interpreter.
             mission.Enemy.Language = "local";
             mission.Civilians = sim.AddForce(new Force { Id = "civilians", Name = "Civilians", Faction = "civilians", Civilian = true, Language = "local" });
             sim.PlayerForce = mission.Marines;
             sim.RecordFrames(mission.Marines);
             return mission;
+        }
+
+        /// <summary>
+        /// The enemy (ledger round 17, (a)): the uniformed army of a made-up country. Its name waits on Triston, so for
+        /// now it's only the enemy.
+        /// </summary>
+        public const string EnemyName = "Enemy";
+
+        /// <summary>
+        /// Organizes a side's soldiers the way an army does: in each squad of up to 9, in the order they were made, the
+        /// first rifleman leads it and carries its radio, and in a squad of 6 or more the next one leads a team. Then
+        /// each kind is numbered again from 1, so the names run in order.
+        /// </summary>
+        public static void Organize(GameData data, IList<Unit> soldiers)
+        {
+            var leader = data.FindUnit("en-sl");
+            var teamLeader = data.FindUnit("en-tl");
+            for (int start = 0; start < soldiers.Count; start += 9)
+            {
+                var squad = soldiers.Skip(start).Take(9).ToList();
+                var riflemen = squad.Where(u => u.Def.Id == "en-rf" && u.Name.StartsWith("Rifleman ", StringComparison.Ordinal)).ToList();
+                if (riflemen.Count > 0 && leader != null) { riflemen[0].Def = leader; riflemen[0].Name = "Squad leader"; }
+                if (riflemen.Count > 1 && squad.Count >= 6 && teamLeader != null) { riflemen[1].Def = teamLeader; riflemen[1].Name = "Team leader"; }
+            }
+            var counts = new Dictionary<string, int>();
+            foreach (var u in soldiers)
+            {
+                // Someone named without a number, like the wanted man, keeps his name.
+                var m = System.Text.RegularExpressions.Regex.Match(u.Name ?? "", @"^(.*) \d+$");
+                string stem = m.Success ? m.Groups[1].Value : u.Name;
+                if (!m.Success && stem != "Squad leader" && stem != "Team leader") continue;
+                counts[stem] = counts.TryGetValue(stem, out int n) ? n + 1 : 1;
+                u.Name = stem + " " + counts[stem];
+            }
         }
 
         /// <summary>The usual last secondary objective, and the rules of engagement most missions start with.</summary>
@@ -68,7 +102,7 @@ namespace FieldTable.Sim
         // ---------- the squad ----------
 
         /// <summary>The squad's line in a brief, where it starts.</summary>
-        public static string SquadLine(string where) => "You: 13 Marines in three fire teams plus Doc and an interpreter, " + where + ". The villagers and the fighters don't speak English.";
+        public static string SquadLine(string where) => "You: 13 Marines in three fire teams plus Doc and an interpreter, " + where + ". The villagers and the enemy soldiers don't speak English.";
 
         public static void AddSquad(Simulation sim, Force force, GameData data, NamePools names, Dice rng, List<(Vec2 pos, float facing)> formation)
         {

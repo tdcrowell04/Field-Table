@@ -121,6 +121,7 @@ namespace FieldTable.Sim
                     break;
                 }
             }
+            Organize(data, enemy);
             foreach (var u in enemy) u.Force.Plan = plan;
 
             var formation = StartOutOfSight(sim, w, p => Dot(TowardEnemy(p), enemyWay) < -100f && !InSettlement(map, p), enemy, StartDistance, StartNearest, Inside(map, w - enemyWay * StartDistance));
@@ -168,7 +169,7 @@ namespace FieldTable.Sim
                 foreach (var u in crew)
                 {
                     if (u.Gone || u.Condition == Condition.Dead) continue;
-                    // Taken prisoner: a fighter right on him, and no Marine close enough to stop it.
+                    // Taken prisoner: a soldier right on him, and no Marine close enough to stop it.
                     var taker = sim.Units.FirstOrDefault(e => ReferenceEquals(e.Force, mission.Enemy) && e.CanAct && Vec2.Distance(e.Position, u.Position) <= CaptureReach);
                     if (taker != null && !marines.Any(m => Vec2.Distance(m.Position, u.Position) <= MarinesStopIt))
                     {
@@ -222,7 +223,7 @@ namespace FieldTable.Sim
             mission.Brief.Add("Task: find the crew of " + crewForce.Name + ", a helicopter down at " + wreckGrid + ", and get them out on a CASEVAC.");
             mission.Brief.Add("Intent: both crew home alive.");
             mission.Brief.Add("Crew: two, last heard on their survival radio near the wreck. The pilot is hurt. They speak English and carry carbines.");
-            mission.Brief.Add("Enemy: fighters will have seen it come down; strength unknown. " + Hints[goal]);
+            mission.Brief.Add("Enemy: soldiers nearby will have seen it come down; strength unknown. " + Hints[goal]);
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: " + (village != null ? "in " + village.Label + ". " : "on the farms nearby. ") + RoeLine(mission.Roe));
             int back = (int)Math.Round(Vec2.Distance(lead, w) / 50f) * 50;

@@ -26,6 +26,11 @@ namespace FieldTable.Sim.Tests
                 Assert.NotNull(m.Enemy.Plan);
                 Assert.Equal("Every Marine comes home alive", m.Secondary.Last().Text);
                 Assert.Equal(14, m.Squad.Count());
+                // The enemy is an army (ledger round 17, (a)): every side has a squad leader with a radio, and names run in order.
+                var enemy = m.Sim.Units.Where(u => u.Force == m.Enemy).ToList();
+                Assert.Contains(enemy, u => u.Def.Id == "en-sl" && u.Def.Radio && u.Name.StartsWith("Squad leader "));
+                foreach (var kind in enemy.Select(u => System.Text.RegularExpressions.Regex.Match(u.Name, @"^(.*) \d+$")).Where(x => x.Success).GroupBy(x => x.Groups[1].Value))
+                    Assert.Equal(Enumerable.Range(1, kind.Count()).Select(n => kind.Key + " " + n), kind.Select(x => x.Value));
             }
         }
 
