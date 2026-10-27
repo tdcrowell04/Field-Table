@@ -101,6 +101,7 @@ namespace FieldTable.Sim.Tests
             Assert.NotNull(s.Sim.Fog.For(s.Blue).About(e.Id));
             Assert.NotNull(op.Order);
             Assert.Contains(s.Events<RadioCall>(), r => r.Text == "op: Drone's up.");
+            Assert.Contains(s.Events<RadioCall>(), r => r.Text == "Charlie: Contact on the drone, enemy rifleman at E4.");
             Assert.True(s.Sim.Give(op, new Order { Verb = Verbs.FlyDrone, Where = "back" }).Ok);
             s.Sim.RunTurn();
             Assert.True(drone.Gone);

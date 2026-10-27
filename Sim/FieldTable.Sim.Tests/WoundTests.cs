@@ -187,6 +187,28 @@ namespace FieldTable.Sim.Tests
         }
 
         [Fact]
+        public void OneSmokeIsEnoughForATeam()
+        {
+            var s = new Scene();
+            var team = new[] { s.Add("a", "tl", s.Blue, 100, 300, "Alpha"), s.Add("b", "ar", s.Blue, 100, 306, "Alpha"), s.Add("c", "rf", s.Blue, 100, 312, "Alpha") };
+            s.Sim.GiveOrder(s.Blue, "Alpha", new Order { Verb = Verbs.ThrowSmoke });
+            s.Sim.RunTurn();
+            Assert.Single(s.Map.Smoke);
+            Assert.Equal(2, team.Sum(u => u.Smokes));
+        }
+
+        [Fact]
+        public void SomeoneDownDoesNotSayTheyAreGood()
+        {
+            var s = new Scene();
+            var m = s.Add("m", "rf", s.Blue, 100, 300);
+            s.Sim.KnockDownForTest(m);
+            s.Sim.HitIn(m, Rifle, 5, stopped: true);
+            Assert.Equal(Condition.Down, m.Condition);
+            Assert.DoesNotContain(s.Events<RadioCall>(), r => r.Text.Contains("I'm good"));
+        }
+
+        [Fact]
         public void ThrownSmokeHangsForAMinuteAndAHalf()
         {
             var s = new Scene();

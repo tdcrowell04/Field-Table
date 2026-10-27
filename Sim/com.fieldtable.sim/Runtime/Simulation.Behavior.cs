@@ -647,7 +647,7 @@ namespace FieldTable.Sim
             v.SetSuppression(1f);
             v.Posture = Posture.Prone;
             Record(new UnitInTrouble(v, what));
-            if (radio != null) Radio(v, radio);
+            if (radio != null && v.Condition != Condition.Down) Radio(v, radio);
         }
 
         void Down(Unit v, string cause, int minutes = MinutesToBleedOut)
@@ -704,14 +704,18 @@ namespace FieldTable.Sim
         internal void CallContact(Unit spotter, Unit target, bool takingFire, bool wasKnown, int lastSeenStep)
         {
             if (!ReferenceEquals(spotter.Force, PlayerForce)) return;
-            string who = string.IsNullOrEmpty(spotter.Team) ? spotter.Name : spotter.Team;
+            // What the drone sees, its operator's team calls in.
+            bool drone = spotter.Def.Flying && spotter.Operator != null;
+            var caller = drone ? spotter.Operator : spotter;
+            string who = string.IsNullOrEmpty(caller.Team) ? caller.Name : caller.Team;
             GridRef square = Map.SquareOf(target.Position);
             string key = who + "|" + target.Id;
             bool cameBack = wasKnown && Clock.Step - lastSeenStep >= SecondsGoneToCallAgain * SimClock.StepsPerSecond;
             if (called.TryGetValue(key, out GridRef last) && last.Equals(square) && !cameBack) return;
             called[key] = square;
-            string kind = target.Def.Name ?? "enemy";
-            Radio(spotter, who + (takingFire ? ": Taking fire! " + kind : ": Contact, " + kind.ToLowerInvariant()) + " at " + square + ".");
+            string kind = target.Def.Name ?? "Enemy";
+            string lower = char.ToLowerInvariant(kind[0]) + kind.Substring(1);
+            Radio(caller, who + (takingFire ? ": Taking fire! " + kind : drone ? ": Contact on the drone, " + lower : ": Contact, " + lower) + " at " + square + ".");
         }
 
         static float Bearing(Vec2 a, Vec2 b) => (float)(Math.Atan2(b.X - a.X, -(b.Y - a.Y)) * 180.0 / Math.PI + 360.0) % 360f;

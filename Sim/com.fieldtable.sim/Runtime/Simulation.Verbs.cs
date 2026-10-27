@@ -39,6 +39,9 @@ namespace FieldTable.Sim
         // Groups that have already reported, so a team calls "clear" or "set" once.
         readonly HashSet<int> reported = new HashSet<int>();
 
+        // Groups that have already popped smoke.
+        readonly HashSet<int> smoked = new HashSet<int>();
+
         /// <summary>A CASEVAC on its way or on the ground, or null.</summary>
         public Casevac Evac { get; private set; }
 
@@ -155,7 +158,8 @@ namespace FieldTable.Sim
 
         void ThrowSmoke(Unit u, Order o)
         {
-            if (u.Smokes > 0 && o.Point != null)
+            // One smoke screens a team; the first Marine with one throws it.
+            if (u.Smokes > 0 && o.Point != null && (o.Group == 0 || smoked.Add(o.Group)))
             {
                 u.Smokes--;
                 var cloud = new SmokeCloud { Center = Clamp(o.Point.Value), Radius = SmokeRadius, Height = SmokeHeight, UntilStep = Clock.Step + SmokeSeconds * SimClock.StepsPerSecond };

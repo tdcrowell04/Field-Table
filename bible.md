@@ -64,7 +64,7 @@ The player clicks a unit, then talks to it. Selecting first means the game alway
   - Plain English: normal talk.
   - Loose: anything goes and the AI sorts it out.
 - Order styles: Radio talk, plain English, and spells (for fantasy). Players can type in other languages too, if it's not too hard.
-- Verbs and blanks: The full verb list is in `verbs.md`: 86 verbs for tactical and tabletop RPG play, all built in the squad slice. *"We're adding all of the verbs."* The first 16 built: move, hold, fire, suppress, take cover, change posture, assault, withdraw, follow, observe, report, treat casualty, throw grenade, hide, drop, and emote. *"When will they come"* (the order for the rest is in ledger round 12) Verbs are hard-coded: move, assault, overwatch, suppress, call for fire, treat casualty, carry, hold, report, and so on. Each verb has blanks for who, where, what target, and when or on what condition. The AI picks the verb and fills the blanks, locked by a grammar so it can only output units, grids, and verbs that exist.
+- Verbs and blanks: The full verb list is in `verbs.md`: 86 verbs for tactical and tabletop RPG play, all built in the squad slice. *"We're adding all of the verbs."* Built so far (28): move, hold, fire, suppress, take cover, change posture, assault, withdraw, follow, observe, report, treat casualty, throw grenade, hide, drop, emote, bound, overwatch, throw smoke, clear, breach, fly drone, talk, search, carry, detain, share ammo, and request (CASEVAC). *"When will they come"* The rest come in batches, each tested before it goes on the page: the rest of the tactical verbs, then the RPG verbs. Verbs are hard-coded: move, assault, overwatch, suppress, call for fire, treat casualty, carry, hold, report, and so on. Each verb has blanks for who, where, what target, and when or on what condition. The AI picks the verb and fills the blanks, locked by a grammar so it can only output units, grids, and verbs that exist.
 - How blanks: Speed, quiet or not, posture, distance to keep, which way to face, and when to open fire are blanks on a verb, not separate verbs.
 - SOPs: Standing orders the unit follows without being told, set once for the unit and changed for a single mission when needed, as in the prototype.
 - Formatted reports: The RTO, Doc, or team leaders build 9-lines, SALUTEs, and other formatted reports from what's already known; the player gives only the decisions that are theirs. *"I feel like I want the reports to be formatted as a choice in radio mode, doing the reports at all a choice in plain english, and a choice in free form but not really necessary."*
@@ -108,14 +108,17 @@ Code owns every hard fact it covers; the AI handles language. When an order fall
 
 - Memory: The game holds the mission log; the AI only gets the small slice each call needs.
 
-Fire and wounds, as built (ledger round 11):
+Fire and wounds, as built (ledger rounds 11 and 12):
 
-- Wounds: a hit rolls a d20. From a rifle, 8 in 20 put the Marine down and the rest wound them (still fights, moves slower). A second hit always puts them down, and a 1 or 2 on someone already hurt kills them.
-- The clock on a casualty: a Marine who's down dies after 15 minutes without treatment. Doc stabilizes someone in 60 seconds; any other Marine takes 3 minutes. *"And then casevac depending on where hit and everything? Because every GSW is different"* (where a Marine is hit, and CASEVAC, are in ledger round 12)
-- Blasts: grenades and rockets roll for everyone inside the blast, friends included. A miss lands a few meters off in a random direction. *"There should be a difference with HE and AP"* (in ledger round 12)
+- A shot: one d100 roll to hit a burst. On a hit, a second die says how many rounds of the burst hit (1 up to the burst size), and each one gets its own wound roll, so a machine gun burst is far deadlier than a rifle's.
+- Getting pinned: fire landing near someone pins them down. At 80% pinned they go prone and won't get up and move until it fades, about 8% a second.
+- Where a hit lands (a d20) decides how bad it is: 1–2 head, usually killed; 3–9 chest, half stop on the plate (knocked flat and pinned, not hurt), the rest are down and bleed out in 10 minutes instead of 15; 10–12 belly, down, 10 minutes; 13–16 arm, wounded, shoots at half accuracy; 17–20 leg, wounded, can't walk and has to be carried. *"And then casevac depending on where hit and everything? Because every GSW is different"* And the helmet: *"There should be the one offs where the helmet saves"*
+- The clock on a casualty: a Marine who's down dies after 15 minutes without treatment (10 for the chest or belly). Doc stabilizes someone in 60 seconds; any other Marine takes 3 minutes.
+- CASEVAC: a Marine who's down is out of the fight until evacuated. Two Marines carry a casualty at half walking speed to a casualty collection point you pick. Lead calls in CASEVAC with a 9-line that Doc fills in from what's known; you only pick the landing zone. A vehicle or helicopter arrives 15 to 30 minutes later, and the end screen counts who got out.
+- Blasts: grenades and rockets roll for everyone inside the blast, friends included. A miss lands a few meters off in a random direction. *"There should be a difference with HE and AP"*
+- HE and AP: HE gives the full blast (5 to 6 m), but a wall or building between you and the blast protects you. AP (armor-piercing, like the RPG's anti-tank rocket) has a small blast (2 m), but it punches through walls, so cover doesn't help whoever is behind the spot it hits. The M320 and the RPG carry both, and you can order which: "Novak, HE on building 4."
 - Deep water: carrying over 15 kg into deep water and you go under; 20 seconds later you drown. Dropping gear takes a Marine down to 12 kg, light enough to swim.
 - The enemy, until the in-game AI steers it: it fights from where it starts, and falls back when it's hurt and pinned, or when half its side is down. Civilians get down when the shooting starts.
-- Still open: how a shot is decided, and getting pinned (ledger round 12).
 
 ## Look
 
@@ -202,18 +205,18 @@ Every mission played in the Field Table prototype is a candidate mission for the
 - Player-built missions and campaigns: players can bring them built all the way or only partly. The AI fills in whatever they leave out, and they share them on Steam Workshop.
 - Cinder Ford: the bridge seizure is one of the 25 start states, played on a freshly generated map each time.
   - Main objective: seize and hold the bridge.
-  - Enemy: a random 5 to 9 fighters each mission, so "unknown strength" in the brief means something. They set up on the far bank, each picking the best cover with a view of the bridge: the PKM 80 to 220 m back, the riflemen 25 to 90 m, the RPG 40 to 130 m. (Which fighters make up the 5 to 9 is in ledger round 12.)
+  - Enemy: a random 5 to 9 fighters each mission, so "unknown strength" in the brief means something. They set up on the far bank, each picking the best cover with a view of the bridge: the PKM 80 to 220 m back, the riflemen 25 to 90 m, the RPG 40 to 130 m. Each fighter is a random kind, not always a PKM and an RPG: *"Not always PKM and rpg. Random."*
   - Civilians: 3 to 5, each in a house in the village by the bridge.
   - How it ends: you lose with 7 Marines down, or after turn 40. You win with a Marine within 15 m of the bridge and no enemy still fighting within 250 m, at the end of two turns in a row.
   - Secondary objectives: no civilians hurt and the bridge left standing (both from the commander's intent), and every Marine comes home alive. Nothing can damage the bridge yet, so that one is always met until explosives that can hurt it are built.
-  - Secondary objectives don't change winning or losing. The quick brief shows how you're doing on each during the mission, and the end screen grades each one. *"In order to get the best rating you have to complete the other objectives"* (the rating itself is in ledger round 12)
+  - Secondary objectives don't change winning or losing. The quick brief shows how you're doing on each during the mission, and the end screen grades each one. *"In order to get the best rating you have to complete the other objectives"* The best rating is S+: *"S+ as highest"* (the rest of the scale is in ledger round 13)
   - Marine names: last names drawn from a list of 24 for each mission, including Reyes, Lund, Ortiz, Hale, and Kim.
 - Quick brief: the brief opens on a short version: the main objective, the secondary objectives, how you win and lose, the rules of engagement, and the enemy seen so far, each objective with a check or a cross as the mission goes. A Full brief button shows the whole thing. A new mission opens on the quick brief instead of the net, and the brief doesn't fill the start of the radio traffic; the net starts with the first orders.
 
 - Design lab: The Field Table prototype is free playtesting of the core idea. Note what felt fair, what didn't, and which rulings to veto.
 - Branches: Each played mission's decision points become its branches. Example, Operation Cinder Ford: the PKM, the unarmed pack on the bridge, and the two enemy wounded each lead to different outcomes depending on the player's choices.
 - Radio lines: Written as templates with blanks, like "Lead, [unit]. Set at [location], eyes on [target]." These can be voice-acted, with optional AI flavor on top.
-- Calls on their own: Marines call out without being asked ("Taking fire! Enemy machine gunner at F4.", "I'm hit!", "Man down!", "Alpha: Set at C4.", "I'm black on ammo!"). Each team calls a contact once, and again only if it moves or comes back.
+- Calls on their own: Marines call out without being asked ("Taking fire! Enemy machine gunner at F4.", "I'm hit!", "Man down!", "Alpha: Set at C4.", "I'm black on ammo!"). Each team calls a contact once, and again only if it moves or comes back. A contact in a new grid square counts as moving, and one out of sight for 30 seconds or more counts as coming back.
 - Models: Claude writes Blender scripts that build rough base models. Triston finishes them.
 
 ## Mods
@@ -250,7 +253,7 @@ Live AI is allowed in this game. This project is separate from Conduits' no-AI-a
   - Figures always draw on top of trees, so you never lose a Marine under the canopy. A building with someone inside turns see-through.
   - Daylight for now; night views next, once the page works on Triston's phone.
   - Order preview: Send has Haiku read the orders, then shows each Marine's route and any problem before anything happens. Play turn commits them and plays one minute. Orders that can't be done are dropped with a "say again."
-  - Playback at 4 times speed (15 seconds a turn), with 2×, 8×, Pause, and Skip.
+  - Playback at 4 times speed (15 seconds a turn), with 2×, 8×, Pause, and Skip. Speeding up a turn speeds up only the movement across the map, never the animations: *"I don't want the time speed up to make the animations faster or slower just the actual movement across the map"*
   - Every roll that touches one of your Marines goes in the Dice tab. The big ones (blasts and how bad a hit is) pop up on the table as they happen.
   - If Haiku isn't available, a simple built-in reader takes orders: who, the verb words, place names, and grid squares.
   - The page saves to its own database what was typed, how it was read, anything not covered yet, and how each turn ended. Nothing else.
@@ -558,9 +561,23 @@ Every call gets ruled before anything is built. Rulings only; overruled ideas ar
 | What secondary objectives count for | Accepted | *"In order to get the best rating you have to complete the other objectives"* |
 | Starting a mission | Accepted | |
 
+### 2026-10-27: ledger round 12
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| How a shot is decided | (c): one roll to hit; on a hit, a die for how many rounds hit, each with a wound roll | |
+| Getting pinned | Accepted | |
+| The enemy mix: always a PKM and an RPG, the rest riflemen | Vetoed: each fighter a random kind | *"Not always PKM and rpg. Random."* |
+| The rating | Accepted, with S+ as the highest | *"S+ as highest"* |
+| Where a Marine is hit | Accepted, plus helmet saves now and then | *"There should be the one offs where the helmet saves"* |
+| CASEVAC | Accepted | |
+| HE and AP | Accepted | |
+| What "moves or comes back" means | Accepted | *"I don't want the time speed up to make the animations faster or slower just the actual movement across the map"* |
+| The rest of the verbs, and when | Accepted | |
+
 ## Open questions
 
-- [ ] How a shot is decided, and getting pinned (ledger round 12)
+- [ ] The rating scale under S+ (ledger round 13)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 

@@ -68,7 +68,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 .card .row button.primary { background: var(--sand); color: var(--ink); border-color: var(--sand); }
 .playbar { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); display: flex; gap: 6px; align-items: center; background: rgba(25, 27, 22, .9); border: 1px solid var(--line); border-radius: 8px; padding: 5px; }
 .playbar .t { font: 500 12px/1 var(--mono); color: var(--muted); padding: 0 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.dice { position: absolute; left: 8px; bottom: 56px; display: flex; flex-direction: column; gap: 5px; pointer-events: none; max-width: calc(100% - 16px); }
+.dice { position: absolute; left: 8px; top: 8px; display: flex; flex-direction: column; gap: 5px; pointer-events: none; max-width: calc(100% - 70px); }
 .die { display: flex; gap: 8px; align-items: center; background: rgba(25, 27, 22, .92); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font: 12px/1.3 var(--mono); animation: pop .25s ease-out; }
 .die b { font: 800 20px/1 var(--display); min-width: 30px; text-align: center; padding: 3px 4px; border-radius: 4px; background: var(--fg); color: var(--ink); }
 .die.ok b { background: var(--good); } .die.bad b { background: var(--enemy); }
@@ -563,16 +563,20 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     grass: "#8d955f", stubble: "#c2ae79", plowed: "#86694a", corn: "#9a9a4c", scrub: "#7d8551", rocky: "#a09685",
     cliff: "#6e675d", forest: "#56653a", orchard: "#83915a", marsh: "#738467", yard: "#b8a682", hedge: "#435a30",
     gully: "#887b5b", creek: "#7c9ba1", river: "#5d8290", lake: "#59808f", road: "#cdb98e", trail: "#b09d76",
-    wall: "#a8987b", building: "#6d6354", bridge: "#8b6b46"
+    wall: "#a8987b", building: "#6d6354", bridge: "#8b6b46", rubble: "#9a8c74"
   };
   const PATTERN = { plowed: 1, corn: 2, stubble: 3, scrub: 4, rocky: 5, marsh: 6, creek: 7, river: 7, lake: 7, forest: 8, orchard: 8, road: 9, yard: 9, trail: 9, cliff: 5 };
   const LK = { deck: "#8b6b46", plank: "#6e5236", rail: "#4f3a24", wall: "#cfc6b0", roof: "#a39886", edge: "#7d7466", win: "#2e2f2c", stone: "#a8987b", stoneTop: "#beb092", tree: "#3f5d2c", treeHi: "#557540", scrub: "#5d6b3a", trunk: "#3d2f1f", shadow: "rgba(18,24,8,0.30)", num: "#2b2a26" };
-  const ROLE = { sl: "Squad leader", doc: "Corpsman", tl: "Team leader", ar: "Automatic rifleman", aar: "Asst. automatic rifleman", rf: "Rifleman", dr: "Drone operator", oprf: "Rifleman", pkm: "Machine gunner", rpg: "RPG gunner", civ: "Civilian" };
+  const ROLE = { sl: "Squad leader", doc: "Corpsman", tl: "Team leader", ar: "Automatic rifleman", aar: "Asst. automatic rifleman", rf: "Rifleman", dr: "Drone operator", oprf: "Rifleman", pkm: "Machine gunner", rpg: "RPG gunner", civ: "Civilian", drone: "Drone" };
+  // Everyday names for the ground, for telling Haiku what's in each grid square.
+  const GROUND = { grass: "grass", stubble: "stubble field", plowed: "plowed field", corn: "tall crops", scrub: "scrub", rocky: "rocks", cliff: "cliff", forest: "woods", orchard: "orchard", marsh: "reeds", yard: "farmyard", hedge: "hedges", gully: "gully", creek: "creek", river: "river", lake: "lake", road: "road", trail: "trail", wall: "stone walls", building: "buildings", bridge: "bridge", rubble: "rubble" };
+  const THIN = { road: 1, trail: 1, hedge: 1, wall: 1, creek: 1, bridge: 1, building: 1, cliff: 1 };
+  const isDrone = i => S.roster[i] && S.roster[i].figure === "drone";
 
   // How each weapon looks when it fires: rounds per burst shown, seconds between rounds, and lobbed or rocket shots.
   const BURST = { m27: 3, "m27-ar": 5, m4: 3, ak: 3, pkm: 6 };
   const RATE = { m27: 0.16, "m27-ar": 0.09, m4: 0.16, ak: 0.12, pkm: 0.075 };
-  const PROJ = { m320: { fl: 1.0, arc: 14 }, grenade: { fl: 1.1, arc: 5 }, rpg: { fl: 0.55, arc: 0, rocket: true } };
+  const PROJ = { m320: { fl: 1.0, arc: 14 }, "m320-ap": { fl: 1.0, arc: 14 }, grenade: { fl: 1.1, arc: 5 }, rpg: { fl: 0.55, arc: 0, rocket: true }, "rpg-ap": { fl: 0.55, arc: 0, rocket: true } };
 
   const S = { cam: { x: 400, y: 300, s: 1 }, fitS: 1, roster: [], state: null, log: [], rolls: [], flip: {}, sel: -1, tap: null, pending: null, busy: false, speed: 4, tab: "net", briefMode: "quick", mw: 800, mh: 600, sq: 100 };
   let P = null;  // the turn being played back
@@ -644,6 +648,23 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       g.beginPath(); g.moveTo(b.x, b.y); g.lineTo(b.x + b.w, b.y); g.lineTo(b.x + b.w + dx, b.y + dy); g.lineTo(b.x + b.w + dx, b.y + b.h + dy); g.lineTo(b.x + dx, b.y + b.h + dy); g.lineTo(b.x, b.y + b.h); g.closePath(); g.fill();
     }
     drawTrees(g, plantTrees(cells, W, Hh, ids, cell));
+  }
+
+  function squareGround(m) {
+    const ids = m.terrains.map(t => t.id), out = [], sq = m.square, cell = m.cell;
+    for (let row = 0; row < m.rows; row++) for (let col = 0; col < m.cols; col++) {
+      const count = {};
+      let n = 0;
+      for (let y = row * sq + 1; y < (row + 1) * sq; y += 2) for (let x = col * sq + 1; x < (col + 1) * sq; x += 2) {
+        const cx = (x / cell) | 0, cy = (y / cell) | 0;
+        if (cx >= S.cw || cy >= S.chh) continue;
+        const id = ids[S.cells[cy * S.cw + cx]];
+        count[id] = (count[id] || 0) + 1; n++;
+      }
+      const kinds = Object.keys(count).filter(id => count[id] / n >= (THIN[id] ? 0.01 : 0.08)).sort((a, b) => count[b] - count[a]).map(id => GROUND[id] || id);
+      out.push(String.fromCharCode(65 + col) + (row + 1) + ": " + kinds.join(", "));
+    }
+    S.squareGround = out;
   }
 
   function strokePath(g, p) { g.beginPath(); g.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) g.lineTo(p[i], p[i + 1]); g.stroke(); }
@@ -731,10 +752,11 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   // The opening view: the squad and the objective, with room around them.
   function frameStart() {
     S.fitS = fitScale();
-    const pts = S.roster.map((r, i) => r.side === "us" && S.state.units[i]).filter(Boolean).map(u => [u.x, u.y]);
+    const pts = S.roster.map((r, i) => r.side === "us" && S.state.units[i]).filter(u => u && !u.gone).map(u => [u.x, u.y]);
     pts.push([S.m.objective.x, S.m.objective.y]);
     const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
-    const x0 = Math.min(...xs) - 60, x1 = Math.max(...xs) + 60, y0 = Math.min(...ys) - 60, y1 = Math.max(...ys) + 60;
+    // More room at the bottom, where the playback bar sits during a turn.
+    const x0 = Math.min(...xs) - 60, x1 = Math.max(...xs) + 60, y0 = Math.min(...ys) - 50, y1 = Math.max(...ys) + 100;
     const s = clamp(Math.min(cv.width / (x1 - x0), cv.height / ((y1 - y0) * K + 20 * LIFT * K)), S.fitS, MAXS * DPR * 0.5);
     S.cam = { x: (x0 + x1) / 2, y: (y0 + y1) / 2, s };
     clampCam(); need();
@@ -758,9 +780,9 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   const POSTURES = ["stand", "kneel", "prone"], CONDS = ["ok", "wounded", "down", "dead"];
   function fromState(i) {
     const u = S.state && S.state.units[i];
-    if (!u) return null;
+    if (!u || u.gone) return null;
     const r = S.roster[i];
-    return { x: u.x, y: u.y, face: u.facing || 0, posture: u.seen ? POSTURES.indexOf(u.posture) : 0, cond: u.seen ? CONDS.indexOf(u.condition) : 0, moving: false, firing: false, seen: u.seen, lastSeen: u.lastSeen, side: r.side };
+    return { x: u.x, y: u.y, face: u.facing || 0, posture: u.seen ? POSTURES.indexOf(u.posture) : 0, cond: u.seen ? CONDS.indexOf(u.condition) : 0, moving: false, firing: false, seen: u.seen, lastSeen: u.lastSeen, side: r.side, detained: !!u.detained, emote: u.emote };
   }
   function fromFrames(i, t) {
     const T = P.T, F = T.frames, step = T.startStep + t * 10;
@@ -775,11 +797,13 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       let df = ((b[2] - face + 540) % 360) - 180; face = face + df * p;
     }
     const fl = a[3];
-    return { x, y, face, posture: fl & 3, cond: (fl >> 2) & 3, moving: !!(fl & 16), firing: !!(fl & 32), emote: a[4], seen: true, side: S.roster[i].side };
+    return { x, y, face, posture: fl & 3, cond: (fl >> 2) & 3, moving: !!(fl & 16), firing: !!(fl & 32), detained: !!(fl & 64), emote: a[4], seen: true, side: S.roster[i].side };
   }
   function disp(i, t) { return P ? fromFrames(i, t) : fromState(i); }
   function poseOf(d) {
     if (!d.seen) return { pose: "stand", opts: { still: true, noShadow: true } };
+    if (d.cond < 2 && d.emote === "controller") return { pose: "kneel", opts: { still: true, noShadow: true, ctrl: true } };
+    if (d.cond < 2 && d.detained) return { pose: "kneel", opts: { still: true, noShadow: true } };
     const name = d.cond >= 2 ? "down" : d.moving ? (d.posture === 2 ? "prone" : "move") : POSTURES[d.posture] || "stand";
     return { pose: name, opts: { still: !d.firing, noShadow: true, aim: d.firing && name === "stand" } };
   }
@@ -861,6 +885,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   }
 
   function ringColor(d) {
+    if (d.detained) return "#a39e8a";
     if (d.side === "us") return d.cond === 3 ? "#7d7a6c" : d.cond === 2 ? "#e0a24f" : COL.friend;
     return d.side === "op" ? COL.enemy : COL.civ;
   }
@@ -881,9 +906,35 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     ctx.globalAlpha = 1;
   }
 
-  function drawItems(c, t) {
+  // The drone, drawn low enough to stay on screen, with a line down to its shadow so you can tell where it is.
+  const DRONE_Z = 14;
+  function drawDrone(c, d, a) {
+    const bob = Math.sin(a * 2.2) * 0.4, top = P3(c, d.x, d.y, DRONE_Z + bob), foot = P3(c, d.x, d.y, 0), k = Math.max(c.fig * 0.5, 16 * DPR) / 30;
+    onGround(ctx, c, 0);
+    ctx.fillStyle = "rgba(0,0,0,0.22)"; ctx.beginPath(); ctx.ellipse(d.x, d.y, 9 * k / c.s, 6 * k / c.s, 0, 0, 7); ctx.fill();
+    flat(ctx);
+    ctx.setLineDash([3 * DPR, 4 * DPR]); line(ctx, foot, top, Math.max(1, DPR), "rgba(120,174,224,0.55)"); ctx.setLineDash([]);
+    ctx.save(); ctx.translate(top.x, top.y); ctx.scale(k, k);
+    ctx.strokeStyle = "rgba(20,18,13,0.92)"; ctx.lineWidth = 6; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-12, -4); ctx.lineTo(12, 4); ctx.moveTo(-12, 4); ctx.lineTo(12, -4); ctx.stroke();
+    ctx.strokeStyle = "#2a2b2d"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-12, -4); ctx.lineTo(12, 4); ctx.moveTo(-12, 4); ctx.lineTo(12, -4); ctx.stroke();
+    ctx.fillStyle = "#2a2b2d"; ctx.fillRect(-5, -3.5, 10, 7);
+    ctx.fillStyle = "rgba(160,170,175,0.4)";
+    for (const [x, y] of [[-12, -4], [12, 4], [-12, 4], [12, -4]]) { ctx.beginPath(); ctx.ellipse(x, y - 1.5, 7, 2, (a * 9) % 1, 0, 7); ctx.fill(); }
+    ctx.fillStyle = COL.friend; ctx.beginPath(); ctx.arc(0, 0, 1.6, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawItems(c, t, a) {
     const L = [], ds = [];
-    for (let i = 0; i < S.roster.length; i++) { const d = disp(i, t); ds[i] = d; if (d) L.push({ d: d.y - (d.cond >= 2 ? 0.5 : 0), f: () => drawUnit(c, i, d, t) }); }
+    for (let i = 0; i < S.roster.length; i++) {
+      const d = disp(i, t);
+      ds[i] = d;
+      if (!d) continue;
+      if (isDrone(i)) L.push({ d: d.y + 1000, f: () => drawDrone(c, d, a) });
+      else L.push({ d: d.y - (d.cond >= 2 ? 0.5 : 0), f: () => drawUnit(c, i, d, a) });
+    }
     for (const b of S.map.buildings) {
       const inside = ds.some(d => d && d.x > b.x - 0.5 && d.x < b.x + b.w + 0.5 && d.y > b.y - 0.5 && d.y < b.y + b.h + 0.5);
       L.push({ d: inside ? b.y - 0.1 : b.y + b.h, f: () => drawBuilding(c, b, inside) });
@@ -941,6 +992,8 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     ds.forEach((d, i) => {
       if (!d) return;
       const r = S.roster[i], f = P3(c, d.x, d.y, 0), below = f.y + 12 * DPR;
+      if (isDrone(i)) { if (near) halo("Drone", f.x, below, font, COL.friend, "center", false); return; }
+      if (d.detained) { halo(r.name + " · detained", f.x, below, font, "rgba(231,225,207,0.85)", "center", S.sel === i); return; }
       if (r.side === "us") {
         if (d.cond < 2 && r.team) { const tm = teams[r.team] || (teams[r.team] = { x: 0, y: 0, n: 0 }); tm.x += d.x; tm.y += d.y; tm.n++; }
         if (near || S.sel === i) halo(r.name, f.x, below, font, S.sel === i ? "#d4b46a" : "rgba(231,225,207,0.92)", "center", S.sel === i);
@@ -967,13 +1020,74 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     flat(ctx);
   }
 
+  // ------------------------------------------------------------------ smoke, breaches, and CASEVAC
+  function cloudsNow() { return P ? P.clouds : (S.state && S.state.smoke) || []; }
+  function drawSmoke(c, t) {
+    const step = P ? P.T.startStep + t * 10 : S.state ? S.state.step : 0;
+    cloudsNow().forEach((cl, n) => {
+      if ((cl.s != null && step < cl.s) || step >= cl.until) return;
+      const age = cl.s != null ? (step - cl.s) / 10 : 99, left = (cl.until - step) / 10;
+      const alpha = 0.62 * Math.min(1, age / 4) * Math.min(1, left / 10);
+      for (let k = 0; k < 9; k++) {
+        const ox = (ih(n * 31 + k, 7) - 0.5) * cl.r * 1.2, oy = (ih(k, n * 17 + 3) - 0.5) * cl.r * 1.2, z = 1 + (k % 3) * 2.2;
+        const p = P3(c, cl.x + ox, cl.y + oy, z), rad = cl.r * (0.45 + ih(k, n) * 0.25) * c.s * Math.min(1, 0.4 + age / 6);
+        ctx.fillStyle = "rgba(208,206,198," + alpha.toFixed(3) + ")";
+        ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, 7); ctx.fill();
+      }
+    });
+  }
+  // A breach changes the ground for good, so it's painted onto the table itself.
+  function paintBreaches(list) {
+    if (!G || !list) return;
+    const g = G.getContext("2d");
+    g.setTransform(GPX, 0, 0, GPX, 0, 0);
+    for (const b of list.slice(S.breaches || 0)) {
+      g.fillStyle = TCOL.rubble; g.beginPath(); g.arc(b.x, b.y, b.r, 0, 7); g.fill();
+      g.fillStyle = "rgba(60,50,40,0.45)";
+      for (let k = 0; k < 8; k++) g.fillRect(b.x + (ih(k, b.x) - 0.5) * b.r * 1.6, b.y + (ih(b.y, k) - 0.5) * b.r * 1.6, 0.35, 0.3);
+    }
+    S.breaches = list.length;
+  }
+  function casevacNow(t) {
+    if (!P) return S.state && S.state.casevac ? Object.assign({}, S.state.casevac) : null;
+    let e = P.evac0 ? Object.assign({}, P.evac0) : null;
+    const step = P.T.startStep + t * 10;
+    for (const ev of P.T.casevac) if (ev.s <= step) e = ev.arrived ? { x: ev.x, y: ev.y, helicopter: ev.helicopter, landed: true } : null;
+    return e;
+  }
+  function drawCasevac(c, t) {
+    const e = casevacNow(t);
+    if (!e) return;
+    onGround(ctx, c, 0);
+    ctx.strokeStyle = "rgba(244,226,170,0.85)"; ctx.lineWidth = 2 * DPR / c.s; ctx.setLineDash([4 * DPR / c.s, 4 * DPR / c.s]);
+    ctx.beginPath(); ctx.arc(e.x, e.y, 25, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+    flat(ctx);
+    const f = P3(c, e.x, e.y, 0);
+    halo(e.landed ? "LZ · CASEVAC on the ground" : "LZ · CASEVAC inbound", f.x, f.y + 25 * c.s * K + 14 * DPR, "600 " + Math.round(11 * DPR) + "px " + FM, "#f4e2aa", "center", true);
+    if (!e.landed) return;
+    const L = Math.max(16, c.fig * 2 / c.s);
+    onGround(ctx, c, 0);
+    ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.ellipse(e.x + 1.5, e.y + 1, L * 0.5, L * 0.18, 0, 0, 7); ctx.fill();
+    onGround(ctx, c, 1.2);
+    if (e.helicopter) {
+      ctx.fillStyle = "#4c5233"; ctx.beginPath(); ctx.ellipse(e.x, e.y, L * 0.28, L * 0.13, 0, 0, 7); ctx.fill();
+      ctx.fillRect(e.x, e.y - L * 0.03, L * 0.5, L * 0.06);
+      ctx.fillStyle = "rgba(30,30,30,0.35)"; ctx.beginPath(); ctx.ellipse(e.x, e.y, L * 0.55, L * 0.55, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#f2efe6"; ctx.fillRect(e.x - L * 0.08, e.y - L * 0.02, L * 0.16, L * 0.04); ctx.fillRect(e.x - L * 0.02, e.y - L * 0.08, L * 0.04, L * 0.16);
+    } else {
+      ctx.fillStyle = "#cfc8b4"; ctx.fillRect(e.x - L * 0.25, e.y - L * 0.11, L * 0.5, L * 0.22);
+      ctx.fillStyle = "#c0392b"; ctx.fillRect(e.x - L * 0.06, e.y - L * 0.02, L * 0.12, L * 0.04); ctx.fillRect(e.x - L * 0.02, e.y - L * 0.06, L * 0.04, L * 0.12);
+    }
+    flat(ctx);
+  }
+
   // ------------------------------------------------------------------ effects during a turn
   function puff(c, x, y, rad, color) {
     onGround(ctx, c, 0);
     ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, rad, 0, 7); ctx.fill();
     flat(ctx);
   }
-  function drawEffects(c, t, ds) {
+  function drawEffects(c, t, ds, a) {
     if (!P) return;
     const sp = P.speed, TR = 0.22 * sp, DUST = 0.5 * sp, minR = 3 * DPR / c.s;
     flat(ctx);
@@ -982,7 +1096,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       const dt = t - tr.t;
       if (dt < 0 || dt > TR + DUST) continue;
       if (dt <= TR) {
-        const d = ds[tr.u], from = d ? muzzleAt(c, tr.u, d, t) : P3(c, tr.x0, tr.y0, 1.2), to = P3(c, tr.x, tr.y, tr.z), p = dt / TR, p0 = Math.max(0, p - 0.3);
+        const d = ds[tr.u], from = d ? muzzleAt(c, tr.u, d, a) : P3(c, tr.x0, tr.y0, 1.2), to = P3(c, tr.x, tr.y, tr.z), p = dt / TR, p0 = Math.max(0, p - 0.3);
         line(ctx, { x: lerp(from.x, to.x, p0), y: lerp(from.y, to.y, p0) }, { x: lerp(from.x, to.x, p), y: lerp(from.y, to.y, p) }, tw, COL.tracer);
       } else if (tr.miss) {
         const q = (dt - TR) / DUST;
@@ -1023,16 +1137,19 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 
   function draw(now) {
     if (!S.m) return;
-    const c = camera(), t = P ? P.t : now / 1000;
+    // t is the turn's own clock; a is real time, so figures walk and breathe at normal speed however fast the turn plays.
+    const c = camera(), t = P ? P.t : now / 1000, a = now / 1000;
     S.c = c;
     taken = [];
     drawTable(c);
     drawGrid(c);
     drawObjective(c);
+    drawCasevac(c, t);
     drawRoutes(c);
     drawPlaces(c);
-    const ds = drawItems(c, t);
-    drawEffects(c, t, ds);
+    const ds = drawItems(c, t, a);
+    drawEffects(c, t, ds, a);
+    drawSmoke(c, t);
     drawTags(c, ds);
     drawTap(c);
   }
@@ -1080,7 +1197,9 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     for (const r of T.rolls) if (r.big) queue.push({ t: t0(r.s), toast: r });
     queue.sort((a, b) => a.t - b.t);
     const dur = T.frames.length ? (T.frames[T.frames.length - 1].s - T.startStep) / 10 : 60;
-    P = { T, t: 0, speed, playing: true, dur, tail: 0.6, tracers, proj, blasts, pulses, queue };
+    const clouds = ((S.state && S.state.smoke) || []).concat(T.smoke);
+    const evac0 = S.state && S.state.casevac ? S.state.casevac : null;
+    P = { T, t: 0, speed, playing: true, dur, tail: 0.6, tracers, proj, blasts, pulses, queue, clouds, evac0 };
     addLog({ kind: "turn", text: "Turn " + T.turn });
     $("playbar").hidden = false;
     syncSpeed();
@@ -1101,6 +1220,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     P = null;
     S.state = T.state;
     S.rolls = T.rolls;
+    paintBreaches(T.state.breaches);
     $("playbar").hidden = true;
     if (T.state.outcome) showOutcome(T.state);
     logDb("turns", { turn: T.turn, outcome: T.state.outcome || null, marinesDown: S.roster.filter((r, i) => r.side === "us" && T.state.units[i] && /down|dead/.test(T.state.units[i].condition)).length, shots: T.shots.length });
@@ -1139,9 +1259,22 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     const turn = P ? P.T.turn : S.state.turn;
     $("clock").textContent = "Turn " + turn + " of " + S.state.turnLimit + " · " + fmt(step / 10);
   }
+  function droneRow() {
+    const i = S.roster.findIndex(r => r.figure === "drone");
+    if (i < 0) return "";
+    const u = S.state.units[i], op = S.roster.find(r => r.figure === "dr");
+    return "<div class=\"team\"><h3>Drone</h3><div class=\"mate\"><i class=\"dot\"></i><span class=\"n\">Quadcopter <small>flown by " + esc(op ? op.name : "the drone operator") + "</small></span><span class=\"a\"></span><span class=\"o\">"
+      + (u && !u.gone ? "Up over " + esc(u.grid) : "In its case") + "</span></div></div>";
+  }
+  function hurtText(u) {
+    if (u.condition === "wounded") return "wounded" + (u.legHit ? " in the leg, can't walk" : u.armHit ? " in the arm" : "");
+    if (u.condition === "ok" && (u.legHit || u.armHit)) return "patched up" + (u.legHit ? ", can't walk" : ", bad arm");
+    return u.condition + (u.stable ? ", stable" : "");
+  }
   function status(u) {
     const parts = [];
-    if (u.condition !== "ok") parts.push(u.condition + (u.stable ? ", stable" : ""));
+    if (u.condition !== "ok" || u.legHit || u.armHit) parts.push(hurtText(u));
+    if (u.carriedBy != null && S.roster[u.carriedBy]) parts.push("carried by " + S.roster[u.carriedBy].name);
     if (u.order) parts.push(orderText(u.order)); else if (u.condition === "ok") parts.push("No orders");
     return parts;
   }
@@ -1164,15 +1297,18 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     if (S.tab === "squad") {
       const groups = [["", "Headquarters"], ["Alpha", "Alpha"], ["Bravo", "Bravo"], ["Charlie", "Charlie"]];
       pane.innerHTML = "<div class=\"squad\">" + groups.map(([k, label]) => {
-        const rows = S.roster.map((r, i) => [r, i]).filter(([r]) => r.side === "us" && (r.team || "") === k);
+        const rows = S.roster.map((r, i) => [r, i]).filter(([r, i]) => r.side === "us" && !isDrone(i) && (r.team || "") === k);
         if (!rows.length) return "";
         return "<div class=\"team\"><h3>" + label + "</h3>" + rows.map(([r, i]) => {
-          const u = S.state.units[i], extra = (u.launcher ? " · M320 " + u.launcher : "") + (u.grenades ? " · " + u.grenades + " gren" : "");
+          const u = S.state.units[i];
+          if (u.gone) return "<div class=\"mate\"><i class=\"dot " + esc(u.condition) + "\"></i><span class=\"n\">" + esc(r.name) + " <small>" + esc(ROLE[r.figure] || r.kind) + "</small></span><span class=\"a\"></span><span class=\"o\">Evacuated by CASEVAC</span></div>";
+          const kit = [u.launcher || u.launcherAp ? "M320 " + u.launcher + " HE, " + u.launcherAp + " AP" : "", u.grenades ? u.grenades + " gren" : "", u.smokes ? u.smokes + " smoke" : ""].filter(Boolean);
           return "<button type=\"button\" class=\"mate\" data-u=\"" + i + "\" aria-pressed=\"" + (S.sel === i) + "\"><i class=\"dot " + esc(u.condition) + "\"></i>"
-            + "<span class=\"n\">" + esc(r.name) + " <small>" + esc(ROLE[r.figure] || r.kind) + "</small></span><span class=\"a\">" + u.ammo + " rds" + esc(extra) + "</span>"
-            + "<span class=\"o\">" + esc(status(u).concat(u.grid).join(" · ")) + "</span></button>";
+            + "<span class=\"n\">" + esc(r.name) + " <small>" + esc(ROLE[r.figure] || r.kind) + "</small></span><span class=\"a\">" + u.ammo + " rds</span>"
+            + "<span class=\"o\">" + esc(status(u).concat(u.grid).join(" · ")) + "</span>"
+            + (kit.length ? "<span class=\"o\">" + esc(kit.join(" · ")) + "</span>" : "") + "</button>";
         }).join("") + "</div>";
-      }).join("") + "</div>";
+      }).join("") + droneRow() + "</div>";
       return;
     }
     if (S.tab === "brief") {
@@ -1207,16 +1343,17 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   function loseText() { return S.state.objectives.combatIneffective + " Marines down, or past turn " + S.state.turnLimit + "."; }
   function quickBriefHtml() {
     const o = S.state.objectives, st = S.state.units;
-    const seen = [], squad = { up: 0, hurt: 0, down: 0, dead: 0 };
+    const seen = [], squad = { up: 0, hurt: 0, down: 0, dead: 0, out: 0 };
     S.roster.forEach((r, i) => {
       const u = st[i];
       if (!u) return;
-      if (r.side === "us") { if (u.condition === "ok") squad.up++; else if (u.condition === "wounded") squad.hurt++; else if (u.condition === "down") squad.down++; else squad.dead++; return; }
+      if (r.side === "us") { if (isDrone(i)) return; if (u.gone) squad.out++; else if (u.condition === "ok") squad.up++; else if (u.condition === "wounded") squad.hurt++; else if (u.condition === "down") squad.down++; else squad.dead++; return; }
       if (r.side !== "op") return;
       const age = Math.max(0, Math.round((S.state.step - (u.lastSeen || 0)) / 600));
       seen.push(esc(r.name) + " at " + esc(u.grid) + (u.seen ? (u.condition && u.condition !== "ok" ? ", " + esc(u.condition) : ", seen now") : ", last seen " + (age < 1 ? "just now" : age + " min ago")));
     });
-    const squadLine = (squad.up + squad.hurt) + " of 14 can fight" + (squad.hurt ? " · " + squad.hurt + " wounded" : "") + (squad.down ? " · " + squad.down + " down" : "") + (squad.dead ? " · " + squad.dead + " dead" : "");
+    const squadLine = (squad.up + squad.hurt) + " of 14 can fight" + (squad.hurt ? " · " + squad.hurt + " wounded" : "") + (squad.down ? " · " + squad.down + " down" : "") + (squad.out ? " · " + squad.out + " evacuated" : "") + (squad.dead ? " · " + squad.dead + " dead" : "")
+      + (S.state.casevac ? " · CASEVAC " + (S.state.casevac.landed ? "on the ground at " : "inbound to ") + S.state.casevac.grid : "");
     return "<div class=\"brief\"><h2>" + esc(S.m.title) + "</h2>"
       + "<div class=\"obj main\"><h3 class=\"mini\">Main objective</h3>" + objRow(o.mainStatus, o.main, o.mainStatus) + "</div>"
       + "<div class=\"obj\"><h3 class=\"mini\">Secondary objectives</h3>" + o.secondary.map(x => objRow(x.status, x.text, x.status)).join("") + "</div>"
@@ -1269,12 +1406,12 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       if (!u) { card.hidden = true; return; }
       if (r.side === "us") {
         card.innerHTML = "<span class=\"nm\">" + esc(r.name) + "</span><span class=\"meta\">" + esc(ROLE[r.figure] || r.kind) + (r.team ? ", " + esc(r.team) : "") + " · " + esc(u.grid) + "<br>"
-          + esc(u.condition) + (u.stable ? ", stable" : "") + " · " + u.ammo + " rds" + (u.launcher ? " · M320 " + u.launcher : "") + (u.grenades ? " · " + u.grenades + " grenades" : "")
+          + esc(hurtText(u)) + " · " + u.ammo + " rds" + (u.launcher || u.launcherAp ? " · M320 " + u.launcher + " HE, " + u.launcherAp + " AP" : "") + (u.grenades ? " · " + u.grenades + " grenades" : "") + (u.smokes ? " · " + u.smokes + " smoke" : "")
           + "<br>" + esc(u.order ? "Now: " + orderText(u.order) : "No orders") + "</span><div class=\"row\"><button type=\"button\" class=\"primary\" data-say=\"" + esc(r.name) + ", \">Order " + esc(r.name) + "</button>"
           + (r.team ? "<button type=\"button\" data-say=\"" + esc(r.team) + ", \">Order " + esc(r.team) + "</button>" : "") + "</div>";
       } else {
         const age = Math.max(0, Math.round((S.state.step - (u.lastSeen || 0)) / 600));
-        card.innerHTML = "<span class=\"nm\">" + esc(r.name) + "</span><span class=\"meta\">" + (u.seen ? "Seen now at " + esc(u.grid) + (u.condition && u.condition !== "ok" ? ", " + esc(u.condition) : "") : "Last seen " + (age < 1 ? "just now" : age + " min ago") + " at " + esc(u.grid)) + "</span>"
+        card.innerHTML = "<span class=\"nm\">" + esc(r.name) + "</span><span class=\"meta\">" + (u.seen ? "Seen now at " + esc(u.grid) + (u.detained ? ", detained" : u.condition && u.condition !== "ok" ? ", " + esc(u.condition) : "") : "Last seen " + (age < 1 ? "just now" : age + " min ago") + " at " + esc(u.grid)) + "</span>"
           + "<div class=\"row\"><button type=\"button\" class=\"primary\" data-say=\"" + esc(r.name) + "\">Use as target</button></div>";
       }
       card.hidden = false;
@@ -1301,7 +1438,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     let best = -1, bd = 1e9;
     for (let i = 0; i < S.roster.length; i++) {
       const d = fromState(i);
-      if (!d) continue;
+      if (!d || isDrone(i)) continue;
       const f = P3(c, d.x, d.y, 0), fig = c.fig;
       if (sx > f.x - fig * 0.38 && sx < f.x + fig * 0.38 && sy > f.y - fig && sy < f.y + fig * 0.15) {
         const dist = Math.abs(sx - f.x) + Math.abs(sy - (f.y - fig * 0.45)) - d.y * 0.001;
@@ -1392,7 +1529,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   $("card").addEventListener("click", e => { const b = e.target.closest("[data-say]"); if (b) insert(b.dataset.say); });
   $("pane").addEventListener("click", e => {
     const m = e.target.closest(".mate");
-    if (!m) return;
+    if (!m || m.dataset.u == null) return;
     const i = +m.dataset.u, u = S.state.units[i];
     S.sel = i; S.tap = null;
     if (u) lookAt(u.x, u.y, 46);
@@ -1436,7 +1573,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     "- move: go to a place. where (required). speed: \"walk\", \"run\", or \"crawl\" if said. swim: true only if told to swim.",
     "- assault: attack and move through a place or contact. where or target.",
     "- hold: stay put and fight from there.",
-    "- fire: shoot at a contact or a place. target (a contact name) or where.",
+    "- fire: shoot at a contact or a place. target (a contact name) or where. kind \"HE\" or \"AP\" when they name the grenade launcher round.",
     "- suppress: keep fire on a contact or a place to pin it down. target or where.",
     "- take cover: get into the best cover nearby.",
     "- hide: get low and out of sight nearby.",
@@ -1448,7 +1585,19 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     "- treat casualty: give first aid. target is the casualty's name, if given.",
     "- throw grenade: a hand grenade, 35 meters at most. where or target.",
     "- drop: drop heavy gear, needed before swimming deep water.",
-    "- emote: kind, like \"dance\", \"salute\", or \"wave\"."
+    "- emote: kind, like \"dance\", \"salute\", or \"wave\".",
+    "- bound: move by rushes, half the team covering while the other half runs. where (required).",
+    "- overwatch: cover an area and shoot whatever shows up there. target: the area or contact to watch. where: a spot to watch from, only if they give one.",
+    "- throw smoke: a smoke grenade to screen, 35 meters at most. where, if given.",
+    "- clear: go through a building room by room. where: the building.",
+    "- breach: open a gap in a wall, hedge, or building. where.",
+    "- fly drone: only for the drone operator. where: where to send the drone. Leave where out to bring it back and pack it up.",
+    "- talk: talk to a civilian or a prisoner. target: who.",
+    "- search: search a place, or a person who is down, detained, or a civilian. target (a person) or where.",
+    "- carry: carry a casualty. target: who to carry. where: where to take them.",
+    "- detain: take someone prisoner: a civilian, or an enemy who is down. target: who.",
+    "- share ammo: spread the ammo out evenly across a team.",
+    "- request: call for CASEVAC. kind \"CASEVAC\". where: the landing zone."
   ].join("\n");
   const SHAPE = '{"orders": [{"who": "Alpha", "verb": "move", "where": "building 4", "target": null, "speed": "run", "posture": null, "swim": false, "kind": null}],\n "readbacks": [{"who": "Alpha", "text": "Alpha, moving to building 4."}],\n "sayAgain": ["Bravo: Say again, which building?"],\n "notCovered": [{"who": "Charlie", "text": "fly the drone over the village"}]}';
   function buildPrompt(text) {
@@ -1457,14 +1606,18 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     L.push("", "Reply with only JSON, in this shape:", SHAPE);
     L.push("", "WHO: use exactly one of \"squad\" (everyone), a team (\"Alpha\", \"Bravo\", or \"Charlie\"), or one Marine by last name. The squad:");
     S.roster.forEach((r, i) => {
-      if (r.side !== "us") return;
+      if (r.side !== "us" || isDrone(i)) return;
       const u = st[i];
-      L.push("- " + r.name + ": " + (ROLE[r.figure] || r.kind).toLowerCase() + (r.team ? ", " + r.team : "") + " (also called " + r.calls.join(", ") + "), at " + u.grid + (u.condition !== "ok" ? ", " + u.condition : "") + (u.order ? ", now doing: " + orderText(u.order) : ""));
+      if (u.gone) { L.push("- " + r.name + ": evacuated, not here"); return; }
+      const kit = (r.figure === "tl" ? ", M320 with " + u.launcher + " HE and " + u.launcherAp + " AP" : "") + (r.figure === "dr" ? ", flies the squad's drone" : "") + (r.figure === "doc" ? ", the medic" : "");
+      L.push("- " + r.name + ": " + (ROLE[r.figure] || r.kind).toLowerCase() + (r.team ? ", " + r.team : "") + kit + " (also called " + r.calls.join(", ") + "), at " + u.grid + (u.condition !== "ok" || u.legHit || u.armHit ? ", " + hurtText(u) : "") + (u.order ? ", now doing: " + orderText(u.order) : ""));
     });
     L.push("", "VERBS: use exactly one of these per order, with the blanks shown:", VERB_HELP);
-    L.push("", "WHERE: a grid square (columns A to " + String.fromCharCode(64 + S.map.cols) + ", rows 1 to " + S.map.rows + ", 100 meters each, like \"E3\"), a place below written exactly as shown, or a Marine or team name.", "PLACES:");
+    L.push("", "WHERE: a grid square (columns A to " + String.fromCharCode(64 + S.map.cols) + ", rows 1 to " + S.map.rows + ", 100 meters each, like \"E3\"), a place below written exactly as shown, a Marine or team name, or a kind of ground in a square, written like \"woods at C3\" (woods, field, crops, reeds, scrub, orchard, hedge, wall, rocks, gully, road, trail, creek, building, farmyard, cliff, bridge).", "PLACES:");
     S.map.places.forEach(p => { if (p.kind !== "control") L.push("- " + p.label + " (" + p.grid + ")" + (p.note ? ", " + p.note : "")); });
     S.map.buildings.forEach(b => L.push("- " + b.label + " (" + gridOf(b.x + b.w / 2, b.y + b.h / 2) + ")"));
+    L.push("", "GROUND IN EACH SQUARE, most first:");
+    (S.squareGround || []).forEach(line => L.push("- " + line));
     L.push("", "CONTACTS the squad has seen. Use these names for target:");
     let any = false;
     S.roster.forEach((r, i) => {
@@ -1478,6 +1631,8 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     L.push("", "RULES:",
       "- Use the smallest who that fits: a team when the player names a team, one Marine when they name one Marine.",
       "- \"On me\" or \"to me\" means where Lead is: where \"Lead\".",
+      "- A Marine or team and a place with no verb, like \"Charlie, C3\", means move there.",
+      "- When they name ground and a square, like \"the woods at C3\", use that as where, and check the square really has it.",
       "- Leave out blanks the player didn't give. Don't make up places, Marines, or contacts. If a place or name isn't in the lists, add a short line to sayAgain in a Marine's voice instead, like \"Bravo: Say again, which building?\"",
       "- If the player asks for something none of the verbs cover, add it to notCovered with who and a plain summary, and leave it out of orders.",
       "- readbacks: one short line per order in a Marine's radio voice, from whoever got it.",
@@ -1504,16 +1659,20 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 
   // The simple reader: who, a verb by its everyday words, then a place, a grid square, or a contact.
   const WORDS = [
-    ["throw grenade", /\b(grenade|frag)\b/], ["treat casualty", /\b(treat|patch|first aid|aid)\b/], ["take cover", /\b(take cover|get to cover|cover)\b/],
-    ["hide", /\bhide\b/], ["withdraw", /\b(withdraw|fall back|pull back|retreat)\b/], ["suppress", /\bsuppress/], ["assault", /\b(assault|attack|clear|storm)\b/],
-    ["fire", /\b(fire|engage|shoot|light up)\b/], ["follow", /\bfollow\b/], ["observe", /\b(observe|watch|overwatch|eyes on)\b/], ["report", /\breport\b/],
+    ["request", /\b(casevac|medevac|dustoff|9.?line)\b/], ["fly drone", /\b(drone|quadcopter|quad)\b/], ["throw smoke", /\bsmoke\b/],
+    ["share ammo", /\b(share|redistribute|spread)\b.*\bammo\b/], ["throw grenade", /\b(grenade|frag)\b/], ["carry", /\b(carry|drag|haul)\b/],
+    ["treat casualty", /\b(treat|patch|first aid|aid)\b/], ["overwatch", /\b(overwatch|provide cover|cover (us|me|them))\b/], ["take cover", /\b(take cover|get to cover|cover)\b/],
+    ["detain", /\b(detain|zip.?tie|cuff|take .* prisoner)\b/], ["talk", /\b(talk|ask|question|interview)\b/], ["search", /\b(search|look for|sweep)\b/],
+    ["breach", /\b(breach|blow (a|the) hole)\b/], ["clear", /\bclear\b/], ["bound", /\b(bound|bounding|leapfrog)\b/],
+    ["hide", /\bhide\b/], ["withdraw", /\b(withdraw|fall back|pull back|retreat)\b/], ["suppress", /\bsuppress/], ["assault", /\b(assault|attack|storm)\b/],
+    ["fire", /\b(fire|engage|shoot|light up)\b/], ["follow", /\bfollow\b/], ["observe", /\b(observe|watch|eyes on)\b/], ["report", /\breport\b/],
     ["drop", /\b(drop|ditch)\b.*\b(gear|kit|packs?)\b/], ["emote", /\b(dance|salute|wave)\b/], ["change posture", /\b(get down|go prone|prone|kneel|stand up)\b/],
-    ["hold", /\b(hold|stay|halt|stop|freeze)\b/], ["move", /\b(move|go|run|rush|sprint|crawl|head|push|bound|get to|cross)\b/]
+    ["hold", /\b(hold|stay|halt|stop|freeze)\b/], ["move", /\b(move|go|run|rush|sprint|crawl|head|push|get to|cross)\b/]
   ];
   function localRead(text) {
     const out = { orders: [], readbacks: [], sayAgain: [], notCovered: [] };
     const names = [];
-    S.roster.forEach(r => { if (r.side === "us") { names.push([r.name, r.name]); r.calls.forEach(c => names.push([c, r.name])); if (r.team) names.push([r.team, r.team]); } });
+    S.roster.forEach(r => { if (r.side === "us" && r.figure !== "drone") { names.push([r.name, r.name]); r.calls.forEach(c => names.push([c, r.name])); if (r.team) names.push([r.team, r.team]); } });
     names.push(["squad", "squad"], ["everyone", "squad"], ["all", "squad"]);
     names.sort((a, b) => b[0].length - a[0].length);
     const places = S.map.places.map(p => p.label).concat(S.map.buildings.map(b => b.label)).sort((a, b) => b.length - a.length);
@@ -1525,13 +1684,16 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       const w = names.find(([n]) => new RegExp("(^|\\W)" + n.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(\\W|$)").test(lo));
       if (w) who = w[1];
       if (!who) { out.sayAgain.push("Say again, who is that for?"); continue; }
-      const verb = (WORDS.find(([, re]) => re.test(lo)) || [])[0];
-      if (!verb) { out.sayAgain.push(who + ": Say again, what do you want us to do?"); continue; }
-      const o = { who, verb };
       const place = places.find(p => lo.includes(p.toLowerCase()));
       const grid = /\b([a-z])\s?([1-9])\b/i.exec(s.replace(/\b(a|i)\b/gi, ""));
+      // A Marine or team and a place with no verb means move there.
+      const verb = (WORDS.find(([, re]) => re.test(lo)) || [])[0] || (place || grid ? "move" : null);
+      if (!verb) { out.sayAgain.push(who + ": Say again, what do you want us to do?"); continue; }
+      const o = { who, verb };
+      const ground = /\b(woods|forest|trees|tree ?line|orchard|fields?|crops|corn|reeds|marsh|scrub|brush|hedge(row)?|wall|rocks|gully|ditch|road|trail|creek|building|farmyard|cliff)\s+(in|at|on)\s+([a-h])\s?([1-9])\b/i.exec(s);
       const contact = contacts.find(n => lo.includes(n.toLowerCase())) || (/\b(pkm|machine gun|gunner)\b/.test(lo) && contacts.find(n => /PKM/.test(n))) || (/\brpg\b/.test(lo) && contacts.find(n => /RPG/.test(n)));
       if (/\b(on me|to me)\b/.test(lo)) o.where = "Lead";
+      else if (ground) o.where = ground[1].toLowerCase() + " at " + ground[4].toUpperCase() + ground[5];
       else if (place) o.where = place;
       else if (grid) o.where = grid[1].toUpperCase() + grid[2];
       if (contact && !(verb === "move" && o.where)) o.target = contact;
@@ -1539,6 +1701,10 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       if (/\b(run|rush|sprint)\b/.test(lo)) o.speed = "run"; else if (/\bcrawl\b/.test(lo)) o.speed = "crawl";
       if (verb === "change posture") o.posture = /kneel/.test(lo) ? "kneel" : /stand/.test(lo) ? "stand" : "prone";
       if (verb === "emote") o.kind = (/\b(dance|salute|wave)\b/.exec(lo) || [])[1];
+      if (verb === "request") o.kind = "CASEVAC";
+      if (/\bHE\b/.test(s)) o.kind = "HE"; else if (/\bAP\b/.test(s)) o.kind = "AP";
+      if (verb === "carry") { const c = names.find(([n]) => n.toLowerCase() !== who.toLowerCase() && lo.includes(n.toLowerCase())); if (c) o.target = c[1]; }
+      if (verb === "fly drone" && /\b(back|home|land|pack)\b/.test(lo)) delete o.where;
       if (/\bswim\b/.test(lo)) o.swim = true;
       out.orders.push(o);
       out.readbacks.push({ who, text: who + ", " + verb + (o.where ? ", " + o.where : o.target ? ", " + o.target : "") + ", wilco." });
@@ -1630,6 +1796,8 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       S.mw = m.map.w * m.map.cell; S.mh = m.map.h * m.map.cell; S.sq = m.map.square;
       S.log = []; S.rolls = []; S.flip = {}; S.sel = -1; S.tap = null; S.pending = null; S.busy = false;
       buildGround(m.map);
+      S.breaches = 0;
+      squareGround(m.map);
       $("title").textContent = m.title;
       document.title = "Field Table Playtest";
       $("boot").hidden = true;

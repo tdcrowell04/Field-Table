@@ -102,7 +102,7 @@ namespace FieldTable.Playtest
 
                 // Frames: per unit [x*10, y*10, facing, flags] or null when the Marines can't see it.
                 // flags: posture (0 stand, 1 kneel, 2 prone) + 4 * condition (0 ok, 1 wounded, 2 down, 3 dead)
-                // + 16 moving + 32 firing.
+                // + 16 moving + 32 firing + 64 detained. A fifth entry is an emote, like "controller" for flying the drone.
                 w.WriteStartArray("frames");
                 foreach (var f in frames)
                 {
@@ -116,7 +116,7 @@ namespace FieldTable.Playtest
                         w.WriteNumberValue((int)Math.Round(uf.X * 10));
                         w.WriteNumberValue((int)Math.Round(uf.Y * 10));
                         w.WriteNumberValue((int)Math.Round(uf.Facing));
-                        w.WriteNumberValue((int)uf.Posture + 4 * (int)uf.Condition + (uf.Moving ? 16 : 0) + (uf.Firing ? 32 : 0));
+                        w.WriteNumberValue((int)uf.Posture + 4 * (int)uf.Condition + (uf.Moving ? 16 : 0) + (uf.Firing ? 32 : 0) + (uf.Detained ? 64 : 0));
                         if (uf.Emote != null) w.WriteStringValue(uf.Emote);
                         w.WriteEndArray();
                     }
@@ -146,9 +146,36 @@ namespace FieldTable.Playtest
                     w.WriteStartObject();
                     w.WriteNumber("s", e.Step);
                     w.WriteNumber("x", R(e.At.X)); w.WriteNumber("y", R(e.At.Y));
-                    w.WriteNumber("r", e.Weapon.Blast);
-                    w.WriteString("w", e.Weapon.Id);
+                    w.WriteNumber("r", e.Radius);
+                    w.WriteString("w", e.Weapon.Id + (e.Ap ? "-ap" : ""));
                     w.WriteString("name", e.Weapon.Name);
+                    w.WriteEndObject();
+                }
+                w.WriteEndArray();
+
+                w.WriteStartArray("smoke");
+                foreach (var e in events.OfType<SmokeAt>()) WriteCloud(w, e.Cloud, e.Step);
+                w.WriteEndArray();
+
+                w.WriteStartArray("breaches");
+                foreach (var e in events.OfType<BreachMade>())
+                {
+                    w.WriteStartObject();
+                    w.WriteNumber("s", e.Step);
+                    w.WriteNumber("x", R(e.At.X)); w.WriteNumber("y", R(e.At.Y));
+                    w.WriteNumber("r", e.Radius);
+                    w.WriteEndObject();
+                }
+                w.WriteEndArray();
+
+                w.WriteStartArray("casevac");
+                foreach (var e in events.OfType<CasevacMoved>())
+                {
+                    w.WriteStartObject();
+                    w.WriteNumber("s", e.Step);
+                    w.WriteBoolean("arrived", e.Arrived);
+                    w.WriteBoolean("helicopter", e.Helicopter);
+                    w.WriteNumber("x", R(e.Lz.X)); w.WriteNumber("y", R(e.Lz.Y));
                     w.WriteEndObject();
                 }
                 w.WriteEndArray();
@@ -196,6 +223,8 @@ namespace FieldTable.Playtest
                         case UnitInTrouble x: about = x.Unit; kind = "trouble"; break;
                         case ContactSpotted x when ReferenceEquals(x.Force, marines): about = x.Target; kind = "spotted"; break;
                         case ContactLost x when ReferenceEquals(x.Force, marines): about = x.Target; kind = "lost"; break;
+                        case UnitDetained x: about = x.Unit; kind = "detained"; break;
+                        case UnitEvacuated x: about = x.Unit; kind = "evacuated"; break;
                     }
                     if (kind == null) continue;
                     if (kind != "spotted" && kind != "lost" && !SeenAt(about, e.Step)) continue;
@@ -367,6 +396,16 @@ namespace FieldTable.Playtest
                 bool ours = ReferenceEquals(u.Force, mission.Marines);
                 Contact c = ours ? null : knowledge.About(u.Id);
                 if (!ours && c == null) { w.WriteNullValue(); continue; }
+                if (ours && u.Gone)
+                {
+                    // Off the table: evacuated, or the drone still in its case.
+                    w.WriteStartObject();
+                    w.WriteBoolean("gone", true);
+                    if (u.Evacuated) w.WriteBoolean("evacuated", true);
+                    w.WriteString("condition", u.Condition.ToString().ToLowerInvariant());
+                    w.WriteEndObject();
+                    continue;
+                }
                 bool visible = ours || c.Visible;
                 Vec2 at = visible ? u.Position : c.LastKnownPosition;
                 w.WriteStartObject();
@@ -383,12 +422,19 @@ namespace FieldTable.Playtest
                     w.WriteNumber("facing", (int)Math.Round(u.Facing));
                     w.WriteString("posture", u.Posture.ToString().ToLowerInvariant());
                     w.WriteString("condition", u.Condition.ToString().ToLowerInvariant());
+                    if (u.Detained) w.WriteBoolean("detained", true);
+                    if (u.Emote != null) w.WriteString("emote", u.Emote);
                 }
                 if (ours)
                 {
                     w.WriteNumber("ammo", u.Ammo);
                     w.WriteNumber("launcher", u.LauncherAmmo);
+                    w.WriteNumber("launcherAp", u.LauncherAp);
                     w.WriteNumber("grenades", u.Grenades);
+                    w.WriteNumber("smokes", u.Smokes);
+                    if (u.ArmHit) w.WriteBoolean("armHit", true);
+                    if (u.LegHit) w.WriteBoolean("legHit", true);
+                    if (u.CarriedBy != null) w.WriteNumber("carriedBy", IndexOf(u.CarriedBy));
                     w.WriteNumber("load", u.Load);
                     w.WriteNumber("suppression", R(u.Suppression));
                     if (u.Stabilized) w.WriteBoolean("stable", true);
@@ -404,6 +450,39 @@ namespace FieldTable.Playtest
                 w.WriteEndObject();
             }
             w.WriteEndArray();
+
+            // Smoke hanging now, every breach so far (the ground the page drew has changed there), and CASEVAC.
+            w.WriteStartArray("smoke");
+            foreach (var cloud in sim.Map.Smoke) WriteCloud(w, cloud, -1);
+            w.WriteEndArray();
+            w.WriteStartArray("breaches");
+            foreach (var e in sim.Log.Events.OfType<BreachMade>())
+            {
+                w.WriteStartObject();
+                w.WriteNumber("x", R(e.At.X)); w.WriteNumber("y", R(e.At.Y));
+                w.WriteNumber("r", e.Radius);
+                w.WriteEndObject();
+            }
+            w.WriteEndArray();
+            if (sim.Evac != null)
+            {
+                w.WriteStartObject("casevac");
+                w.WriteNumber("x", R(sim.Evac.Lz.X)); w.WriteNumber("y", R(sim.Evac.Lz.Y));
+                w.WriteString("grid", sim.Map.SquareOf(sim.Evac.Lz).ToString());
+                w.WriteBoolean("helicopter", sim.Evac.Helicopter);
+                w.WriteBoolean("landed", sim.Evac.Landed);
+                w.WriteEndObject();
+            }
+            w.WriteEndObject();
+        }
+
+        static void WriteCloud(Utf8JsonWriter w, SmokeCloud c, int step)
+        {
+            w.WriteStartObject();
+            if (step >= 0) w.WriteNumber("s", step);
+            w.WriteNumber("x", R(c.Center.X)); w.WriteNumber("y", R(c.Center.Y));
+            w.WriteNumber("r", c.Radius);
+            w.WriteNumber("until", c.UntilStep);
             w.WriteEndObject();
         }
 
