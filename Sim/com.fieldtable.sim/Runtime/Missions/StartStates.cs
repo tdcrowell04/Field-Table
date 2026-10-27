@@ -23,7 +23,8 @@ namespace FieldTable.Sim
     /// </summary>
     public static class StartStates
     {
-        public const string Bridge = "bridge", Raid = "raid", Crossroads = "crossroads", Crew = "crew", Clear = "clear", SupplyAmbush = "ambush", Random = "random";
+        public const string Bridge = "bridge", Raid = "raid", Crossroads = "crossroads", Crew = "crew", Clear = "clear", SupplyAmbush = "ambush",
+            Hill = "hill", DelayAdvance = "delay", ObservationPost = "post", Random = "random";
 
         public static readonly IReadOnlyList<StartState> All = new[]
         {
@@ -33,6 +34,7 @@ namespace FieldTable.Sim
             new StartState(Crew, "Downed helicopter crew", DownedCrew.Create),
             new StartState(Clear, "Clear the village", ClearVillage.Create),
             new StartState(SupplyAmbush, "Ambush a supply party", Sim.SupplyAmbush.Create),
+            new StartState(Hill, "Take the hill", TakeTheHill.Create),
         };
 
         public static StartState Find(string id) => All.FirstOrDefault(s => string.Equals(s.Id, id, StringComparison.OrdinalIgnoreCase));

@@ -250,23 +250,6 @@ namespace FieldTable.Sim
             public bool Firing;
         }
 
-        /// <summary>Has men fire on the Marines they know of, nearest the crossing first, shared out between them.</summary>
-        static void Suppress(Simulation sim, List<Unit> men, Vec2 c, Force marines)
-        {
-            if (men.Count == 0) return;
-            var knows = sim.Fog.For(men[0].Force);
-            var targets = sim.Units.Where(x => ReferenceEquals(x.Force, marines) && x.CanAct && !x.Def.Flying && knows.About(x.Id) != null)
-                .OrderBy(x => Vec2.Distance(knows.About(x.Id).LastKnownPosition, c)).ToList();
-            if (targets.Count == 0) return;
-            for (int i = 0; i < men.Count; i++)
-            {
-                var u = men[i];
-                u.Order = new Order { Verb = Verbs.Suppress, Target = targets[i % targets.Count].Name, TargetUnit = targets[(i * 3) % targets.Count] };
-                u.Path = null;
-                u.Posture = Posture.Prone;
-            }
-        }
-
         const int Waiting = 0, Going = 1, Gathered = 2, In = 3, Done = 4;
 
         /// <summary>Where a group gathers: a probe and the gun where they can see the crossing, the rest in cover out of sight of it.</summary>
@@ -336,16 +319,16 @@ namespace FieldTable.Sim
                         if (g.Role == "fire")
                         {
                             // The gun group opens up once the group going around is ready to go in.
-                            if (!g.Firing && groups.Any(o => o.WaitFor == g && o.Phase >= Gathered)) { Suppress(sim, men, c, marines); g.Firing = true; }
+                            if (!g.Firing && groups.Any(o => o.WaitFor == g && o.Phase >= Gathered)) { SuppressKnown(sim, men, c, marines); g.Firing = true; }
                             break;
                         }
                         if (g.Role == "probe")
                         {
                             // A turn or two of shooting, or the first one hurt, and back they go to join the push.
-                            if (turn == g.GatheredTurn) { Suppress(sim, men, c, marines); break; }
+                            if (turn == g.GatheredTurn) { SuppressKnown(sim, men, c, marines); break; }
                             bool hurt = g.Men.Any(u => u.Wounds > 0 || !u.CanAct);
                             if (turn - g.GatheredTurn < 2 && !hurt) break;
-                            Send(sim, g, g.Back, Verbs.Withdraw);
+                            TeamOrder(sim, g.Men, g.Team, g.Back, Verbs.Withdraw);
                             if (g.Joins != null) { g.Joins.Men.AddRange(men); foreach (var u in men) u.Team = g.Joins.Team; }
                             g.Men.Clear();
                             g.Phase = Done;
@@ -358,31 +341,18 @@ namespace FieldTable.Sim
                         // The machine guns stay back and fire on the squad; the rest go in by bounds, half rushing while
                         // the other half kneels and covers them.
                         var guns = men.Where(u => u.Def.Id == "en-pkm").ToList();
-                        Suppress(sim, guns, c, marines);
-                        Send(sim, g, c, Verbs.Bound, null, men.Except(guns).ToList());
+                        SuppressKnown(sim, guns, c, marines);
+                        TeamOrder(sim, g.Men, g.Team, c, Verbs.Bound, null, men.Except(guns).ToList());
                         g.Phase = In;
                         break;
                     case In:
                         // Once they've all stopped, any still short of the crossing go again, as long as they aren't pinned.
                         if (men.Any(u => u.Order != null && u.Order.Verb != Verbs.Suppress)) break;
                         var shortOf = men.Where(u => Vec2.Distance(u.Position, c) > HoldWithin * 0.5f && u.Suppression < 0.5f && u.Def.Id != "en-pkm").ToList();
-                        if (shortOf.Count > 0) Send(sim, g, c, Verbs.Bound, null, shortOf);
+                        if (shortOf.Count > 0) TeamOrder(sim, g.Men, g.Team, c, Verbs.Bound, null, shortOf);
                         break;
                 }
             }
-        }
-
-        /// <summary>
-        /// Gives a group an order the way the squad's own team orders go, so they spread out side by side and bound by
-        /// halves. Only those named go, when it isn't the whole group.
-        /// </summary>
-        static void Send(Simulation sim, Group g, Vec2 to, string verb, string posture = null, List<Unit> only = null)
-        {
-            var going = only ?? g.Men.Where(u => u.CanAct).ToList();
-            var staying = g.Men.Where(u => !going.Contains(u)).ToList();
-            foreach (var u in staying) u.Team = g.Team + " waiting";
-            sim.GiveOrder(g.Men[0].Force, g.Team, new Order { Verb = verb, Where = sim.Coordinates(to), Posture = posture });
-            foreach (var u in staying) u.Team = g.Team;
         }
     }
 }

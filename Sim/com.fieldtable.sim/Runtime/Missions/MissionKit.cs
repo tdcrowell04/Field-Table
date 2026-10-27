@@ -488,6 +488,39 @@ namespace FieldTable.Sim
             return true;
         }
 
+        /// <summary>
+        /// Has soldiers lie flat and fire on the enemies they know of, nearest a spot first, shared out between them, seen
+        /// or not: where they were last known is enough to keep heads down.
+        /// </summary>
+        public static void SuppressKnown(Simulation sim, List<Unit> men, Vec2 near, Force targets)
+        {
+            if (men.Count == 0) return;
+            var knows = sim.Fog.For(men[0].Force);
+            var known = sim.Units.Where(x => ReferenceEquals(x.Force, targets) && x.CanAct && !x.Def.Flying && knows.About(x.Id) != null)
+                .OrderBy(x => Vec2.Distance(knows.About(x.Id).LastKnownPosition, near)).ToList();
+            if (known.Count == 0) return;
+            for (int i = 0; i < men.Count; i++)
+            {
+                var target = known[(i * 3) % known.Count];
+                men[i].Order = new Order { Verb = Verbs.Suppress, Target = target.Name, TargetUnit = target };
+                men[i].Path = null;
+                men[i].Posture = Posture.Prone;
+            }
+        }
+
+        /// <summary>
+        /// Gives a team an order the way the squad's own team orders go, so they spread out side by side and bound by
+        /// halves. Only those named go, when it isn't the whole team.
+        /// </summary>
+        public static void TeamOrder(Simulation sim, List<Unit> team, string teamName, Vec2 to, string verb, string posture = null, List<Unit> only = null)
+        {
+            if (team.Count == 0) return;
+            var going = only ?? team.Where(u => u.CanAct).ToList();
+            foreach (var u in team) u.Team = going.Contains(u) ? teamName : teamName + " waiting";
+            sim.GiveOrder(team[0].Force, teamName, new Order { Verb = verb, Where = sim.Coordinates(to), Posture = posture });
+            foreach (var u in team) u.Team = teamName;
+        }
+
         /// <summary>The usual enemy lines a prisoner says, and how the end puts a lie about them, for a set of goals.</summary>
         public static Dictionary<string, (string said, string truth)> Words(params (string goal, string said, string truth)[] list) =>
             list.ToDictionary(x => x.goal, x => (x.said, x.truth));
