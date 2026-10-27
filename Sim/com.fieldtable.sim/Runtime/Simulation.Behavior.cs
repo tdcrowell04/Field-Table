@@ -381,7 +381,7 @@ namespace FieldTable.Sim
             if (u.Order != null && (u.Order.Verb == Verbs.TreatCasualty || u.Order.Verb == Verbs.Hide || u.Order.Verb == Verbs.FlyDrone || u.Order.Verb == Verbs.Carry)) return;
             // An ambush holds its fire until it's sprung, and the engineer doesn't stop setting his charges to shoot.
             var plan = u.Force.Plan;
-            if (plan != null && (plan.HoldingFire || (ReferenceEquals(u, plan.Engineer) && !plan.ChargesSet))) return;
+            if (plan != null && (plan.HoldingFire || plan.HoldFire?.Invoke(u) == true || (ReferenceEquals(u, plan.Engineer) && !plan.ChargesSet))) return;
 
             Unit target = null;
             Vec2? area = null;

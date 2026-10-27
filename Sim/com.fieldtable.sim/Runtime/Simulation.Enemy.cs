@@ -5,8 +5,8 @@ using System.Linq;
 namespace FieldTable.Sim
 {
     /// <summary>
-    /// What the enemy is out to do, which picks who's there and steers how they fight: hold the objective, delay you,
-    /// blow it up, or ambush you on it.
+    /// What the enemy is out to do, which picks who's there and steers how they fight. Each start state has its own
+    /// goals; the bridge seizure's are hold the bridge, delay you, blow it up, or ambush you on it.
     /// </summary>
     public sealed class EnemyPlan
     {
@@ -14,6 +14,34 @@ namespace FieldTable.Sim
         public static readonly IReadOnlyList<string> Goals = new[] { Hold, Delay, Blow, Ambush };
 
         public string Goal { get; }
+
+        /// <summary>Every goal this start state's enemy could have had, so a prisoner can lie about it.</summary>
+        public IReadOnlyList<string> Options { get; }
+
+        /// <summary>For each goal: how a prisoner says it, and how the end screen says what they were never out to do.</summary>
+        readonly IReadOnlyDictionary<string, (string said, string truth)> words;
+
+        static readonly Dictionary<string, (string, string)> BridgeWords = new Dictionary<string, (string, string)>
+        {
+            { Hold, ("they mean to hold the bridge", "hold the bridge") },
+            { Delay, ("they're only to slow you down and fall back", "only slow you down") },
+            { Blow, ("the bridge is rigged to blow", "blow the bridge") },
+            { Ambush, ("they're waiting for you on the bridge", "ambush you on the bridge") },
+        };
+
+        /// <summary>How a prisoner puts a goal: "the bridge is rigged to blow".</summary>
+        public string Said(string goal) => words.TryGetValue(goal, out var w) ? w.said : goal;
+
+        /// <summary>What they were never out to do, for a lie about a goal: "blow the bridge".</summary>
+        public string Truth(string goal) => words.TryGetValue(goal, out var w) ? w.truth : goal;
+
+        // A start state's own thinking for goals the bridge doesn't have: once a second for the whole side, for each
+        // fighter each step (true when it took care of him), whether a fighter holds his fire, and how much of the side
+        // has to be lost before it pulls back.
+        internal Action<List<Unit>> EverySecond { get; set; }
+        internal Func<Unit, float, bool> Think { get; set; }
+        internal Func<Unit, bool> HoldFire { get; set; }
+        internal float? Breaks { get; set; }
 
         /// <summary>The place the plan is about: the bridge.</summary>
         public Landmark Objective { get; }
@@ -32,11 +60,13 @@ namespace FieldTable.Sim
         public bool ChargesSet => ChargeSeconds >= Simulation.ChargeTime;
         public bool Blown { get; internal set; }
 
-        public EnemyPlan(string goal, Landmark objective)
+        public EnemyPlan(string goal, Landmark objective, IReadOnlyList<string> options = null, IReadOnlyDictionary<string, (string said, string truth)> words = null)
         {
-            if (!Goals.Contains(goal)) throw new ArgumentException("Unknown enemy goal: " + goal + ".", nameof(goal));
+            Options = options ?? Goals;
+            if (!Options.Contains(goal)) throw new ArgumentException("Unknown enemy goal: " + goal + ".", nameof(goal));
             Goal = goal;
             Objective = objective ?? throw new ArgumentNullException(nameof(objective));
+            this.words = words ?? BridgeWords;
         }
 
         /// <summary>True while the plan keeps them from shooting: an ambush that hasn't been sprung.</summary>
@@ -63,6 +93,7 @@ namespace FieldTable.Sim
         {
             var plan = u.Force.Plan;
             if (plan == null) return false;
+            if (plan.Think != null && plan.Think(u, dt)) return true;
             if (plan.Goal == EnemyPlan.Blow && ReferenceEquals(u, plan.Engineer)) { EngineerBrain(u, plan, dt); return true; }
             if (plan.Goal == EnemyPlan.Ambush && !plan.Sprung)
             {
@@ -74,7 +105,7 @@ namespace FieldTable.Sim
         }
 
         /// <summary>How much of a side has to be lost before it pulls back.</summary>
-        float BreakingPoint(Force f) => f.Plan != null && f.Plan.Goal == EnemyPlan.Hold ? HoldBreaks : 0.5f;
+        float BreakingPoint(Force f) => f.Plan?.Breaks ?? (f.Plan != null && f.Plan.Goal == EnemyPlan.Hold ? HoldBreaks : 0.5f);
 
         /// <summary>Once a second: springing the ambush, and sending the delay back.</summary>
         void ThinkPlans()
@@ -83,6 +114,7 @@ namespace FieldTable.Sim
             {
                 var side = units.Where(u => ReferenceEquals(u.Force.Plan, plan)).ToList();
                 var force = side[0].Force;
+                plan.EverySecond?.Invoke(side);
                 if (plan.Goal == EnemyPlan.Ambush && !plan.Sprung && SpringAmbush(plan, side))
                 {
                     plan.Sprung = true;

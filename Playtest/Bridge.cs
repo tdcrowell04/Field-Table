@@ -427,7 +427,7 @@ namespace FieldTable.Playtest
             w.WriteStartObject("state");
             w.WriteNumber("turn", sim.Clock.Turn);
             w.WriteNumber("step", sim.Clock.Step);
-            w.WriteNumber("turnLimit", Mission.TurnLimit);
+            w.WriteNumber("turnLimit", mission.TurnLimit);
             WriteObjectives(w);
             w.WriteNumber("friendlyFire", mission.FriendlyFireHits);
             if (mission.Outcome != null)
@@ -560,7 +560,10 @@ namespace FieldTable.Playtest
             bool over = mission.Outcome != null;
             w.WriteStartObject("objectives");
             w.WriteString("main", mission.MainObjective);
-            w.WriteString("mainStatus", over ? (mission.Outcome == "success" ? "seized" : "failed") : mission.MarineOnObjective ? "onit" : "notyet");
+            w.WriteString("mainStatus", mission.MainStatus);
+            w.WriteString("doneWord", mission.DoneWord);
+            w.WriteString("win", mission.WinText);
+            w.WriteString("lose", mission.LoseText);
             w.WriteString("roe", mission.Roe);
             w.WriteNumber("onObjective", Mission.OnObjective);
             w.WriteNumber("holdRadius", Mission.HoldRadius);

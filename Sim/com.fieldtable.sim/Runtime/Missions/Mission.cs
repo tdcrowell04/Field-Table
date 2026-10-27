@@ -7,6 +7,9 @@ namespace FieldTable.Sim
     /// <summary>A mission ready to play: the fight, who's in it, the brief, and how it ends.</summary>
     public sealed class Mission
     {
+        /// <summary>Which start state this is, like "bridge" or "raid" (see StartStates).</summary>
+        public string Kind { get; internal set; }
+
         public string Title { get; internal set; }
         public Simulation Sim { get; internal set; }
         public MapData MapData { get; internal set; }
@@ -23,6 +26,28 @@ namespace FieldTable.Sim
 
         /// <summary>The rules of engagement in a line.</summary>
         public string Roe { get; internal set; }
+
+        /// <summary>How you win and how you lose, each in a line, for the brief.</summary>
+        public string WinText { get; internal set; }
+        public string LoseText { get; internal set; }
+
+        /// <summary>The word for the main objective once it's done, like "Seized".</summary>
+        public string DoneWord { get; internal set; } = "Done";
+
+        /// <summary>What the end says when time runs out.</summary>
+        public string OutOfTimeText { get; internal set; } = "Out of time.";
+
+        /// <summary>
+        /// The start state's own way of telling, after each turn, whether it's been won or lost: an outcome and its line,
+        /// or null while it goes on. Losing too many Marines and running out of time are checked for every mission.
+        /// </summary>
+        internal Func<Mission, (string outcome, string text)?> Judge { get; set; }
+
+        /// <summary>Where the main objective stands while the mission goes: "notyet" or "onit". Null uses a Marine on the objective.</summary>
+        internal Func<Mission, string> Status { get; set; }
+
+        /// <summary>Where the main objective stands right now: "notyet", "onit", or after the end, "done" or "failed".</summary>
+        public string MainStatus => Outcome != null ? (Outcome == "success" ? "done" : "failed") : Status?.Invoke(this) ?? (MarineOnObjective ? "onit" : "notyet");
 
         /// <summary>What the mission asks for on top of the main objective. They don't decide winning or losing; the end grades them.</summary>
         public List<SecondaryObjective> Secondary { get; } = new List<SecondaryObjective>();
@@ -72,36 +97,46 @@ namespace FieldTable.Sim
         /// <summary>Marines down or dead before the squad can't fight on.</summary>
         public const int CombatIneffective = 7;
 
-        /// <summary>Turns before the platoon can't wait any longer.</summary>
-        public const int TurnLimit = 40;
+        /// <summary>Turns before time runs out, unless a start state sets its own.</summary>
+        public const int DefaultTurnLimit = 40;
+        public int TurnLimit { get; internal set; } = DefaultTurnLimit;
 
         /// <summary>Checks, from what's really true, whether the mission has ended. Call after each turn.</summary>
         public void CheckOutcome()
         {
             if (Outcome != null) return;
-            var marines = Squad.ToList();
-            Vec2 b = Objective.Center;
-            bool onBridge = MarineOnObjective;
-            bool enemyNear = Sim.Units.Any(u => ReferenceEquals(u.Force, Enemy) && u.CanAct && Vec2.Distance(u.Position, b) <= HoldRadius);
-            int lost = marines.Count(u => !u.CanAct);
-            bool holding = onBridge && !enemyNear;
+            int lost = Squad.Count(u => !u.CanAct);
+            var judged = Judge?.Invoke(this);
             if (lost >= CombatIneffective)
             {
                 Outcome = "failure";
                 OutcomeText = "The squad is combat ineffective, with " + lost + " Marines down.";
             }
-            else if (holding && heldLastCheck)
+            else if (judged != null)
             {
-                Outcome = "success";
-                OutcomeText = Objective.Label + " is seized and held.";
+                Outcome = judged.Value.outcome;
+                OutcomeText = judged.Value.text;
             }
             else if (Sim.Clock.Turn > TurnLimit)
             {
                 Outcome = "failure";
-                OutcomeText = "Out of time. The platoon couldn't wait any longer for the bridge.";
+                OutcomeText = OutOfTimeText;
             }
-            heldLastCheck = holding;
             if (Outcome != null && Rating == null) Rating = Rate();
+        }
+
+        /// <summary>The usual way to win: a Marine on the objective and no enemy still fighting within 250 m, two turns in a row.</summary>
+        internal static Func<Mission, (string, string)?> HoldTwoTurns(string won)
+        {
+            bool heldLastCheck = false;
+            return m =>
+            {
+                bool enemyNear = m.Sim.Units.Any(u => ReferenceEquals(u.Force, m.Enemy) && u.CanAct && Vec2.Distance(u.Position, m.Objective.Center) <= HoldRadius);
+                bool holding = m.MarineOnObjective && !enemyNear;
+                bool done = holding && heldLastCheck;
+                heldLastCheck = holding;
+                return done ? ("success", won) : ((string, string)?)null;
+            };
         }
 
         string Rate()
@@ -110,8 +145,6 @@ namespace FieldTable.Sim
             int grade = Squad.Any(u => u.Condition == Condition.Dead) ? KilledGrade : Math.Min(KilledGrade - 1, Secondary.Count(o => o.IsBroken(this)));
             return Grades[Math.Min(Grades.Length - 1, grade + FriendlyFireHits)];
         }
-
-        bool heldLastCheck;
 
         /// <summary>True when anyone in a force has been wounded, downed, or killed so far.</summary>
         public bool AnyoneHurt(Force force) => Sim.Log.Events.Any(e =>

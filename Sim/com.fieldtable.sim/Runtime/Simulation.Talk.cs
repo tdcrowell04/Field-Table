@@ -76,7 +76,7 @@ namespace FieldTable.Sim
                 var told = friends.GroupBy(x => Map.SquareOf(x.Position).ToString())
                     .Select(g => (g.Count() == 1 ? "one fighter" : g.Count() + " fighters") + " at " + g.Key).ToList();
                 claim = told.Count == 0 ? "says he's the last of them" : (friends.Count == 1 ? "says there's " : "says there are ") + JoinAnd(told);
-                string why = plan == null ? null : PlanTold(plan.Goal);
+                string why = plan?.Said(plan.Goal);
                 if (why != null) claim += ", and " + why;
             }
             else
@@ -96,26 +96,17 @@ namespace FieldTable.Sim
                 string madeUp = null;
                 if (plan != null)
                 {
-                    var others = EnemyPlan.Goals.Where(g => g != plan.Goal).ToList();
-                    madeUp = others[Roll(others.Count, p.Name, "the plan he makes up", true) - 1];
-                    claim += ", and " + PlanTold(madeUp);
+                    var others = plan.Options.Where(g => g != plan.Goal).ToList();
+                    if (others.Count > 0)
+                    {
+                        madeUp = others[Roll(others.Count, p.Name, "the plan he makes up", true) - 1];
+                        claim += ", and " + plan.Said(madeUp);
+                    }
                 }
-                lie = new Lie(p, where, madeUp);
+                lie = new Lie(p, where, madeUp, plan);
                 lies.Add(lie);
             }
             Radio(u, u.Name + ": " + p.Name + through + " " + claim + ".", "info", p.Position, p.Name);
-        }
-
-        /// <summary>What a prisoner says the plan is, in his words.</summary>
-        static string PlanTold(string goal)
-        {
-            switch (goal)
-            {
-                case EnemyPlan.Hold: return "they mean to hold the bridge";
-                case EnemyPlan.Delay: return "they're only to slow you down and fall back";
-                case EnemyPlan.Blow: return "the bridge is rigged to blow";
-                default: return "they're waiting for you on the bridge";
-            }
         }
 
         /// <summary>
@@ -232,7 +223,9 @@ namespace FieldTable.Sim
         /// <summary>True once the squad acted on it and found out.</summary>
         public bool Exposed { get; internal set; }
 
-        public Lie(Unit prisoner, GridRef? square, string madeUpGoal) { Prisoner = prisoner; Square = square; MadeUpGoal = madeUpGoal; }
+        readonly EnemyPlan plan;
+
+        public Lie(Unit prisoner, GridRef? square, string madeUpGoal, EnemyPlan plan = null) { Prisoner = prisoner; Square = square; MadeUpGoal = madeUpGoal; this.plan = plan; }
 
         /// <summary>For the end screen: what wasn't so.</summary>
         public string Summary
@@ -240,20 +233,10 @@ namespace FieldTable.Sim
             get
             {
                 var parts = new List<string> { Square == null ? "they hadn't gone" : "nobody was at " + Square };
-                if (MadeUpGoal != null) parts.Add("they were never out to " + GoalWords(MadeUpGoal));
+                if (MadeUpGoal != null && plan != null) parts.Add("they were never out to " + plan.Truth(MadeUpGoal));
                 return Prisoner.Name + " lied when questioned: " + (parts.Count == 1 ? parts[0] : parts[0] + ", and " + parts[1]) + ".";
             }
         }
 
-        static string GoalWords(string goal)
-        {
-            switch (goal)
-            {
-                case EnemyPlan.Hold: return "hold the bridge";
-                case EnemyPlan.Delay: return "only slow you down";
-                case EnemyPlan.Blow: return "blow the bridge";
-                default: return "ambush you on the bridge";
-            }
-        }
     }
 }
