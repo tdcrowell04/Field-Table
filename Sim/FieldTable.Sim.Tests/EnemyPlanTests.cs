@@ -37,7 +37,10 @@ namespace FieldTable.Sim.Tests
             Assert.Contains("digging in", Make(1, "hold").Brief[2]);
             Assert.Contains("heavy boxes", Make(1, "blow").Brief[2]);
             Assert.Contains("nobody saw them go", Make(1, "ambush").Brief[2]);
-            Assert.Contains("from well back", Make(1, "delay").Brief[2]);
+            var delay = Make(1, "delay");
+            var seen = delay.Sim.Units.Where(u => u.Force == delay.Enemy).ToList();
+            var square = delay.Sim.Map.SquareOf(new Vec2(seen.Average(u => u.Position.X), seen.Average(u => u.Position.Y)));
+            Assert.Matches(@"A few fighters were seen watching the road from about \d+ m beyond the bridge, around " + square + @"\.", delay.Brief[2]);
         }
 
         [Fact]

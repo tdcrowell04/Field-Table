@@ -72,7 +72,7 @@ namespace FieldTable.Sim
             string startGrid = map.SquareOf(formation[0].pos).ToString();
             mission.Brief.Add("Task: seize and hold " + bridge.Label + " (" + bridgeGrid + ") so the platoon can cross.");
             mission.Brief.Add("Intent: the bridge intact and usable, and nobody in " + village.Label + " hurt.");
-            mission.Brief.Add("Enemy: unknown strength, on the far bank of " + water.Label + " near " + village.Label + ". " + Hints[plan.Goal]);
+            mission.Brief.Add("Enemy: unknown strength, on the far bank of " + water.Label + " near " + village.Label + ". " + Hint(map, plan, enemy));
             mission.Roe = "Positive ID before engaging.";
             mission.Brief.Add("Civilians: in " + village.Label + ". Standing ROE: " + mission.Roe.Substring(0, 1).ToLowerInvariant() + mission.Roe.Substring(1));
             int back = (int)Math.Round(Vec2.Distance(formation[0].pos, b0) / 50f) * 50;
@@ -453,10 +453,18 @@ namespace FieldTable.Sim
             bridge.Points.Count >= 2 ? Vec2.Distance(bridge.Points[0], bridge.Points[bridge.Points.Count - 1]) / 2f : 10f;
 
         /// <summary>What the brief says about the enemy for each goal: a hint, never the answer.</summary>
+        /// <summary>The hint, with where they were seen filled in: how far past the bridge, rounded to 50 m, and the grid square.</summary>
+        static string Hint(MapGrid map, EnemyPlan plan, List<Unit> enemy)
+        {
+            Vec2 seen = new Vec2(enemy.Average(u => u.Position.X), enemy.Average(u => u.Position.Y));
+            int meters = (int)Math.Round(Vec2.Distance(seen, plan.Objective.Center) / 50f) * 50;
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture, Hints[plan.Goal], meters, map.SquareOf(Inside(map, seen)));
+        }
+
         static readonly Dictionary<string, string> Hints = new Dictionary<string, string>
         {
             { EnemyPlan.Hold, "Fighters were seen digging in near the bridge." },
-            { EnemyPlan.Delay, "A few fighters have been seen watching the road from well back." },
+            { EnemyPlan.Delay, "A few fighters were seen watching the road from about {0} m beyond the bridge, around {1}." },
             { EnemyPlan.Blow, "A farmer saw men carrying heavy boxes onto the bridge at dawn." },
             { EnemyPlan.Ambush, "Locals say the fighters pulled out this morning, but nobody saw them go." },
         };

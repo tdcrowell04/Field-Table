@@ -645,6 +645,8 @@ In chat, after round 13: *"How is it that in the artifact game all of the spotti
 
 In chat, after round 14: *"I want the map to be able to be fullscreen with the other stuff below it"*
 
+In chat: *"It says from the well back but I have no idea where that is"* Claude's delay hint ("from well back") didn't say where; it now gives the distance past the bridge and the grid square (ledger round 15).
+
 ## Open questions
 
 - [ ] Claude's calls from the round 14 build: the map size and cover, enemy goals, talk, and the director (ledger round 15)
