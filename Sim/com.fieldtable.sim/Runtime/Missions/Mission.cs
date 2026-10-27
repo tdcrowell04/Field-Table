@@ -188,5 +188,8 @@ namespace FieldTable.Sim
 
         /// <summary>True once it can't be met any more.</summary>
         public bool IsBroken(Mission mission) => broken(mission);
+
+        /// <summary>True for one that's only met by doing something, like taking a prisoner: it's judged at the end, not shown failed before.</summary>
+        public bool AtEnd { get; internal set; }
     }
 }
