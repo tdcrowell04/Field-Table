@@ -47,8 +47,8 @@ namespace FieldTable.Sim
             return Vec2.Distance(p, Objective.Points[0]) <= OnObjective || Vec2.Distance(p, Objective.Points[Objective.Points.Count - 1]) <= OnObjective;
         }
 
-        /// <summary>The Marines themselves, not counting the drone.</summary>
-        public IEnumerable<Unit> Squad => Sim.Units.Where(u => ReferenceEquals(u.Force, Marines) && !u.Def.Flying);
+        /// <summary>The Marines themselves, not counting the drone or the interpreter.</summary>
+        public IEnumerable<Unit> Squad => Sim.Units.Where(u => ReferenceEquals(u.Force, Marines) && !u.Def.Flying && !u.Def.Interpreter);
 
         /// <summary>"success", "failure", or null while it's still going.</summary>
         public string Outcome { get; private set; }

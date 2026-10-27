@@ -60,9 +60,7 @@ namespace FieldTable.Sim
                 case Verbs.Clear: ThinkClear(u, o, dt); break;
                 case Verbs.Breach: ThinkBreach(u, o, dt); break;
                 case Verbs.FlyDrone: ThinkDrone(u, o, dt); break;
-                case Verbs.Talk:
-                    if (Reach(u, o, o.TargetUnit, 3f) && Work(u, dt, TalkSeconds)) { ShareWhatTheySaw(u, o.TargetUnit); Finish(u, null); }
-                    break;
+                case Verbs.Talk: ThinkTalk(u, o, dt); break;
                 case Verbs.Search: ThinkSearch(u, o, dt); break;
                 case Verbs.Carry: ThinkCarry(u, o); break;
                 case Verbs.Detain:
@@ -193,6 +191,7 @@ namespace FieldTable.Sim
             Map.Smoke.RemoveAll(c => c.UntilStep <= Clock.Step);
             CasevacTick();
             ThinkPlans();
+            ThinkSurrender();
         }
 
         // ---------- clear a building ----------
@@ -356,7 +355,6 @@ namespace FieldTable.Sim
         /// <summary>Whoever was talked to tells what they've seen of the enemy, and the squad now knows it too.</summary>
         void ShareWhatTheySaw(Unit u, Unit p)
         {
-            if (AreHostile(u.Force, p.Force)) { Radio(u, u.Name + ": " + p.Name + " won't talk.", "info", p.Position); return; }
             var mine = Fog.For(u.Force);
             var told = new List<string>();
             foreach (var c in Fog.For(p.Force).Contacts)
@@ -371,7 +369,8 @@ namespace FieldTable.Sim
                 }
                 told.Add(Article(c.Unit.Def.Name ?? "fighter") + " at " + Map.SquareOf(c.LastKnownPosition));
             }
-            Radio(u, u.Name + ": " + p.Name + (told.Count == 0 ? " didn't see anything." : " says they saw " + JoinAnd(told) + "."), "info", p.Position);
+            string through = SameLanguage(u.Force, p.Force) ? "" : ", through the interpreter,";
+            Radio(u, u.Name + ": " + p.Name + through + (told.Count == 0 ? " didn't see anything." : " says they saw " + JoinAnd(told) + "."), "info", p.Position, p.Name);
         }
 
         static string Article(string kind)

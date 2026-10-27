@@ -53,6 +53,7 @@ namespace FieldTable.Sim
                 BleedOut(u);
                 if (!u.CanAct) { u.IsMoving = false; continue; }
                 if (u.Order == null && !ReferenceEquals(u.Force, PlayerForce) && !PlanBrain(u, dt)) Brain(u);
+                if (u.Order == null && u.Def.Interpreter && ReferenceEquals(u.Force, PlayerForce)) StayWithLead(u);
                 Think(u, dt);
                 Move(u, dt);
             }
@@ -676,6 +677,7 @@ namespace FieldTable.Sim
             Record(new UnitDown(v, cause));
             if (ReferenceEquals(v.Force, PlayerForce))
                 Radio(v, (string.IsNullOrEmpty(v.Team) ? "Lead" : v.Team) + ": Man down! " + v.Name + " is down.", "casualty");
+            else if (!v.Force.Civilian) Shout(Shouter(v.Force, v.Position), "Man down! Help him!");
         }
 
         void Kill(Unit v, string cause)
@@ -699,8 +701,8 @@ namespace FieldTable.Sim
         internal void RemoveUnitForTest(Unit u) => units.Remove(u);
 
         /// <summary>A call on the net. Important ones carry a kind and a place, so the map can mark them.</summary>
-        internal void Radio(Unit from, string text, string kind = null, Vec2? at = null) =>
-            Record(new RadioCall(from, text, kind, kind != null ? at ?? from?.Position : null));
+        internal void Radio(Unit from, string text, string kind = null, Vec2? at = null, string speaker = null) =>
+            Record(new RadioCall(from, text, kind, kind != null ? at ?? from?.Position : null, speaker));
 
         // ---------- calling out contacts ----------
 

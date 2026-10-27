@@ -110,6 +110,13 @@ namespace FieldTable.Sim
 
         internal void Record(SimEvent e) => Log.Add(e, Clock);
 
+        /// <summary>One step of a tenth of a second, for tests that need to hold things in place between steps.</summary>
+        internal void StepForTest()
+        {
+            StepOnce();
+            Clock.Advance();
+        }
+
         void StepOnce()
         {
             StepUnits(1f / SimClock.StepsPerSecond);

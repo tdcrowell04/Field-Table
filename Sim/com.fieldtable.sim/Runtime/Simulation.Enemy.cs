@@ -83,7 +83,11 @@ namespace FieldTable.Sim
             {
                 var side = units.Where(u => ReferenceEquals(u.Force.Plan, plan)).ToList();
                 var force = side[0].Force;
-                if (plan.Goal == EnemyPlan.Ambush && !plan.Sprung && SpringAmbush(plan, side)) plan.Sprung = true;
+                if (plan.Goal == EnemyPlan.Ambush && !plan.Sprung && SpringAmbush(plan, side))
+                {
+                    plan.Sprung = true;
+                    Shout(Shouter(force, plan.Objective.Center), "Now! Fire on them!", always: true);
+                }
                 if (plan.Goal == EnemyPlan.Delay) ThinkDelay(plan, force, side);
             }
         }
@@ -138,6 +142,7 @@ namespace FieldTable.Sim
                 any = true;
             }
             plan.FallingBack = any;
+            if (any) Shout(fighting[0], "Fall back! Fall back!");
         }
 
         // ---------- the engineer and his charges ----------
@@ -179,6 +184,7 @@ namespace FieldTable.Sim
             if (plan.Blown) return;
             plan.Blown = true;
             var bridge = plan.Objective;
+            Shout(by, "Get clear! The bridge is going up!", always: true);
             var charges = Weapon("demo");
             if (charges != null) Explode(by, charges, bridge.Center, ap: false);
             Vec2 a = bridge.Points.Count >= 2 ? bridge.Points[0] : bridge.Center, b = bridge.Points.Count >= 2 ? bridge.Points[bridge.Points.Count - 1] : bridge.Center;

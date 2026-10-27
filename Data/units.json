@@ -206,6 +206,15 @@
       "smoke": 1
     },
     {
+      "id": "terp",
+      "name": "Interpreter",
+      "figure": "terp",
+      "load": 12,
+      "helmet": true,
+      "plate": true,
+      "interpreter": true
+    },
+    {
       "id": "en-rf",
       "name": "Enemy rifleman",
       "figure": "oprf",

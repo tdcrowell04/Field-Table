@@ -285,7 +285,8 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     aar: { name: "Assistant automatic rifleman", line: "M27 and the team's spare magazines", weapon: "m27", skin: "#6b4430", pack: true },
     rf:  { name: "Rifleman", line: "M27 rifle", weapon: "m27", skin: "#e0b996" },
     dr:  { name: "Drone operator", line: "A rifleman trained to fly the squad's attack drones", weapon: "m27", skin: "#a8774f", drone: true },
-    doc: { name: "Corpsman", line: "M4 carbine and an aid bag; Navy, with the platoon", weapon: "m4", skin: "#d6a982", medbag: true, chip: "Navy" }
+    doc: { name: "Corpsman", line: "M4 carbine and an aid bag; Navy, with the platoon", weapon: "m4", skin: "#d6a982", medbag: true, chip: "Navy" },
+    terp: { name: "Interpreter", line: "Unarmed; speaks the local language", weapon: "none", skin: "#b9875f" }
   };
   const OTHERS = {
     oprf: { name: "Enemy rifleman", line: "Assault rifle and a chest rig", side: "op", weapon: "ak", head: "wrap", skin: "#b4835e", shirt: "#5d6248", pants: "#4f5560", vest: "#2e2d29", headC: "#c9bfa7", boots: "#3b3128" },
@@ -569,7 +570,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   };
   const PATTERN = { plowed: 1, corn: 2, stubble: 3, scrub: 4, rocky: 5, marsh: 6, creek: 7, river: 7, lake: 7, forest: 8, orchard: 8, road: 9, yard: 9, trail: 9, cliff: 5 };
   const LK = { deck: "#8b6b46", plank: "#6e5236", rail: "#4f3a24", wall: "#cfc6b0", roof: "#a39886", edge: "#7d7466", win: "#2e2f2c", stone: "#a8987b", stoneTop: "#beb092", tree: "#3f5d2c", treeHi: "#557540", scrub: "#5d6b3a", trunk: "#3d2f1f", shadow: "rgba(18,24,8,0.30)", num: "#2b2a26" };
-  const ROLE = { sl: "Squad leader", doc: "Corpsman", tl: "Team leader", ar: "Automatic rifleman", aar: "Asst. automatic rifleman", rf: "Rifleman", dr: "Drone operator", oprf: "Rifleman", pkm: "Machine gunner", rpg: "RPG gunner", civ: "Civilian", drone: "Drone" };
+  const ROLE = { sl: "Squad leader", doc: "Corpsman", tl: "Team leader", ar: "Automatic rifleman", aar: "Asst. automatic rifleman", rf: "Rifleman", dr: "Drone operator", terp: "Interpreter", oprf: "Rifleman", pkm: "Machine gunner", rpg: "RPG gunner", civ: "Civilian", drone: "Drone" };
   // Everyday names for the ground, for telling Haiku what's in each grid square.
   const GROUND = { grass: "grass", stubble: "stubble field", plowed: "plowed field", corn: "tall crops", scrub: "scrub", rocky: "rocks", cliff: "cliff", forest: "woods", orchard: "orchard", marsh: "reeds", yard: "farmyard", hedge: "hedges", gully: "gully", creek: "creek", river: "river", lake: "lake", road: "road", trail: "trail", wall: "stone walls", building: "buildings", bridge: "bridge", rubble: "rubble" };
   const THIN = { road: 1, trail: 1, hedge: 1, wall: 1, creek: 1, bridge: 1, building: 1, cliff: 1 };
@@ -805,7 +806,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   function poseOf(d) {
     if (!d.seen) return { pose: "stand", opts: { still: true, noShadow: true } };
     if (d.cond < 2 && d.emote === "controller") return { pose: "kneel", opts: { still: true, noShadow: true, ctrl: true } };
-    if (d.cond < 2 && d.detained) return { pose: "kneel", opts: { still: true, noShadow: true } };
+    if (d.cond < 2 && (d.detained || d.emote === "surrender")) return { pose: "kneel", opts: { still: true, noShadow: true } };
     const name = d.cond >= 2 ? "down" : d.moving ? (d.posture === 2 ? "prone" : "move") : POSTURES[d.posture] || "stand";
     return { pose: name, opts: { still: !d.firing, noShadow: true, aim: d.firing && name === "stand" } };
   }
@@ -996,6 +997,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       const r = S.roster[i], f = P3(c, d.x, d.y, 0), below = f.y + 12 * DPR;
       if (isDrone(i)) { if (near) halo("Drone", f.x, below, font, COL.friend, "center", false); return; }
       if (d.detained) { halo(r.name + " · detained", f.x, below, font, "rgba(231,225,207,0.85)", "center", S.sel === i); return; }
+      if (d.emote === "surrender") { halo(r.name + " · giving up", f.x, below, font, "rgba(231,225,207,0.85)", "center", S.sel === i); return; }
       if (r.side === "us") {
         if (d.cond < 2 && r.team) { const tm = teams[r.team] || (teams[r.team] = { x: 0, y: 0, n: 0 }); tm.x += d.x; tm.y += d.y; tm.n++; }
         if (near || S.sel === i) halo(r.name, f.x, below, font, S.sel === i ? "#d4b46a" : "rgba(231,225,207,0.92)", "center", S.sel === i);
@@ -1505,7 +1507,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       if (!u) { card.hidden = true; return; }
       if (r.side === "us") {
         card.innerHTML = "<span class=\"nm\">" + esc(r.name) + "</span><span class=\"meta\">" + esc(ROLE[r.figure] || r.kind) + (r.team ? ", " + esc(r.team) : "") + " · " + esc(u.grid) + "<br>"
-          + esc(hurtText(u)) + " · " + u.ammo + " rds" + (u.launcher || u.launcherAp ? " · M320 " + u.launcher + " HE, " + u.launcherAp + " AP" : "") + (u.grenades ? " · " + u.grenades + " grenades" : "") + (u.smokes ? " · " + u.smokes + " smoke" : "")
+          + esc(hurtText(u)) + (r.figure === "terp" ? " · unarmed" : " · " + u.ammo + " rds") + (u.launcher || u.launcherAp ? " · M320 " + u.launcher + " HE, " + u.launcherAp + " AP" : "") + (u.grenades ? " · " + u.grenades + " grenades" : "") + (u.smokes ? " · " + u.smokes + " smoke" : "")
           + "<br>" + esc(u.order ? "Now: " + orderText(u.order) : "No orders") + "</span><div class=\"row\"><button type=\"button\" class=\"primary\" data-say=\"" + esc(r.name) + ", \">Order " + esc(r.name) + "</button>"
           + (r.team ? "<button type=\"button\" data-say=\"" + esc(r.team) + ", \">Order " + esc(r.team) + "</button>" : "") + "</div>";
       } else {
@@ -1710,10 +1712,10 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     "- clear: go through a building room by room. where: the building.",
     "- breach: open a gap in a wall, hedge, or building. where.",
     "- fly drone: only for the drone operator. where: where to send the drone. Leave where out to bring it back and pack it up.",
-    "- talk: talk to a civilian or a prisoner. target: who.",
+    "- talk: talk to a civilian, or question an enemy who is down, detained, or gave up. target: who. The villagers and fighters don't speak English, so the interpreter has to be there too.",
     "- search: search a place, or a person who is down, detained, or a civilian. target (a person) or where.",
     "- carry: carry a casualty. target: who to carry. where: where to take them.",
-    "- detain: take someone prisoner: a civilian, or an enemy who is down. target: who.",
+    "- detain: take someone prisoner: a civilian, or an enemy who is down or gave up. target: who.",
     "- share ammo: spread the ammo out evenly across a team.",
     "- request: call for CASEVAC. kind \"CASEVAC\". where: the landing zone."
   ].join("\n");
@@ -1727,7 +1729,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       if (r.side !== "us" || isDrone(i)) return;
       const u = st[i];
       if (u.gone) { L.push("- " + r.name + ": evacuated, not here"); return; }
-      const kit = (r.figure === "tl" ? ", M320 with " + u.launcher + " HE and " + u.launcherAp + " AP" : "") + (r.figure === "dr" ? ", flies the squad's drone" : "") + (r.figure === "doc" ? ", the medic" : "");
+      const kit = (r.figure === "tl" ? ", M320 with " + u.launcher + " HE and " + u.launcherAp + " AP" : "") + (r.figure === "dr" ? ", flies the squad's drone" : "") + (r.figure === "doc" ? ", the medic" : "") + (r.figure === "terp" ? ", unarmed, speaks the local language, sticks with Lead unless told otherwise" : "");
       L.push("- " + r.name + ": " + (ROLE[r.figure] || r.kind).toLowerCase() + (r.team ? ", " + r.team : "") + kit + " (also called " + r.calls.join(", ") + "), at " + u.grid + (u.condition !== "ok" || u.legHit || u.armHit ? ", " + hurtText(u) : "") + (u.order ? ", now doing: " + orderText(u.order) : ""));
     });
     L.push("", "VERBS: use exactly one of these per order, with the blanks shown:", VERB_HELP);
@@ -1863,6 +1865,37 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     setButtons(); renderPane(); need();
   }
 
+  // ------------------------------------------------------------------ giving people their own voices
+  // The code decides what a villager, a prisoner, or a shouting fighter says; Haiku only words it. A line that changes
+  // or drops a square, a number, or a name is thrown out and the code's own words stand.
+  const FACTS = /\b(?:Rifleman|PKM gunner|RPG gunner|Engineer|Civilian) \d+\b|\b\d{3} \d{3}\b|\b[A-Z](?:10|[1-9])\b|\b\d+\b/g;
+  function sameFacts(a, b) {
+    const set = t => [...new Set(t.match(FACTS) || [])].sort().join("|");
+    const k = a.indexOf(": ");
+    return set(a) === set(b) && (k < 0 || b.startsWith(a.slice(0, k + 2)));
+  }
+  async function voice(T) {
+    const lines = (T.radio || []).filter(r => r.p);
+    if (!lines.length || !caps.sample) return;
+    const prompt = [
+      "You give the people in a war game their own voices. Each line below is a Marine passing on what someone said, or the interpreter passing on a shout. Rewrite each one so the person's words sound like them: a frightened farmer, a sullen prisoner, a fighter yelling to his friends. Keep each one short.",
+      "Rules:",
+      "- Start each line exactly as it starts now, with the same name and colon in front.",
+      "- Keep every grid square (like F4), every number (as digits), and every name exactly as written. Add no new places, people, numbers, or facts, and leave none out.",
+      "- Plain words, American spelling. Nothing graphic, no slurs.",
+      "Lines: " + JSON.stringify(lines.map(r => ({ speaker: r.p, line: r.text }))),
+      "Answer with JSON: {\"lines\": [\"...\"]}, one rewritten line for each, in the same order."
+    ].join("\n");
+    try {
+      const out = await Promise.race([
+        caps.sample.json(prompt, { model: "claude-haiku-5-5", modelTier: "quick" }),
+        new Promise((_, no) => setTimeout(() => no(new Error("slow")), 6000))
+      ]);
+      const said = out && Array.isArray(out.lines) ? out.lines : [];
+      lines.forEach((r, i) => { const t = typeof said[i] === "string" ? said[i].trim() : ""; if (t && sameFacts(r.text, t)) r.text = t; });
+    } catch (e) { /* the code's own words stand */ }
+  }
+
   async function playTurn() {
     if (S.busy || P || !S.m || S.state.outcome) return;
     if (box.value.trim() && !S.pending) { await send(); addLog({ kind: "event", text: "Check the orders, then press Play turn." }); return; }
@@ -1890,6 +1923,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
         S.pending = null;
       }
       const T = await call("RunTurn");
+      await voice(T);
       S.busy = false;
       startPlayback(T);
     } catch (e) {

@@ -112,6 +112,9 @@ namespace FieldTable.Sim
 
         /// <summary>How high it flies, in meters, for what it can see.</summary>
         public float Altitude { get; set; }
+
+        /// <summary>Speaks the local language as well as English, so the squad can talk to people through him.</summary>
+        public bool Interpreter { get; set; }
     }
 
     /// <summary>
@@ -128,6 +131,9 @@ namespace FieldTable.Sim
 
         /// <summary>What this side is out to do, for a side the game plays; null for the player's side and the usual brain.</summary>
         public EnemyPlan Plan { get; set; }
+
+        /// <summary>The language this side speaks. Null is English.</summary>
+        public string Language { get; set; }
     }
 
     /// <summary>One figure on the table: a single Marine, enemy, or civilian.</summary>
@@ -184,6 +190,10 @@ namespace FieldTable.Sim
 
         /// <summary>Taken prisoner.</summary>
         public bool Detained { get; internal set; }
+
+        /// <summary>Gave up: weapon down, hands up, out of the fight.</summary>
+        public bool Surrendered { get; internal set; }
+        internal int SurrenderCheckedStep = -100000;
 
         /// <summary>Who is carrying this casualty right now, or null.</summary>
         public Unit CarriedBy { get; internal set; }
@@ -248,7 +258,7 @@ namespace FieldTable.Sim
             return false;
         }
 
-        public bool CanAct => (Condition == Condition.Ok || Condition == Condition.Wounded) && !Gone && !Detained;
+        public bool CanAct => (Condition == Condition.Ok || Condition == Condition.Wounded) && !Gone && !Detained && !Surrendered;
 
         /// <summary>How high its eyes are: a flying drone's altitude, or the posture's eye height.</summary>
         public float EyeHeight => Def.Flying ? Def.Altitude : Postures.Height(Posture);

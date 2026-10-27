@@ -199,6 +199,23 @@ namespace FieldTable.Sim
         public override string Describe() => Unit.Name + " opens a breach.";
     }
 
+    public sealed class UnitSurrendered : SimEvent
+    {
+        public Unit Unit { get; }
+        public UnitSurrendered(Unit unit) { Unit = unit; }
+        public override string Describe() => Unit.Name + " gives up.";
+    }
+
+    /// <summary>A fighter shouted, and the Marines heard it. Understood when the interpreter was in earshot.</summary>
+    public sealed class ShoutHeard : SimEvent
+    {
+        public Unit By { get; }
+        public string Words { get; }
+        public bool Understood { get; }
+        public ShoutHeard(Unit by, string words, bool understood) { By = by; Words = words; Understood = understood; }
+        public override string Describe() => By.Name + " shouts" + (Understood ? ": " + Words : ".");
+    }
+
     public sealed class UnitDetained : SimEvent
     {
         public Unit Unit { get; }
@@ -235,7 +252,13 @@ namespace FieldTable.Sim
         /// <summary>What kind of news it is: contact, casualty, set, fire (a fire position), smoke, lz, or info. Null with no marker.</summary>
         public string Kind { get; }
 
-        public RadioCall(Unit from, string text, string kind = null, Vec2? at = null) { From = from; Text = text; Kind = kind; At = at; }
+        /// <summary>
+        /// Whose words these really are when the caller passes on what someone said (a villager, a prisoner, a shout),
+        /// so the AI can give them their own voice. Null for a Marine's own call.
+        /// </summary>
+        public string Speaker { get; }
+
+        public RadioCall(Unit from, string text, string kind = null, Vec2? at = null, string speaker = null) { From = from; Text = text; Kind = kind; At = at; Speaker = speaker; }
         public override string Describe() => Text;
     }
 

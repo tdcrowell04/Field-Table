@@ -199,6 +199,8 @@ namespace FieldTable.Playtest
                     w.WriteNumber("s", e.Step);
                     w.WriteNumber("u", e.From == null ? -1 : IndexOf(e.From));
                     w.WriteString("text", e.Text);
+                    // Whose words they really are, for the AI to give them their own voice.
+                    if (e.Speaker != null) w.WriteString("p", e.Speaker);
                     // A call about a place gets a marker on the map: where, and what kind of news.
                     if (e.At is Vec2 at)
                     {
@@ -241,6 +243,7 @@ namespace FieldTable.Playtest
                         case ContactSpotted x when ReferenceEquals(x.Force, marines): about = x.Target; kind = "spotted"; break;
                         case ContactLost x when ReferenceEquals(x.Force, marines): about = x.Target; kind = "lost"; break;
                         case UnitDetained x: about = x.Unit; kind = "detained"; break;
+                        case UnitSurrendered x: about = x.Unit; kind = "surrendered"; break;
                         case UnitEvacuated x: about = x.Unit; kind = "evacuated"; break;
                     }
                     if (kind == null) continue;

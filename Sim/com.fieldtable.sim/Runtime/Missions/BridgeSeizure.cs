@@ -40,7 +40,9 @@ namespace FieldTable.Sim
             var mission = new Mission { Sim = sim, MapData = mapData };
             mission.Marines = sim.AddForce(new Force { Id = "marines", Name = "Raider 2", Faction = "marines" });
             mission.Enemy = sim.AddForce(new Force { Id = "enemy", Name = "Enemy", Faction = "insurgents" });
-            mission.Civilians = sim.AddForce(new Force { Id = "civilians", Name = "Civilians", Faction = "civilians", Civilian = true });
+            // The villagers and the fighters don't speak English, so talking to them takes the interpreter.
+            mission.Enemy.Language = "local";
+            mission.Civilians = sim.AddForce(new Force { Id = "civilians", Name = "Civilians", Faction = "civilians", Civilian = true, Language = "local" });
             sim.PlayerForce = mission.Marines;
             sim.RecordFrames(mission.Marines);
 
@@ -74,7 +76,7 @@ namespace FieldTable.Sim
             mission.Roe = "Positive ID before engaging.";
             mission.Brief.Add("Civilians: in " + village.Label + ". Standing ROE: " + mission.Roe.Substring(0, 1).ToLowerInvariant() + mission.Roe.Substring(1));
             int back = (int)Math.Round(Vec2.Distance(formation[0].pos, b0) / 50f) * 50;
-            mission.Brief.Add("You: 13 Marines in three fire teams plus Doc, at " + startGrid + ", about " + back + " m from the bridge.");
+            mission.Brief.Add("You: 13 Marines in three fire teams plus Doc and an interpreter, at " + startGrid + ", about " + back + " m from the bridge. The villagers and the fighters don't speak English.");
             mission.MainObjective = "Seize and hold " + bridge.Label + " (" + bridgeGrid + ").";
 
             // The secondary objectives come from the commander's intent, plus bringing everyone home.
@@ -129,6 +131,7 @@ namespace FieldTable.Sim
                 ("lead", "sl", "", new[] { "Lead", "SL", "squad leader" }),
                 ("doc", "doc", "", new[] { "Doc", "corpsman" }),
             };
+            int terp = -1;
             foreach (var team in new[] { "Alpha", "Bravo", "Charlie" })
             {
                 slots.Add((team.ToLowerInvariant() + "-tl", "tl", team, new[] { team + " TL", team + " team leader", team + " lead" }));
@@ -137,8 +140,11 @@ namespace FieldTable.Sim
                 bool drone = team == "Charlie";
                 slots.Add((team.ToLowerInvariant() + "-rf", drone ? "dr" : "rf", team, drone ? new[] { team + " rifleman", "drone operator" } : new[] { team + " rifleman" }));
             }
-            // Column order: Alpha leads, then the squad leader and Doc, then Bravo and Charlie.
-            var order = new[] { 2, 3, 4, 5, 0, 1, 6, 7, 8, 9, 10, 11, 12, 13 };
+            // The interpreter goes with the squad leader. He isn't a Marine, and he carries no weapon.
+            terp = slots.Count;
+            slots.Add(("terp", "terp", "", new[] { "Interpreter", "terp" }));
+            // Column order: Alpha leads, then the squad leader, Doc, and the interpreter, then Bravo and Charlie.
+            var order = new[] { 2, 3, 4, 5, 0, 1, terp, 6, 7, 8, 9, 10, 11, 12, 13 };
             for (int i = 0; i < order.Length; i++)
             {
                 var s = slots[order[i]];
@@ -160,7 +166,7 @@ namespace FieldTable.Sim
         static readonly (float back, float side)[] Slots =
         {
             (0f, 0f), (7f, -7f), (14f, -9f), (7f, 7f),       // Alpha in a wedge: TL, AR, AAR, rifleman
-            (25f, 0f), (30f, 5f),                             // the squad leader and Doc
+            (25f, 0f), (30f, 5f), (30f, -5f),                 // the squad leader, Doc, and the interpreter
             (45f, 0f), (52f, -7f), (59f, -9f), (52f, 7f),     // Bravo
             (70f, 0f), (77f, -7f), (84f, -9f), (77f, 7f),     // Charlie
         };

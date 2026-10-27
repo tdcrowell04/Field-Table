@@ -87,7 +87,9 @@ namespace FieldTable.Sim.Tests
             Assert.Single(m.Sim.UnitsCalled(m.Marines, "Lead"));
             Assert.Single(m.Sim.UnitsCalled(m.Marines, "Charlie AR"));
             Assert.Single(m.Sim.UnitsCalled(m.Marines, "drone operator"));
-            Assert.Equal(14, m.Sim.UnitsCalled(m.Marines, "squad").Count);
+            // The whole squad, and the interpreter goes with it.
+            Assert.Equal(15, m.Sim.UnitsCalled(m.Marines, "squad").Count);
+            Assert.Single(m.Sim.UnitsCalled(m.Marines, "interpreter"));
             var name = m.Sim.Units.First(u => u.Id == "bravo-tl").Name;
             Assert.Single(m.Sim.UnitsCalled(m.Marines, name));
         }
@@ -262,7 +264,7 @@ namespace FieldTable.Sim.Tests
         public void LosingSevenMarinesLoses()
         {
             var m = Make(6);
-            foreach (var u in m.Sim.Units.Where(u => u.Force == m.Marines).Take(7).ToList()) m.Sim.KnockDownForTest(u);
+            foreach (var u in m.Squad.Take(7).ToList()) m.Sim.KnockDownForTest(u);
             m.CheckOutcome();
             Assert.Equal("failure", m.Outcome);
         }
