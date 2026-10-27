@@ -136,7 +136,7 @@ namespace FieldTable.Sim
 
             // Relief, on a turn nobody is told.
             int relief = Between(rng, ReliefFirst, ReliefLast);
-            mission.TurnLimit = ReliefLast + 5;
+            mission.TurnLimit = ReliefLast;
             bool heldBefore = false, everLost = false;
             mission.Judge = m =>
             {

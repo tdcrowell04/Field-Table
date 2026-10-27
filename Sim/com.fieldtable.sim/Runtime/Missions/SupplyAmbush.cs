@@ -98,7 +98,7 @@ namespace FieldTable.Sim
             }
             foreach (var u in party) { u.Force.Plan = plan; }
 
-            var formation = StartOutOfSight(sim, middle, p => DistanceTo(p, trail) >= 100f, new List<Unit>(), StartDistance, StartNearest, Inside(map, middle + Turn(Unit(trail[trail.Count - 1] - trail[0]), Math.PI / 2) * StartDistance));
+            var formation = StartOutOfSight(sim, middle, p => DistanceTo(p, trail) >= 100f && !InSettlement(map, p), new List<Unit>(), StartDistance, StartNearest, Inside(map, middle + Turn(Unit(trail[trail.Count - 1] - trail[0]), Math.PI / 2) * StartDistance));
             AddSquad(sim, mission.Marines, data, names, rng, formation);
             foreach (var u in party) sim.AddUnit(u);
 

@@ -350,6 +350,10 @@ namespace FieldTable.Sim
         public static Landmark Settlement(MapGrid map, Vec2 near) =>
             map.Landmarks.Where(l => l.Kind == "area" && (l.Note == "village" || l.Note == "town")).OrderBy(l => Vec2.Distance(l.Center, near)).FirstOrDefault();
 
+        /// <summary>True in or within a margin of any village or town. A squad doesn't start in the middle of one.</summary>
+        public static bool InSettlement(MapGrid map, Vec2 p, float margin = 20f) =>
+            map.Landmarks.Any(l => l.Kind == "area" && (l.Note == "village" || l.Note == "town") && Inside(l, p, margin));
+
         public static IEnumerable<Landmark> BuildingsIn(MapGrid map, Landmark area) => map.Landmarks.Where(l => l.Kind == "building" && area.Contains(l.Center));
 
         // ---------- adding to the map ----------

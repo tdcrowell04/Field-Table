@@ -81,6 +81,8 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 .boot { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; text-align: center; padding: 20px; background: #11120e; }
 .boot h2 { margin: 0; font: 800 30px/1 var(--display); letter-spacing: .04em; }
 .boot p { margin: 0; color: var(--muted); max-width: 34ch; }
+.picker { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 520px; }
+.picker .btn { white-space: normal; height: auto; min-height: 44px; padding: 8px 12px; }
 .boot .bar { width: min(220px, 70%); height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
 .boot .bar i { display: block; height: 100%; width: 30%; background: var(--sand); animation: slide 1.2s ease-in-out infinite; }
 @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
@@ -266,7 +268,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     const n = parseInt(hex.slice(1), 16);
     return "rgb(" + Math.round((n >> 16 & 255) * f) + "," + Math.round((n >> 8 & 255) * f) + "," + Math.round((n & 255) * f) + ")";
   }
-  const COL = { friend: "#78aee0", enemy: "#e2675c", civ: "#efe9da", tracer: "#ffd166" };
+  const COL = { friend: "#78aee0", ally: "#8fd18a", enemy: "#e2675c", civ: "#efe9da", tracer: "#ffd166" };
   const css = getComputedStyle(document.documentElement);
   const FD = css.getPropertyValue("--display").trim(), FM = css.getPropertyValue("--mono").trim(), FB = css.getPropertyValue("--body").trim();
 
@@ -310,6 +312,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     oprf: { name: "Enemy rifleman", line: "Assault rifle and a chest rig", side: "op", weapon: "ak", head: "wrap", skin: "#b4835e", shirt: "#5d6248", pants: "#4f5560", vest: "#2e2d29", headC: "#c9bfa7", boots: "#3b3128" },
     pkm:  { name: "Machine gunner", line: "Belt-fed machine gun", side: "op", weapon: "pkm", head: "cap", skin: "#9a6a48", shirt: "#6b5a45", pants: "#3f4652", vest: "#2e2d29", headC: "#2f3a2a", boots: "#3b3128" },
     rpg:  { name: "RPG gunner", line: "Rocket launcher", side: "op", weapon: "rpg", head: "wrap", skin: "#c39370", shirt: "#4c5640", pants: "#6a5f4f", vest: "#2e2d29", headC: "#7b6a55", boots: "#3b3128" },
+    crew: { name: "Helicopter crew", line: "Carbine and a survival radio; on our side", side: "friend", weapon: "m4", head: "helmet", skin: "#c9a07a", shirt: "#6f7552", pants: "#6f7552", vest: "#4b4a3c", headC: "#5a5e44", boots: "#3b3128" },
     civ:  { name: "Civilian", line: "Unarmed", side: "civ", weapon: "none", head: "hair", skin: "#c08c66", shirt: "#cfc6b0", pants: "#4b5568", headC: "#2b2420", boots: "#4a3b2e" }
   };
   const SPECS = {};
@@ -322,7 +325,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
   }
   buildSpecs();
   const ORDER_US = ["sl", "tl", "ar", "aar", "rf", "dr", "doc"], ORDER_OP = ["oprf", "pkm", "rpg", "civ"];
-  const SIDE_NAME = { us: "Marine", op: "Enemy", civ: "Civilian" };
+  const SIDE_NAME = { us: "Marine", op: "Enemy", civ: "Civilian", friend: "Friend" };
   const MUZ = { m27: 37, m27b: 37, m27g: 37, m4: 29, ak: 29, pkm: 36, rpg: 40 };
   const paint = (ctx, sp, key) => sp.camo && (key === "shirt" || key === "pants" || key === "headC") ? pat(ctx, sp.camo) : sp[key];
 
@@ -526,7 +529,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       box(off(at(24), 9.6), 3, 5.5, INK.pouch);
       box(off(at(19), -9.8), 3, 17, INK.pouch);
       if (sp.drone) box(off(at(22), 10.6), 2.2, 8, INK.drone);
-    } else if (sp.side === "op") {
+    } else if (sp.side === "op" || sp.side === "friend") {
       line(ctx, at(7), at(29), 17, sp.vest, "butt");
       [12, 20].forEach(d => box(off(at(d), 7.5), 4.4, 6.4, shade(sp.vest, 0.75)));
     } else {
@@ -908,7 +911,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
   function ringColor(d) {
     if (d.detained) return "#a39e8a";
     if (d.side === "us") return d.cond === 3 ? "#7d7a6c" : d.cond === 2 ? "#e0a24f" : COL.friend;
-    return d.side === "op" ? COL.enemy : COL.civ;
+    return d.side === "op" ? COL.enemy : d.side === "friend" ? COL.ally : COL.civ;
   }
   function drawUnit(c, i, d, t) {
     const sp = SPECS[S.roster[i].figure] || SPECS.rf, ps = poseOf(d);
@@ -970,11 +973,18 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     for (const p of S.map.places) {
       const water = / (River|Creek)$/.test(p.label), village = p.kind === "area" && (p.note === "village" || p.note === "town");
       const obj = S.m && p.label === S.m.objective.label;
-      const pri = obj || village ? 3 : water ? 2 : 1;
+      const spot = p.kind === "point";
+      const pri = obj || village || spot ? 3 : water ? 2 : 1;
       if ((pri === 2 && !big) || (pri === 1 && !bigger) || p.kind === "control") continue;
       const f = P3(c, p.x, p.y, 0);
       if (f.x < -50 || f.y < -20 || f.x > c.W + 50 || f.y > c.H + 20) continue;
+      if (spot) {
+        ctx.fillStyle = "#d4b46a"; ctx.strokeStyle = "rgba(20,20,16,0.85)"; ctx.lineWidth = 1.5 * DPR;
+        ctx.beginPath(); ctx.moveTo(f.x, f.y - 7 * DPR); ctx.lineTo(f.x + 6 * DPR, f.y); ctx.lineTo(f.x, f.y + 7 * DPR); ctx.lineTo(f.x - 6 * DPR, f.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+        if (!obj) halo(p.label.toUpperCase(), f.x, f.y + 18 * DPR, fontA, "#d4b46a", "center", true);
+      }
       if (water) halo(p.label, f.x, f.y, fontW, "rgba(190,215,225,0.95)", "center", false);
+      else if (spot && !obj) continue;
       else halo(p.label.toUpperCase(), f.x, f.y + (obj ? 26 * DPR : 0), fontA, obj ? "#d4b46a" : village ? "rgba(239,233,218,0.95)" : "rgba(231,225,207,0.8)", "center", obj || village);
     }
   }
@@ -985,7 +995,19 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     onGround(ctx, c, 0);
     ctx.strokeStyle = "rgba(212,180,106,0.9)"; ctx.lineWidth = 2 * DPR / c.s;
     ctx.setLineDash([6 * DPR / c.s, 5 * DPR / c.s]);
-    ctx.beginPath(); ctx.arc(o.x, o.y, 15, 0, 7); ctx.stroke();
+    // A box round a farm, a wreck, or a village; a ring round a spot; nothing more for a trail, which is drawn already.
+    if (o.x0 != null) { ctx.strokeRect(o.x0 - 3, o.y0 - 3, o.x1 - o.x0 + 6, o.y1 - o.y0 + 6); }
+    else if (S.m.kind !== "ambush") { ctx.beginPath(); ctx.arc(o.x, o.y, o.ring || 15, 0, 7); ctx.stroke(); }
+    // Marked buildings: dashed until cleared, then solid green.
+    const cleared = (S.state && S.state.objectives.cleared) || [];
+    for (const label of S.m.marked || []) {
+      const b = S.map.buildings.find(x => x.label === label);
+      if (!b) continue;
+      const done = cleared.includes(label);
+      ctx.strokeStyle = done ? "rgba(143,209,138,0.95)" : "rgba(212,180,106,0.95)";
+      ctx.setLineDash(done ? [] : [4 * DPR / c.s, 3 * DPR / c.s]);
+      ctx.strokeRect(b.x - 2, b.y - 2, b.w + 4, b.h + 4);
+    }
     ctx.setLineDash([]);
     flat(ctx);
   }
@@ -1023,8 +1045,8 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       } else if (!d.seen) {
         const age = Math.max(0, Math.round(((S.state ? S.state.step : 0) - (d.lastSeen || 0)) / 600));
         halo(r.name + " · last seen " + (age < 1 ? "just now" : age + " min ago"), f.x, below, font, "rgba(226,103,92,0.85)", "center", S.sel === i);
-      } else if (near || S.sel === i || r.side === "op") {
-        halo(r.name, f.x, below, font, r.side === "op" ? "#f0a39b" : "rgba(239,233,218,0.85)", "center", S.sel === i);
+      } else if (near || S.sel === i || r.side === "op" || r.side === "friend") {
+        halo(r.name, f.x, below, font, r.side === "op" ? "#f0a39b" : r.side === "friend" ? "#b7e3b2" : "rgba(239,233,218,0.85)", "center", S.sel === i);
       }
     });
     if (!near) for (const k in teams) {
@@ -1362,12 +1384,13 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     const grades = st.objectives.secondary.map(x => "<li class=\"" + x.status + "\">" + (x.status === "met" ? "✓ " : "✗ ") + esc(x.text) + "</li>").join("")
       + (ff ? "<li class=\"failed\">✗ Friendly fire: " + ff + (ff === 1 ? " Marine" : " Marines") + " hit by our own fire</li>" : "");
     const rating = st.rating ? "<div class=\"rating\"><small>Rating</small>" + esc(st.rating) + "</div>" : "";
-    const truth = (GOAL_TEXT[st.enemyGoal] ? "<p>" + GOAL_TEXT[st.enemyGoal] + "</p>" : "")
+    const goalText = S.m.kind === "bridge" ? GOAL_TEXT[st.enemyGoal] : st.enemyGoalText;
+    const truth = (goalText ? "<p>" + esc(goalText) + "</p>" : "")
       + (st.addIns && st.addIns.length ? "<p>The director switched in " + st.addIns.map(a => (ADDIN_TEXT[a.id] || a.id) + " (turn " + a.turn + ")").join(", ") + ".</p>" : "")
       + (st.lies || []).map(l => "<p>" + esc(l) + "</p>").join("");
-    b.innerHTML = "<h2>" + (won ? "Bridge seized" : "Mission failed") + "</h2>" + rating + "<p>" + esc(st.outcomeText) + "</p>" + truth + "<ul class=\"grades\">" + grades + "</ul><button class=\"btn primary small\" type=\"button\" id=\"againBtn\">New map</button>";
+    b.innerHTML = "<h2>" + (won ? (S.m.kind === "bridge" ? "Bridge seized" : "Mission accomplished") : "Mission failed") + "</h2>" + rating + "<p>" + esc(st.outcomeText) + "</p>" + truth + "<ul class=\"grades\">" + grades + "</ul><button class=\"btn primary small\" type=\"button\" id=\"againBtn\">New map</button><div id=\"againPick\"></div>";
     b.hidden = false;
-    $("againBtn").onclick = () => newMission(randomSeed());
+    $("againBtn").onclick = () => { $("againBtn").hidden = true; showPicker($("againPick")); };
     addLog({ kind: "event" + (won ? "" : " bad"), step: st.step, text: st.outcomeText });
   }
 
@@ -1441,8 +1464,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       if (toggle) toggle.onclick = () => { S.briefMode = S.briefMode === "full" ? "quick" : "full"; renderPane(); $("pane").scrollTop = 0; };
       const nb = $("newMapBtn");
       if (nb) nb.onclick = () => {
-        $("newMapAsk").innerHTML = "Start over on a new map? <button class=\"btn small primary\" type=\"button\" id=\"newMapYes\">Yes, new map</button>";
-        $("newMapYes").onclick = () => newMission(randomSeed());
+        showPicker($("newMapAsk"));
       };
       return;
     }
@@ -1455,35 +1477,36 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     }
   }
 
-  const MARKS = { ok: "○", met: "✓", failed: "✗", notyet: "○", onit: "◉", seized: "✓" };
-  const STATUS = { ok: "On track", met: "Met", failed: "Failed", notyet: "Not yet", onit: "Marine on it", seized: "Seized" };
-  function objRow(cls, text, status) {
-    return "<div class=\"row " + cls + "\"><span class=\"mark\">" + MARKS[status] + "</span><span>" + esc(text) + "</span><span class=\"chip\">" + STATUS[status] + "</span></div>";
+  const MARKS = { ok: "○", met: "✓", failed: "✗", notyet: "○", onit: "◉", done: "✓" };
+  const STATUS = { ok: "On track", met: "Met", failed: "Failed", notyet: "Not yet", onit: "Marine on it", done: "Done" };
+  function objRow(cls, text, status, word) {
+    return "<div class=\"row " + cls + "\"><span class=\"mark\">" + MARKS[status] + "</span><span>" + esc(text) + "</span><span class=\"chip\">" + esc(word || STATUS[status]) + "</span></div>";
   }
-  function winText() {
-    const o = S.state.objectives;
-    return "A Marine within " + o.onObjective + " m of " + S.m.objective.label + " and no enemy still fighting within " + o.holdRadius + " m, at the end of two turns in a row.";
-  }
-  function loseText() { return S.state.objectives.combatIneffective + " Marines down, or past turn " + S.state.turnLimit + "."; }
+  // The main objective's own words for where it stands, like "Not found", "Found", "Out".
+  function mainWord(o) { return { notyet: o.notYetWord, onit: o.onItWord, done: o.doneWord }[o.mainStatus]; }
+  function winText() { return S.state.objectives.win; }
+  function loseText() { return S.state.objectives.lose; }
   function quickBriefHtml() {
     const o = S.state.objectives, st = S.state.units;
-    const seen = [], squad = { up: 0, hurt: 0, down: 0, dead: 0, out: 0 };
+    const seen = [], friends = [], squad = { up: 0, hurt: 0, down: 0, dead: 0, out: 0 };
     S.roster.forEach((r, i) => {
       const u = st[i];
       if (!u) return;
       // The squad's Marines: not the drone, and not the interpreter.
       if (r.side === "us") { if (isDrone(i) || r.figure === "terp") return; if (u.gone) squad.out++; else if (u.condition === "ok") squad.up++; else if (u.condition === "wounded") squad.hurt++; else if (u.condition === "down") squad.down++; else squad.dead++; return; }
-      if (r.side !== "op") return;
+      if (r.side === "friend") { friends.push(esc(r.name) + (u.gone ? (u.evacuated ? ", out on the CASEVAC" : u.captured ? ", captured" : ", gone") : " at " + esc(u.grid) + (u.condition && u.condition !== "ok" ? ", " + esc(hurtText(u)) : ""))); return; }
+      if (r.side !== "op" || u.gone) return;
       const age = Math.max(0, Math.round((S.state.step - (u.lastSeen || 0)) / 600));
       seen.push(esc(r.name) + " at " + esc(u.grid) + (u.seen ? (u.condition && u.condition !== "ok" ? ", " + esc(u.condition) : ", seen now") : ", last seen " + (age < 1 ? "just now" : age + " min ago")));
     });
     const squadLine = (squad.up + squad.hurt) + " of " + (squad.up + squad.hurt + squad.down + squad.dead + squad.out) + " can fight" + (squad.hurt ? " · " + squad.hurt + " wounded" : "") + (squad.down ? " · " + squad.down + " down" : "") + (squad.out ? " · " + squad.out + " evacuated" : "") + (squad.dead ? " · " + squad.dead + " dead" : "")
       + (S.state.casevac ? " · CASEVAC " + (S.state.casevac.landed ? "on the ground at " : "inbound to ") + S.state.casevac.grid : "");
     return "<div class=\"brief\"><h2>" + esc(S.m.title) + "</h2>"
-      + "<div class=\"obj main\"><h3 class=\"mini\">Main objective</h3>" + objRow(o.mainStatus, o.main, o.mainStatus) + "</div>"
+      + "<div class=\"obj main\"><h3 class=\"mini\">Main objective</h3>" + objRow(o.mainStatus === "done" ? "met" : o.mainStatus, o.main, o.mainStatus, mainWord(o)) + "</div>"
       + "<div class=\"obj\"><h3 class=\"mini\">Secondary objectives</h3>" + o.secondary.map(x => objRow(x.status, x.text, x.status)).join("") + "</div>"
       + "<dl class=\"facts\"><dt>Win</dt><dd>" + esc(winText()) + "</dd><dt>Lose</dt><dd>" + esc(loseText()) + "</dd><dt>ROE</dt><dd>" + esc(o.roe) + "</dd>"
       + "<dt>Enemy</dt><dd>" + (seen.length ? seen.join("<br>") : "None seen yet. Strength unknown.") + "</dd>"
+      + (S.m.kind === "crew" ? "<dt>Crew</dt><dd>" + (friends.length ? friends.join("<br>") : "Not found yet. Last heard near the wreck.") + "</dd>" : "")
       + "<dt>Squad</dt><dd>" + esc(squadLine) + "</dd><dt>Time</dt><dd>Turn " + S.state.turn + " of " + S.state.turnLimit + "</dd></dl>"
       + "<div class=\"acts\"><button class=\"btn small\" type=\"button\" id=\"briefMode\">Full brief</button></div>"
       + "<p>Tap a Marine to name them in your orders, or tap the ground to name a spot. Send reads the orders; Play turn plays one minute.</p></div>";
@@ -1491,11 +1514,11 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
   function fullBriefHtml() {
     const m = S.m;
     return "<div class=\"brief\"><div class=\"acts\"><button class=\"btn small\" type=\"button\" id=\"briefMode\">Quick brief</button></div><h2>" + esc(m.title) + "</h2><ul>" + m.brief.map(b => "<li>" + esc(b) + "</li>").join("") + "</ul>"
-      + "<div><h3 class=\"mini\">How it ends</h3><p>You win with " + esc(winText().replace(/^A /, "a ").replace(/\.$/, "")) + ". You lose with " + esc(loseText()) + " The secondary objectives don't change winning or losing; the end grades them.</p></div>"
+      + "<div><h3 class=\"mini\">How it ends</h3><p>Win: " + esc(winText()) + "</p><p>Lose: " + esc(loseText()) + "</p><p>The secondary objectives don't change winning or losing; the end grades them.</p></div>"
       + "<div><h3 class=\"mini\">Giving orders</h3><p>Say who, then what, then where. Tap a Marine to name them, or tap the ground to name a spot. Send reads the orders and shows what each Marine will do; Play turn plays one minute.</p></div>"
       + "<p class=\"says\">Alpha, suppress the PKM gunner.<br>Bravo, run to building 4.<br>Charlie, take cover.<br>Doc, treat Tran.</p>"
       + "<p>" + esc(readerNote()) + "</p>"
-      + "<div class=\"acts\"><span class=\"empty\">Map " + S.seed + "</span><button class=\"btn small\" type=\"button\" id=\"newMapBtn\">New map</button><span id=\"newMapAsk\"></span></div></div>";
+      + "<div class=\"acts\"><span class=\"empty\">Map " + S.seed + "</span><button class=\"btn small\" type=\"button\" id=\"newMapBtn\">New map</button></div><div id=\"newMapAsk\"></div></div>";
   }
 
   function previewHtml() {
@@ -1767,7 +1790,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     "- fly drone: only for the drone operator. where: where to send the drone. Leave where out to bring it back and pack it up.",
     "- talk: talk to a civilian, or question an enemy who is down, detained, or gave up. target: who. The villagers and fighters don't speak English, so the interpreter has to be there too.",
     "- search: search a place, or a person who is down, detained, or a civilian. target (a person) or where.",
-    "- carry: carry a casualty. target: who to carry. where: where to take them.",
+    "- carry: carry a casualty (a Marine, or a hurt friend like a downed pilot), or walk a detained prisoner somewhere. target: who. where: where to take them.",
     "- detain: take someone prisoner: a civilian, or an enemy who is down or gave up. target: who.",
     "- share ammo: spread the ammo out evenly across a team.",
     "- request: call for CASEVAC. kind \"CASEVAC\". where: the landing zone."
@@ -1795,10 +1818,10 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     let any = false;
     S.roster.forEach((r, i) => {
       const u = st[i];
-      if (r.side === "us" || !u) return;
+      if (r.side === "us" || !u || u.gone) return;
       any = true;
       const age = Math.max(0, Math.round((S.state.step - (u.lastSeen || 0)) / 600));
-      L.push("- " + r.name + " (" + (r.side === "civ" ? "civilian" : "enemy") + "): " + (u.seen ? "seen now at " + u.grid : "last seen " + (age < 1 ? "just now" : age + " min ago") + " at " + u.grid));
+      L.push("- " + r.name + " (" + (r.side === "civ" ? "civilian" : r.side === "friend" ? "friend, on our side" : "enemy") + "): " + (u.seen ? "seen now at " + u.grid : "last seen " + (age < 1 ? "just now" : age + " min ago") + " at " + u.grid));
     });
     if (!any) L.push("- none yet");
     L.push("", "RULES:",
@@ -1968,7 +1991,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
         "Here's where the mission stands, and the add-ins that fit right now. Pick one to switch on, or none if it's tense enough already.",
         "- Turn " + st.turn + " of " + st.turnLimit + ".",
         "- Marines down or dead: " + down + " of " + ours.length + ".",
-        "- The closest Marine is " + closest + " m from the bridge.",
+        "- The mission: " + S.m.kindName + ". The closest Marine is " + closest + " m from " + o.label + ".",
         "- Enemy fighters the Marines can see right now: " + seen + ".",
         "- Add-ins already switched on: " + (S.picks.length ? S.picks.join(", ") : "none") + ".",
         "Add-ins that fit:",
@@ -2032,17 +2055,25 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
   const randomSeed = () => 10000 + Math.floor(Math.random() * 90000);
   function bootMsg(text, failed) {
     $("boot").hidden = false;
+    if ($("bootPick")) $("bootPick").innerHTML = "";
     $("bootMsg").textContent = text;
     document.querySelector("#boot .bar").hidden = !!failed;
   }
-  async function newMission(seed) {
+  // New map gives a choice: any mission by name, or Random (ledger round 16, item 9 (a)).
+  function showPicker(el) {
+    const list = (S.missions || []).map(x => [x.id, x.name]).concat([["random", "Random"]]);
+    el.innerHTML = "<p>Pick a mission:</p><div class=\"picker\">" + list.map(([id, name]) => "<button class=\"btn small" + (id === "random" ? " primary" : "") + "\" type=\"button\" data-kind=\"" + id + "\">" + esc(name) + "</button>").join("") + "</div>";
+    el.querySelectorAll("button[data-kind]").forEach(b => b.onclick = () => newMission(randomSeed(), b.dataset.kind));
+  }
+  async function newMission(seed, kind) {
+    kind = kind || "random";
     bootMsg("Building map " + seed + ".");
     $("banner").hidden = true;
     P = null; $("playbar").hidden = true;
     await new Promise(r => setTimeout(r, 30));
     try {
-      const m = await call("NewMission", S.data.t, S.data.u, S.data.n, seed);
-      S.m = m; S.seed = seed; S.map = m.map; S.roster = m.roster; S.state = m.state;
+      const m = await call("NewMission", S.data.t, S.data.u, S.data.n, seed, kind);
+      S.m = m; S.seed = seed; S.missions = m.missions; S.map = m.map; S.roster = m.roster; S.state = m.state;
       S.mw = m.map.w * m.map.cell; S.mh = m.map.h * m.map.cell; S.sq = m.map.square;
       S.log = []; S.rolls = []; S.flip = {}; S.sel = -1; S.tap = null; S.marks = []; S.hover = null; S.pending = null; S.busy = false; S.picks = []; S.lastPick = null;
       buildGround(m.map);
@@ -2063,7 +2094,13 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       await Blazor.start({ loadBootResource: (type, name, defaultUri) => defaultUri.replace("_framework/", "framework/") });
       const files = await Promise.all(["terrain.json", "units.json", "names.json"].map(f => fetch(f).then(r => { if (!r.ok) throw new Error(f + " is missing"); return r.text(); })));
       S.data = { t: files[0], u: files[1], n: files[2] };
-      await newMission(randomSeed());
+      // First thing, the choice of mission.
+      S.missions = (await call("Missions")).missions;
+      $("bootMsg").textContent = "The simulation is ready.";
+      document.querySelector("#boot .bar").hidden = true;
+      let pick = $("bootPick");
+      if (!pick) { pick = document.createElement("div"); pick.id = "bootPick"; $("boot").appendChild(pick); }
+      showPicker(pick);
     } catch (e) {
       bootMsg("The simulation didn't load: " + (e && e.message ? e.message : e) + ". Reload the page to try again.", true);
     }

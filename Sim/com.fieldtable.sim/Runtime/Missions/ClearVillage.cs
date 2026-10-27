@@ -74,7 +74,7 @@ namespace FieldTable.Sim
             }
             foreach (var u in enemy) u.Force.Plan = plan;
 
-            var formation = StartOutOfSight(sim, v, p => !Near(village, p, 100f), enemy, StartDistance, StartNearest, OutAlong(map, v, new Vec2(0f, 1f), StartDistance));
+            var formation = StartOutOfSight(sim, v, p => !Near(village, p, 100f) && !InSettlement(map, p), enemy, StartDistance, StartNearest, OutAlong(map, v, new Vec2(0f, 1f), StartDistance));
             AddSquad(sim, mission.Marines, data, names, rng, formation);
             foreach (var u in enemy) sim.AddUnit(u);
             Vec2 lead = formation[0].pos;

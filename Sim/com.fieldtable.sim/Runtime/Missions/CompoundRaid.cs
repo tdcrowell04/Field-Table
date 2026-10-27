@@ -125,7 +125,7 @@ namespace FieldTable.Sim
             enemy.AddRange(made);
             foreach (var u in enemy) u.Force.Plan = plan;
 
-            var formation = StartOutOfSight(sim, c, p => Dot(p - c, front) >= 100f, enemy, StartDistance, StartNearest, At(StartDistance, 0f));
+            var formation = StartOutOfSight(sim, c, p => Dot(p - c, front) >= 100f && !InSettlement(map, p), enemy, StartDistance, StartNearest, At(StartDistance, 0f));
             AddSquad(sim, mission.Marines, data, names, rng, formation);
             foreach (var u in enemy) sim.AddUnit(u);
 

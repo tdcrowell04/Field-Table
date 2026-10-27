@@ -22,36 +22,78 @@ namespace FieldTable.Playtest
         static Mission Current => mission ?? throw new InvalidOperationException("Start a mission first.");
         static readonly Dictionary<string, int> terrainIndex = new Dictionary<string, int>();
 
-        /// <summary>Builds a fresh bridge seizure from the game's data files and a seed. Returns the map and the start.</summary>
+        /// <summary>
+        /// Builds a fresh mission of the kind asked for (or Random) from the game's data files and a seed. Returns the
+        /// map and the start, and the list of missions to pick from next time.
+        /// </summary>
         [JSInvokable]
-        public static string NewMission(string terrainJson, string unitsJson, string namesJson, int seed)
+        public static string NewMission(string terrainJson, string unitsJson, string namesJson, int seed, string kind)
         {
             data = GameData.Combine(GameData.FromJson(terrainJson), GameData.FromJson(unitsJson));
             terrainIndex.Clear();
             seenBroken.Clear();
             for (int i = 0; i < data.Terrains.Count; i++) terrainIndex[data.Terrains[i].Id] = i;
-            mission = BridgeSeizure.Create(data, NamePools.FromJson(namesJson), (ulong)(uint)seed);
+            mission = StartStates.Create(kind, data, NamePools.FromJson(namesJson), (ulong)(uint)seed);
             mission.Sim.Light = LightLevel.Day;
 
             return Json(w =>
             {
                 w.WriteString("title", mission.Title);
                 w.WriteNumber("seed", seed);
+                w.WriteString("kind", mission.Kind);
+                w.WriteString("kindName", StartStates.Find(mission.Kind)?.Name ?? mission.Kind);
+                w.WriteStartArray("missions");
+                foreach (var st in StartStates.All)
+                {
+                    w.WriteStartObject();
+                    w.WriteString("id", st.Id);
+                    w.WriteString("name", st.Name);
+                    w.WriteEndObject();
+                }
+                w.WriteEndArray();
                 w.WriteStartArray("brief");
                 foreach (var line in mission.Brief) w.WriteStringValue(line);
                 w.WriteEndArray();
+                // What the mission is about, and its shape on the map: a ring for a spot, a box for a farm, a wreck, or
+                // a village, and nothing extra for a line like a trail, which is drawn already.
                 var b = mission.Objective;
                 w.WriteStartObject("objective");
                 w.WriteString("label", b.Label);
+                w.WriteString("kind", b.Kind);
                 w.WriteNumber("x", R(b.Center.X));
                 w.WriteNumber("y", R(b.Center.Y));
-                w.WriteString("grid", mission.Sim.Map.SquareOf(b.Center).ToString());
+                w.WriteString("grid", mission.Sim.Map.SquareOf(Inside(mission.Sim.Map, b.Center)).ToString());
+                if (b.Kind == "area")
+                {
+                    w.WriteNumber("x0", R(b.Min.X)); w.WriteNumber("y0", R(b.Min.Y));
+                    w.WriteNumber("x1", R(b.Max.X)); w.WriteNumber("y1", R(b.Max.Y));
+                }
+                w.WriteNumber("ring", mission.Kind == StartStates.Crossroads ? HoldCrossroads.HoldWithin : Mission.OnObjective);
                 w.WriteEndObject();
+                // Buildings the mission marks, like the ones to clear.
+                w.WriteStartArray("marked");
+                foreach (var m in mission.Marked) w.WriteStringValue(m.Label);
+                w.WriteEndArray();
                 WriteMap(w);
                 WriteRoster(w);
                 WriteState(w);
             });
         }
+
+        /// <summary>The missions to pick from: their ids and names.</summary>
+        [JSInvokable]
+        public static string Missions() => Json(w =>
+        {
+            w.WriteStartArray("missions");
+            foreach (var st in StartStates.All)
+            {
+                w.WriteStartObject();
+                w.WriteString("id", st.Id);
+                w.WriteString("name", st.Name);
+                w.WriteEndObject();
+            }
+            w.WriteEndArray();
+        });
 
         /// <summary>Where things stand between turns, as the Marines know it.</summary>
         [JSInvokable]
@@ -404,7 +446,8 @@ namespace FieldTable.Playtest
                 w.WriteStartObject();
                 w.WriteString("id", u.Id);
                 w.WriteString("name", u.Name);
-                w.WriteString("side", ours ? "us" : u.Force.Civilian ? "civ" : "op");
+                // A friend is another side on ours, like a downed helicopter's crew.
+                w.WriteString("side", ours ? "us" : u.Force.Civilian ? "civ" : mission.Sim.AreHostile(mission.Marines, u.Force) ? "op" : "friend");
                 w.WriteString("figure", u.Def.Figure ?? "rf");
                 w.WriteString("kind", u.Def.Name);
                 if (ours)
@@ -436,7 +479,11 @@ namespace FieldTable.Playtest
                 w.WriteString("outcomeText", mission.OutcomeText);
                 w.WriteString("rating", mission.Rating);
                 // At the end, what the enemy was really up to, and what the director switched in.
-                if (mission.Enemy.Plan != null) w.WriteString("enemyGoal", mission.Enemy.Plan.Goal);
+                if (mission.Enemy.Plan != null)
+                {
+                    w.WriteString("enemyGoal", mission.Enemy.Plan.Goal);
+                    w.WriteString("enemyGoalText", "The enemy was out to " + mission.Enemy.Plan.Truth(mission.Enemy.Plan.Goal) + ".");
+                }
                 // Every lie a prisoner told, caught or not, so the game was never just wrong.
                 w.WriteStartArray("lies");
                 foreach (var lie in sim.Lies) w.WriteStringValue(lie.Summary);
@@ -457,12 +504,13 @@ namespace FieldTable.Playtest
                 bool ours = ReferenceEquals(u.Force, mission.Marines);
                 Contact c = ours ? null : knowledge.About(u.Id);
                 if (!ours && c == null) { w.WriteNullValue(); continue; }
-                if (ours && u.Gone)
+                if (u.Gone)
                 {
-                    // Off the table: evacuated, or the drone still in its case.
+                    // Off the table: evacuated, the drone still in its case, gone off the map, or led away by the enemy.
                     w.WriteStartObject();
                     w.WriteBoolean("gone", true);
                     if (u.Evacuated) w.WriteBoolean("evacuated", true);
+                    if (u.Captured) w.WriteBoolean("captured", true);
                     w.WriteString("condition", u.Condition.ToString().ToLowerInvariant());
                     w.WriteEndObject();
                     continue;
@@ -561,9 +609,15 @@ namespace FieldTable.Playtest
             w.WriteStartObject("objectives");
             w.WriteString("main", mission.MainObjective);
             w.WriteString("mainStatus", mission.MainStatus);
+            w.WriteString("notYetWord", mission.NotYetWord);
+            w.WriteString("onItWord", mission.OnItWord);
             w.WriteString("doneWord", mission.DoneWord);
             w.WriteString("win", mission.WinText);
             w.WriteString("lose", mission.LoseText);
+            // The marked buildings cleared so far.
+            w.WriteStartArray("cleared");
+            foreach (var label in mission.Sim.Log.Events.OfType<BuildingCleared>().Select(e => e.Building).Where(mission.Marked.Contains).Select(l => l.Label).Distinct()) w.WriteStringValue(label);
+            w.WriteEndArray();
             w.WriteString("roe", mission.Roe);
             w.WriteNumber("onObjective", Mission.OnObjective);
             w.WriteNumber("holdRadius", Mission.HoldRadius);
@@ -576,7 +630,9 @@ namespace FieldTable.Playtest
                 w.WriteStartObject();
                 w.WriteString("id", o.Id);
                 w.WriteString("text", o.Text);
-                w.WriteString("status", broken && known ? "failed" : over ? "met" : "ok");
+                // One that's met by doing something, like taking a prisoner, isn't failed before the end, only not yet done.
+                if (o.AtEnd && !over) w.WriteString("status", broken ? "notyet" : "met");
+                else w.WriteString("status", broken && known ? "failed" : over ? "met" : "ok");
                 w.WriteEndObject();
             }
             w.WriteEndArray();
