@@ -194,6 +194,7 @@ namespace FieldTable.Sim
             ThinkSurrender();
             IedTick();
             RadioTick();
+            LieTick();
         }
 
         // ---------- clear a building ----------

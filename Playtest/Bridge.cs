@@ -437,6 +437,10 @@ namespace FieldTable.Playtest
                 w.WriteString("rating", mission.Rating);
                 // At the end, what the enemy was really up to, and what the director switched in.
                 if (mission.Enemy.Plan != null) w.WriteString("enemyGoal", mission.Enemy.Plan.Goal);
+                // Every lie a prisoner told, caught or not, so the game was never just wrong.
+                w.WriteStartArray("lies");
+                foreach (var lie in sim.Lies) w.WriteStringValue(lie.Summary);
+                w.WriteEndArray();
                 w.WriteStartArray("addIns");
                 foreach (var (id, when) in mission.Director?.Used ?? new List<(string, int)>())
                 {

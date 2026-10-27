@@ -199,6 +199,15 @@ namespace FieldTable.Sim
         public override string Describe() => Unit.Name + " opens a breach.";
     }
 
+    /// <summary>The squad acted on a prisoner's lie and found out.</summary>
+    public sealed class LieExposed : SimEvent
+    {
+        public Lie Lie { get; }
+        public Unit By { get; }
+        public LieExposed(Lie lie, Unit by) { Lie = lie; By = by; }
+        public override string Describe() => By.Name + " finds " + Lie.Prisoner.Name + " lied.";
+    }
+
     public sealed class IedWentOff : SimEvent
     {
         public Ied Ied { get; }

@@ -71,6 +71,36 @@ namespace FieldTable.Sim.Tests
         }
 
         [Fact]
+        public void ALieComesOutWhenTheSquadGoesToCheckAndAtTheEnd()
+        {
+            for (ulong seed = 1; seed <= 60; seed++)
+            {
+                var s = new Scene(seed);
+                var m = s.Add("reyes", "rf", s.Blue, 100, 300, "Alpha");
+                var p = s.Add("prisoner", "en-rf", s.Red, 103, 300);
+                s.Add("friend", "en-pkm", s.Red, 450, 120);
+                s.Add("friend2", "en-rf", s.Red, 455, 126);
+                s.Map.FillRect(425, 95, 10, 50, "building");
+                s.Red.Plan = new EnemyPlan(EnemyPlan.Hold, new Landmark("bridge", "line", null, null, new Vec2(500, 300), new Vec2(490, 300), new Vec2(510, 300), new[] { new Vec2(490, 300), new Vec2(510, 300) }));
+                s.Sim.KnockDownForTest(p);
+                for (int i = 0; i < 5; i++) s.Sim.LookAround();
+                Assert.True(s.Order(m, Verbs.Talk, target: "prisoner").Ok);
+                s.Sim.RunTurn();
+                var lie = s.Sim.Lies.SingleOrDefault();
+                if (lie == null || lie.Square == null) continue;
+                Assert.False(lie.Exposed);
+                Assert.Matches(@"^prisoner lied when questioned: nobody was at [A-H]\d, and they were never out to (only slow you down|blow the bridge|ambush you on the bridge)\.$", lie.Summary);
+                // Falling for it: a Marine goes to the square he named, and nobody's there.
+                m.Position = s.Map.SquareCenter(lie.Square.Value);
+                s.Sim.RunTurn();
+                Assert.True(lie.Exposed);
+                Assert.Contains(s.Events<RadioCall>(), r => r.Text == "Alpha: Nothing at " + lie.Square + ". prisoner lied to us.");
+                return;
+            }
+            Assert.Fail("No prisoner lied about a square in 60 tries.");
+        }
+
+        [Fact]
         public void AFighterAloneAndPinnedMayGiveUp()
         {
             for (ulong seed = 1; seed <= 20; seed++)

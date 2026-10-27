@@ -25,6 +25,11 @@ namespace FieldTable.Sim
 
         readonly Dictionary<Force, int> lastShout = new Dictionary<Force, int>();
 
+        readonly List<Lie> lies = new List<Lie>();
+
+        /// <summary>Every lie a prisoner has told this mission, for the end screen.</summary>
+        public IReadOnlyList<Lie> Lies => lies;
+
         static bool SameLanguage(Force a, Force b) => string.Equals(a.Language, b.Language, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>True when what a Marine says to someone gets through: same language, or the interpreter is there.</summary>
@@ -65,18 +70,20 @@ namespace FieldTable.Sim
             var friends = units.Where(x => ReferenceEquals(x.Force, p.Force) && x != p && x.CanAct).ToList();
             var plan = p.Force.Plan;
             string claim;
+            Lie lie = null;
             if (roll >= 5)
             {
                 var told = friends.GroupBy(x => Map.SquareOf(x.Position).ToString())
                     .Select(g => (g.Count() == 1 ? "one fighter" : g.Count() + " fighters") + " at " + g.Key).ToList();
                 claim = told.Count == 0 ? "says he's the last of them" : (friends.Count == 1 ? "says there's " : "says there are ") + JoinAnd(told);
-                string why = plan == null ? null : PlanTold(plan, true);
+                string why = plan == null ? null : PlanTold(plan.Goal);
                 if (why != null) claim += ", and " + why;
             }
             else
             {
-                // A lie: fighters somewhere none are, and the wrong idea of what they're up to.
+                // A lie: fighters somewhere none are (and no Marine is either), and the wrong idea of what they're up to.
                 var real = new HashSet<string>(friends.Select(x => Map.SquareOf(x.Position).ToString()));
+                foreach (var m in units.Where(x => ReferenceEquals(x.Force, u.Force) && !x.Gone && !x.Def.Flying)) real.Add(Map.SquareOf(m.Position).ToString());
                 var squares = new List<GridRef>();
                 for (int c = 0; c < Map.Columns; c++)
                     for (int r = 0; r < Map.Rows; r++)
@@ -84,29 +91,49 @@ namespace FieldTable.Sim
                         var g = new GridRef(c, r);
                         if (!real.Contains(g.ToString()) && Vec2.Distance(Map.SquareCenter(g), p.Position) <= 400f) squares.Add(g);
                     }
-                string where = squares.Count == 0 ? null : squares[Roll(squares.Count, p.Name, "where the lie puts them", true) - 1].ToString();
+                GridRef? where = squares.Count == 0 ? (GridRef?)null : squares[Roll(squares.Count, p.Name, "where the lie puts them", true) - 1];
                 claim = where == null ? "says they've all gone" : "says the rest of them are at " + where;
-                string why = plan == null ? null : PlanTold(plan, false);
-                if (why != null) claim += ", and " + why;
+                string madeUp = null;
+                if (plan != null)
+                {
+                    var others = EnemyPlan.Goals.Where(g => g != plan.Goal).ToList();
+                    madeUp = others[Roll(others.Count, p.Name, "the plan he makes up", true) - 1];
+                    claim += ", and " + PlanTold(madeUp);
+                }
+                lie = new Lie(p, where, madeUp);
+                lies.Add(lie);
             }
             Radio(u, u.Name + ": " + p.Name + through + " " + claim + ".", "info", p.Position, p.Name);
         }
 
-        /// <summary>What a prisoner says the plan is: the real one when he tells the truth, a different one when he lies.</summary>
-        string PlanTold(EnemyPlan plan, bool truth)
+        /// <summary>What a prisoner says the plan is, in his words.</summary>
+        static string PlanTold(string goal)
         {
-            string goal = plan.Goal;
-            if (!truth)
-            {
-                var others = EnemyPlan.Goals.Where(g => g != plan.Goal).ToList();
-                goal = others[Roll(others.Count, "prisoner", "the plan he makes up", true) - 1];
-            }
             switch (goal)
             {
                 case EnemyPlan.Hold: return "they mean to hold the bridge";
                 case EnemyPlan.Delay: return "they're only to slow you down and fall back";
                 case EnemyPlan.Blow: return "the bridge is rigged to blow";
                 default: return "they're waiting for you on the bridge";
+            }
+        }
+
+        /// <summary>
+        /// Once a second: a Marine who goes to the square a prisoner lied about, and finds nobody there, says so. A lie
+        /// nobody acts on waits for the end screen.
+        /// </summary>
+        void LieTick()
+        {
+            foreach (var lie in lies)
+            {
+                if (lie.Exposed || lie.Square == null) continue;
+                var sq = lie.Square.Value;
+                var there = units.FirstOrDefault(m => ReferenceEquals(m.Force, PlayerForce) && m.CanAct && !m.Def.Flying && Map.SquareContains(sq, m.Position));
+                if (there == null) continue;
+                if (units.Any(x => ReferenceEquals(x.Force, lie.Prisoner.Force) && x.CanAct && Map.SquareContains(sq, x.Position))) continue;
+                lie.Exposed = true;
+                Record(new LieExposed(lie, there));
+                Radio(there, Callsign(there) + ": Nothing at " + sq + ". " + lie.Prisoner.Name + " lied to us.", "info", Map.SquareCenter(sq));
             }
         }
 
@@ -188,6 +215,45 @@ namespace FieldTable.Sim
             u.Path = Paths.Find(u.Position, lead.Position, false);
             u.PathIndex = 0;
             u.Speed = d > 15f ? MoveSpeed.Run : MoveSpeed.Walk;
+        }
+    }
+
+    /// <summary>A lie a prisoner told: where he said his friends were (if anywhere), and the plan he made up (if any).</summary>
+    public sealed class Lie
+    {
+        public Unit Prisoner { get; }
+
+        /// <summary>The square he said the rest of them were in, or null when he said they'd all gone.</summary>
+        public GridRef? Square { get; }
+
+        /// <summary>The plan he made up instead of the real one, or null when the plan never came up.</summary>
+        public string MadeUpGoal { get; }
+
+        /// <summary>True once the squad acted on it and found out.</summary>
+        public bool Exposed { get; internal set; }
+
+        public Lie(Unit prisoner, GridRef? square, string madeUpGoal) { Prisoner = prisoner; Square = square; MadeUpGoal = madeUpGoal; }
+
+        /// <summary>For the end screen: what wasn't so.</summary>
+        public string Summary
+        {
+            get
+            {
+                var parts = new List<string> { Square == null ? "they hadn't gone" : "nobody was at " + Square };
+                if (MadeUpGoal != null) parts.Add("they were never out to " + GoalWords(MadeUpGoal));
+                return Prisoner.Name + " lied when questioned: " + (parts.Count == 1 ? parts[0] : parts[0] + ", and " + parts[1]) + ".";
+            }
+        }
+
+        static string GoalWords(string goal)
+        {
+            switch (goal)
+            {
+                case EnemyPlan.Hold: return "hold the bridge";
+                case EnemyPlan.Delay: return "only slow you down";
+                case EnemyPlan.Blow: return "blow the bridge";
+                default: return "ambush you on the bridge";
+            }
         }
     }
 }

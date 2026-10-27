@@ -1363,7 +1363,8 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       + (ff ? "<li class=\"failed\">✗ Friendly fire: " + ff + (ff === 1 ? " Marine" : " Marines") + " hit by our own fire</li>" : "");
     const rating = st.rating ? "<div class=\"rating\"><small>Rating</small>" + esc(st.rating) + "</div>" : "";
     const truth = (GOAL_TEXT[st.enemyGoal] ? "<p>" + GOAL_TEXT[st.enemyGoal] + "</p>" : "")
-      + (st.addIns && st.addIns.length ? "<p>The director switched in " + st.addIns.map(a => (ADDIN_TEXT[a.id] || a.id) + " (turn " + a.turn + ")").join(", ") + ".</p>" : "");
+      + (st.addIns && st.addIns.length ? "<p>The director switched in " + st.addIns.map(a => (ADDIN_TEXT[a.id] || a.id) + " (turn " + a.turn + ")").join(", ") + ".</p>" : "")
+      + (st.lies || []).map(l => "<p>" + esc(l) + "</p>").join("");
     b.innerHTML = "<h2>" + (won ? "Bridge seized" : "Mission failed") + "</h2>" + rating + "<p>" + esc(st.outcomeText) + "</p>" + truth + "<ul class=\"grades\">" + grades + "</ul><button class=\"btn primary small\" type=\"button\" id=\"againBtn\">New map</button>";
     b.hidden = false;
     $("againBtn").onclick = () => newMission(randomSeed());
