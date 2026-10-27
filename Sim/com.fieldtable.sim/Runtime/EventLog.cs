@@ -162,6 +162,15 @@ namespace FieldTable.Sim
     }
 
     /// <summary>A line on the radio net. Written from templates now; the in-game AI can voice them later.</summary>
+    /// <summary>A unit hurt by its own side's fire.</summary>
+    public sealed class FriendlyFire : SimEvent
+    {
+        public Unit Shooter { get; }
+        public Unit Victim { get; }
+        public FriendlyFire(Unit shooter, Unit victim) { Shooter = shooter; Victim = victim; }
+        public override string Describe() => Victim.Name + " is hit by friendly fire from " + Shooter.Name + ".";
+    }
+
     public sealed class SmokeAt : SimEvent
     {
         public Unit Thrower { get; }
@@ -208,7 +217,14 @@ namespace FieldTable.Sim
     {
         public Unit From { get; }
         public string Text { get; }
-        public RadioCall(Unit from, string text) { From = from; Text = text; }
+
+        /// <summary>Where the call is about, for a marker on the map, or null for calls that don't need one.</summary>
+        public Vec2? At { get; }
+
+        /// <summary>What kind of news it is: contact, casualty, set, smoke, lz, or info. Null with no marker.</summary>
+        public string Kind { get; }
+
+        public RadioCall(Unit from, string text, string kind = null, Vec2? at = null) { From = from; Text = text; Kind = kind; At = at; }
         public override string Describe() => Text;
     }
 

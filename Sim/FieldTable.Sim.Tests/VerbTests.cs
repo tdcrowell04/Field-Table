@@ -230,6 +230,54 @@ namespace FieldTable.Sim.Tests
         }
 
         [Fact]
+        public void AmmoIsSharedOnlyWithWeaponsThatTakeIt()
+        {
+            var s = new Scene();
+            var tl1 = s.Add("tl1", "tl", s.Blue, 100, 300, "Alpha");
+            var tl2 = s.Add("tl2", "tl", s.Blue, 100, 306, "Alpha");
+            var rf = s.Add("rf", "rf", s.Blue, 100, 312, "Alpha");
+            var ak = s.Add("ak", "en-rf", s.Blue, 100, 318, "Alpha");
+            tl1.Ammo = 210; tl2.Ammo = 210; rf.Ammo = 0; ak.Ammo = 10;
+            tl1.LauncherAmmo = 5; tl2.LauncherAmmo = 1;
+            s.Sim.GiveOrder(s.Blue, "Alpha", new Order { Verb = Verbs.ShareAmmo });
+            s.Sim.RunTurn();
+            Assert.Equal(140, tl1.Ammo);
+            Assert.Equal(140, rf.Ammo);
+            Assert.Equal(10, ak.Ammo);
+            Assert.Equal(3, tl1.LauncherAmmo);
+            Assert.Equal(3, tl2.LauncherAmmo);
+        }
+
+        [Fact]
+        public void SixDigitCoordinatesAreAPlaceToTheMeter()
+        {
+            var s = new Scene();
+            var m = s.Add("m", "rf", s.Blue, 100, 300);
+            Assert.True(s.Sim.TryPlace(m, "452 287", out Vec2 p));
+            Assert.Equal(452.5f, p.X);
+            Assert.Equal(600f - 287.5f, p.Y);
+            Assert.Equal("452 287", s.Sim.Coordinates(p));
+            Assert.True(s.Sim.TryPlace(m, "452287", out _));
+            Assert.False(s.Sim.TryPlace(m, "952 287", out _));
+            Assert.True(s.Order(m, Verbs.Move, "150 300").Ok);
+        }
+
+        [Fact]
+        public void ImportantCallsCarryAPlaceForTheMap()
+        {
+            var s = new Scene();
+            var m = s.Add("m", "rf", s.Blue, 100, 300, "Alpha");
+            var e = s.Add("e", "en-rf", s.Red, 450, 350);
+            s.Sim.CallContact(m, e, true, false, 0);
+            s.Sim.KnockDownForTest(m);
+            var calls = s.Events<RadioCall>().ToList();
+            Assert.Equal("contact", calls[0].Kind);
+            Assert.Equal(e.Position, calls[0].At);
+            Assert.Equal("casualty", calls[1].Kind);
+            Assert.Equal(m.Position, calls[1].At);
+        }
+
+        [Fact]
         public void CasevacTakesTheCasualtiesAtTheLandingZone()
         {
             var s = new Scene();

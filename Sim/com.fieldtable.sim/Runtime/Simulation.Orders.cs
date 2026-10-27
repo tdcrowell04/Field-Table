@@ -336,8 +336,28 @@ namespace FieldTable.Sim
                 point = Map.SquareCenter(g);
                 return true;
             }
+            if (TryCoordinates(name, out point)) return true;
             return TryGround(unit, name, out point);
         }
+
+        /// <summary>
+        /// Six-digit coordinates, like "452 287": three digits for meters east from the west edge, three for meters
+        /// north from the south edge.
+        /// </summary>
+        public bool TryCoordinates(string text, out Vec2 point)
+        {
+            point = default;
+            var m = System.Text.RegularExpressions.Regex.Match(text.Trim(), @"^(\d{3})\s*[-/]?\s*(\d{3})$");
+            if (!m.Success) return false;
+            var p = new Vec2(int.Parse(m.Groups[1].Value) + 0.5f, Map.HeightMeters - int.Parse(m.Groups[2].Value) - 0.5f);
+            if (!Map.InBounds(p)) return false;
+            point = p;
+            return true;
+        }
+
+        /// <summary>The six-digit coordinates of a point, like "452 287".</summary>
+        public string Coordinates(Vec2 p) =>
+            ((int)Math.Floor(p.X)).ToString("000") + " " + ((int)Math.Floor(Map.HeightMeters - p.Y)).ToString("000");
 
         // Everyday words for kinds of ground, and the terrain each means.
         static readonly Dictionary<string, string[]> GroundWords = new Dictionary<string, string[]>

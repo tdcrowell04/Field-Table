@@ -139,7 +139,7 @@ namespace FieldTable.Sim
                             Record(new UnitTreated(u, patient));
                             // Patching up doesn't fix a bad arm or leg: it still shoots at half, or still can't walk.
                             string state = patient.Condition == Condition.Down ? "stable." : patient.LegHit ? "patched up, but can't walk." : patient.ArmHit ? "patched up. Arm's still bad." : "patched up and good to go.";
-                            Radio(u, (u.Def.Medic ? "Doc" : u.Name) + ": " + patient.Name + " is " + state);
+                            Radio(u, (u.Def.Medic ? "Doc" : u.Name) + ": " + patient.Name + " is " + state, "info", patient.Position);
                             Finish(u, null);
                         }
                     }
@@ -244,7 +244,7 @@ namespace FieldTable.Sim
             if (!ReferenceEquals(u.Force, PlayerForce) || done.Group == 0) return;
             if (units.Any(x => x.Order != null && x.Order.Group == done.Group)) return;
             string who = string.IsNullOrEmpty(u.Team) ? u.Name : u.Team;
-            Radio(u, who + ": Set" + (string.IsNullOrWhiteSpace(done.Where) ? "." : " at " + done.Where + "."));
+            Radio(u, who + ": Set" + (string.IsNullOrWhiteSpace(done.Where) ? "." : " at " + done.Where + "."), "set");
         }
 
         // ---------- the enemy's own brain ----------
@@ -361,7 +361,7 @@ namespace FieldTable.Sim
             if (u.DeepSeconds == 0f && u.Load > LoadToSwim)
             {
                 Record(new UnitInTrouble(u, "is going under"));
-                Radio(u, u.Name + " is going under!");
+                Radio(u, u.Name + " is going under!", "casualty");
             }
             u.DeepSeconds += dt;
             if (u.Load > LoadToSwim && u.DeepSeconds >= SecondsToDrown) Kill(u, "drowned");
@@ -425,7 +425,7 @@ namespace FieldTable.Sim
             if (gun == null || range > gun.Range) return;
             if (u.Ammo < gun.Burst)
             {
-                if (u.Ammo > 0) { u.Ammo = 0; Radio(u, u.Name + ": I'm black on ammo!"); }
+                if (u.Ammo > 0) { u.Ammo = 0; Radio(u, u.Name + ": I'm black on ammo!", "info"); }
                 return;
             }
             u.Ammo -= gun.Burst;
@@ -444,7 +444,7 @@ namespace FieldTable.Sim
                 {
                     // One roll to hit; then how many rounds of the burst hit, each with its own wound roll.
                     int rounds = gun.Burst > 1 ? Roll(gun.Burst, u.Name, "rounds that hit " + target.Name, true) : 1;
-                    for (int i = 0; i < rounds && target.Condition != Condition.Dead; i++) Wound(target, gun);
+                    for (int i = 0; i < rounds && target.Condition != Condition.Dead; i++) Wound(target, gun, u);
                 }
             }
             else
@@ -453,7 +453,7 @@ namespace FieldTable.Sim
                 foreach (var v in units.Where(x => x.CanAct && !x.Def.Flying && AreHostile(u.Force, x.Force) && Vec2.Distance(x.Position, area.Value) <= 6f).ToList())
                 {
                     float p = HitChance(u, v, gun) * 0.3f;
-                    if (Roll(100, u.Name, "suppressing fire near " + v.Name + " (" + Pct(p) + ")") <= Math.Round(p * 100)) Wound(v, gun);
+                    if (Roll(100, u.Name, "suppressing fire near " + v.Name + " (" + Pct(p) + ")") <= Math.Round(p * 100)) Wound(v, gun, u);
                 }
                 Suppress(area.Value, gun.Suppress, 10f, u);
             }
@@ -561,7 +561,7 @@ namespace FieldTable.Sim
                 }
                 float chance = (1f - dist / radius) * (1f - cover) * (v.Posture == Posture.Prone ? 0.6f : 1f);
                 if (chance <= 0f) continue;
-                if (Roll(100, v.Name, "caught in the blast (" + Pct(chance) + ")", true) <= Math.Round(chance * 100)) Wound(v, w);
+                if (Roll(100, v.Name, "caught in the blast (" + Pct(chance) + ")", true) <= Math.Round(chance * 100)) Wound(v, w, u);
             }
             Suppress(at, w.Suppress, w.Blast * 2f, null);
         }
@@ -581,9 +581,14 @@ namespace FieldTable.Sim
         /// A hit, by where it lands (a d20): 1–2 head, 3–9 chest, 10–12 belly, 13–16 arm, 17–20 leg.
         /// A helmet now and then stops a head hit, and plates stop half the chest hits.
         /// </summary>
-        void Wound(Unit v, WeaponDef w)
+        void Wound(Unit v, WeaponDef w, Unit by)
         {
             if (v.Condition == Condition.Dead || v.Gone) return;
+            if (by != null && ReferenceEquals(by.Force, v.Force))
+            {
+                Record(new FriendlyFire(by, v));
+                if (ReferenceEquals(v.Force, PlayerForce)) Radio(by, Callsign(by) + ": Check fire! Check fire! " + v.Name + " is hit by our own fire.", "casualty", v.Position);
+            }
             int where = Roll(20, v.Name, "where the hit lands", true);
             bool stopped = false;
             if (where <= 2 && v.Def.Helmet) stopped = Roll(20, v.Name, "the helmet (stops it on " + HelmetSaves + " or less)", true) <= HelmetSaves;
@@ -638,7 +643,7 @@ namespace FieldTable.Sim
                 if (v.Order != null && Verbs.NeedsLegs(v.Order.Verb)) v.Order = null;
             }
             Record(new UnitWounded(v, w.Name + (arm ? ", hit in the arm" : ", hit in the leg")));
-            if (ours) Radio(v, v.Name + ": I'm hit! " + (arm ? "My arm." : "My leg, I can't walk."));
+            if (ours) Radio(v, v.Name + ": I'm hit! " + (arm ? "My arm." : "My leg, I can't walk."), "casualty");
         }
 
         /// <summary>A helmet or plate stopped it: knocked flat and pinned, not hurt.</summary>
@@ -647,7 +652,7 @@ namespace FieldTable.Sim
             v.SetSuppression(1f);
             v.Posture = Posture.Prone;
             Record(new UnitInTrouble(v, what));
-            if (radio != null && v.Condition != Condition.Down) Radio(v, radio);
+            if (radio != null && v.Condition != Condition.Down) Radio(v, radio, "info");
         }
 
         void Down(Unit v, string cause, int minutes = MinutesToBleedOut)
@@ -663,7 +668,7 @@ namespace FieldTable.Sim
             v.IsMoving = false;
             Record(new UnitDown(v, cause));
             if (ReferenceEquals(v.Force, PlayerForce))
-                Radio(v, (string.IsNullOrEmpty(v.Team) ? "Lead" : v.Team) + ": Man down! " + v.Name + " is down.");
+                Radio(v, (string.IsNullOrEmpty(v.Team) ? "Lead" : v.Team) + ": Man down! " + v.Name + " is down.", "casualty");
         }
 
         void Kill(Unit v, string cause)
@@ -686,7 +691,9 @@ namespace FieldTable.Sim
         internal void KnockDownForTest(Unit u) => Down(u, "a test");
         internal void RemoveUnitForTest(Unit u) => units.Remove(u);
 
-        internal void Radio(Unit from, string text) => Record(new RadioCall(from, text));
+        /// <summary>A call on the net. Important ones carry a kind and a place, so the map can mark them.</summary>
+        internal void Radio(Unit from, string text, string kind = null, Vec2? at = null) =>
+            Record(new RadioCall(from, text, kind, kind != null ? at ?? from?.Position : null));
 
         // ---------- calling out contacts ----------
 
@@ -715,7 +722,7 @@ namespace FieldTable.Sim
             called[key] = square;
             string kind = target.Def.Name ?? "Enemy";
             string lower = char.ToLowerInvariant(kind[0]) + kind.Substring(1);
-            Radio(caller, who + (takingFire ? ": Taking fire! " + kind : drone ? ": Contact on the drone, " + lower : ": Contact, " + lower) + " at " + square + ".");
+            Radio(caller, who + (takingFire ? ": Taking fire! " + kind : drone ? ": Contact on the drone, " + lower : ": Contact, " + lower) + " at " + square + ".", "contact", target.Position);
         }
 
         static float Bearing(Vec2 a, Vec2 b) => (float)(Math.Atan2(b.X - a.X, -(b.Y - a.Y)) * 180.0 / Math.PI + 360.0) % 360f;

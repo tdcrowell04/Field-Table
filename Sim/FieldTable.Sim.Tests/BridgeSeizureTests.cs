@@ -44,17 +44,30 @@ namespace FieldTable.Sim.Tests
                 var m = Make(seed);
                 var map = m.Sim.Map;
                 Vec2 b = m.Objective.Center;
-                // Every Marine needs to cross the bridge (or swim) to reach any enemy: no dry route that avoids the bridge.
+                // A straight line from any Marine to any enemy crosses the water once (or an odd number of times, round bends).
+                var water = map.Landmarks.Where(l => l.Kind == "line" && (l.Label.EndsWith(" River") || l.Label.EndsWith(" Creek")))
+                    .OrderBy(l => l.Points.Zip(l.Points.Skip(1), (p, q) => MapGrid.DistanceToSegment(b, p, q)).Min()).First().Points;
                 var lead = m.Sim.Units.First(u => u.Id == "lead");
                 foreach (var e in m.Sim.Units.Where(u => u.Force == m.Enemy))
                 {
-                    var path = m.Sim.Paths.Find(lead.Position, e.Position, false);
-                    Assert.NotNull(path);
-                    float nearest = path.Min(p => Vec2.Distance(p, b));
-                    Assert.True(nearest < 60f || Vec2.Distance(lead.Position, b) < Vec2.Distance(lead.Position, e.Position), "Seed " + seed);
+                    Assert.NotNull(m.Sim.Paths.Find(lead.Position, e.Position, false));
+                    foreach (var u in m.Squad)
+                        Assert.True(Crossings(u.Position, e.Position, water) % 2 == 1, "Seed " + seed + ": " + u.Id + " and " + e.Name + " start on the same bank.");
                 }
                 Assert.True(m.Sim.Units.Where(u => u.Force == m.Marines).All(u => Vec2.Distance(u.Position, b) > 30f), "Seed " + seed + ": a Marine starts on the bridge.");
             }
+        }
+
+        static int Crossings(Vec2 a, Vec2 b, System.Collections.Generic.IReadOnlyList<Vec2> line)
+        {
+            float Cross(Vec2 o, Vec2 p, Vec2 q) => (p.X - o.X) * (q.Y - o.Y) - (p.Y - o.Y) * (q.X - o.X);
+            int n = 0;
+            for (int i = 0; i + 1 < line.Count; i++)
+            {
+                Vec2 c = line[i], d = line[i + 1];
+                if (Cross(a, b, c) * Cross(a, b, d) < 0f && Cross(c, d, a) * Cross(c, d, b) < 0f) n++;
+            }
+            return n;
         }
 
         [Fact]
@@ -142,6 +155,72 @@ namespace FieldTable.Sim.Tests
             marine.Condition = Condition.Dead;
             Assert.True(m.Secondary.First(o => o.Id == "marines").IsBroken(m));
             Assert.False(m.Secondary.First(o => o.Id == "bridge").IsBroken(m));
+        }
+
+        [Fact]
+        public void TheSquadUsuallyStartsOutOfSightAndSpreadOut()
+        {
+            int hidden = 0;
+            for (ulong seed = 1; seed <= 20; seed++)
+            {
+                var m = Make(seed);
+                var squad = m.Squad.ToList();
+                foreach (var a in squad)
+                    foreach (var b in squad)
+                        if (a != b) Assert.True(Vec2.Distance(a.Position, b.Position) >= 2.5f, "Seed " + seed + ": " + a.Id + " and " + b.Id + " start on top of each other.");
+                Assert.True(squad.All(u => Vec2.Distance(u.Position, m.Objective.Center) >= 120f), "Seed " + seed + ": the squad starts too close to the bridge.");
+                var enemy = m.Sim.Units.Where(u => u.Force == m.Enemy).ToList();
+                if (!squad.Any(u => enemy.Any(e => Sight.Trace(m.Sim.Map, e.Position, Postures.Height(e.Posture), u.Position, 1.7f).Clear && Vec2.Distance(e.Position, u.Position) <= FogOfWar.DayEyeRange))) hidden++;
+            }
+            Assert.True(hidden >= 16, "Only " + hidden + " of 20 maps start the squad out of sight.");
+        }
+
+        static Mission Won(ulong seed, System.Action<Mission> before = null)
+        {
+            var m = Make(seed);
+            foreach (var e in m.Sim.Units.Where(u => u.Force == m.Enemy).ToList()) m.Sim.RemoveUnitForTest(e);
+            before?.Invoke(m);
+            m.Sim.Units.First(u => u.Id == "lead").Position = m.Objective.Center;
+            m.Sim.RunTurn(); m.CheckOutcome();
+            m.Sim.RunTurn(); m.CheckOutcome();
+            Assert.Equal("success", m.Outcome);
+            return m;
+        }
+
+        [Fact]
+        public void EverySecondaryObjectiveMetIsAnSPlus()
+        {
+            Assert.Equal("S+", Won(6).Rating);
+        }
+
+        [Fact]
+        public void AHurtCivilianDropsTheRatingAndAKilledMarineMakesItAC()
+        {
+            Assert.Equal("S", Won(6, m => m.Sim.KnockDownForTest(m.Sim.Units.First(u => u.Force == m.Civilians))).Rating);
+            Assert.Equal("C", Won(6, m => m.Sim.Units.First(u => u.Id == "alpha-rf").Condition = Condition.Dead).Rating);
+        }
+
+        [Fact]
+        public void FriendlyFireDropsTheRatingAGrade()
+        {
+            var m = Won(6, x =>
+            {
+                var tl = x.Sim.Units.First(u => u.Id == "alpha-tl");
+                var rf = x.Sim.Units.First(u => u.Id == "alpha-rf");
+                x.Sim.Explode(tl, Scene.Data.FindWeapon("m320"), rf.Position, ap: false);
+            });
+            Assert.Equal(1, m.FriendlyFireHits);
+            Assert.Contains(m.Sim.Log.Events.OfType<RadioCall>(), r => r.Text.Contains("Check fire! Check fire!"));
+            Assert.Equal(m.Sim.Units.First(u => u.Id == "alpha-rf").Condition == Condition.Dead ? "C" : "S", m.Rating);
+        }
+
+        [Fact]
+        public void ALossIsAnF()
+        {
+            var m = Make(6);
+            foreach (var u in m.Squad.Take(7).ToList()) m.Sim.KnockDownForTest(u);
+            m.CheckOutcome();
+            Assert.Equal("F", m.Rating);
         }
 
         [Fact]

@@ -73,7 +73,7 @@ namespace FieldTable.Sim
                         p.IsMoving = false;
                         p.Posture = Posture.Kneeling;
                         Record(new UnitDetained(p, u));
-                        Radio(u, u.Name + ": " + p.Name + " is detained.");
+                        Radio(u, u.Name + ": " + p.Name + " is detained.", "info", p.Position);
                         Finish(u, null);
                     }
                     break;
@@ -105,11 +105,11 @@ namespace FieldTable.Sim
         }
 
         /// <summary>When everyone in a group has finished, the group reports once.</summary>
-        void GroupDone(Unit u, Order o, string text)
+        void GroupDone(Unit u, Order o, string text, string kind = null, Vec2? at = null)
         {
-            if (o.Group == 0) { Radio(u, text); return; }
+            if (o.Group == 0) { Radio(u, text, kind, at); return; }
             if (units.Any(x => x.Order != null && x.Order.Group == o.Group)) return;
-            if (reported.Add(o.Group)) Radio(u, text);
+            if (reported.Add(o.Group)) Radio(u, text, kind, at);
         }
 
         string Callsign(Unit u) => string.IsNullOrEmpty(u.Team) ? u.Name : u.Team;
@@ -123,7 +123,7 @@ namespace FieldTable.Sim
             if (members.All(x => x.Order.Arrived))
             {
                 foreach (var x in members) Finish(x, null);
-                GroupDone(u, o, Callsign(u) + ": Set" + (string.IsNullOrWhiteSpace(o.Where) ? "." : " at " + o.Where + "."));
+                GroupDone(u, o, Callsign(u) + ": Set" + (string.IsNullOrWhiteSpace(o.Where) ? "." : " at " + o.Where + "."), "set");
                 return;
             }
             if (o.Arrived) return;
@@ -165,7 +165,7 @@ namespace FieldTable.Sim
                 var cloud = new SmokeCloud { Center = Clamp(o.Point.Value), Radius = SmokeRadius, Height = SmokeHeight, UntilStep = Clock.Step + SmokeSeconds * SimClock.StepsPerSecond };
                 Map.Smoke.Add(cloud);
                 Record(new SmokeAt(u, cloud));
-                Radio(u, u.Name + ": Smoke out.");
+                Radio(u, u.Name + ": Smoke out.", "smoke", cloud.Center);
             }
             Finish(u, null);
         }
@@ -196,7 +196,7 @@ namespace FieldTable.Sim
             float area = (b.Max.X - b.Min.X) * (b.Max.Y - b.Min.Y);
             if (u.TaskSeconds < RoomSeconds * Math.Max(1f, (float)Math.Round(area / 25f))) return;
             Finish(u, null);
-            GroupDone(u, o, Callsign(u) + ": " + Capital(b.Label) + " clear.");
+            GroupDone(u, o, Callsign(u) + ": " + Capital(b.Label) + " clear.", "set", b.Center);
         }
 
         static string Capital(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
@@ -222,7 +222,14 @@ namespace FieldTable.Sim
             pathfinder = null;
             Record(new BreachMade(u, at, r));
             Finish(u, null);
-            GroupDone(u, o, Callsign(u) + ": Breach is open.");
+            GroupDone(u, o, Callsign(u) + ": Breach is open.", "info", at);
+        }
+
+        /// <summary>What ammo a weapon takes: its caliber, or its own id when none is set.</summary>
+        string Caliber(string weapon)
+        {
+            var w = Weapon(weapon);
+            return string.IsNullOrEmpty(w?.Caliber) ? weapon ?? "" : w.Caliber;
         }
 
         static bool Breachable(TerrainDef t) => t.Id == "wall" || t.Id == "hedge" || t.Id == "building" || t.Id == "cliff";
@@ -330,7 +337,7 @@ namespace FieldTable.Sim
         /// <summary>Whoever was talked to tells what they've seen of the enemy, and the squad now knows it too.</summary>
         void ShareWhatTheySaw(Unit u, Unit p)
         {
-            if (AreHostile(u.Force, p.Force)) { Radio(u, u.Name + ": " + p.Name + " won't talk."); return; }
+            if (AreHostile(u.Force, p.Force)) { Radio(u, u.Name + ": " + p.Name + " won't talk.", "info", p.Position); return; }
             var mine = Fog.For(u.Force);
             var told = new List<string>();
             foreach (var c in Fog.For(p.Force).Contacts)
@@ -345,7 +352,7 @@ namespace FieldTable.Sim
                 }
                 told.Add(Article(c.Unit.Def.Name ?? "fighter") + " at " + Map.SquareOf(c.LastKnownPosition));
             }
-            Radio(u, u.Name + ": " + p.Name + (told.Count == 0 ? " didn't see anything." : " says they saw " + JoinAnd(told) + "."));
+            Radio(u, u.Name + ": " + p.Name + (told.Count == 0 ? " didn't see anything." : " says they saw " + JoinAnd(told) + "."), "info", p.Position);
         }
 
         static string Article(string kind)
@@ -371,9 +378,9 @@ namespace FieldTable.Sim
                     var gun = Weapon(p.Def.Weapon);
                     bool had = p.Ammo > 0 || p.LauncherAmmo > 0 || p.LauncherAp > 0 || p.Grenades > 0;
                     p.Ammo = 0; p.LauncherAmmo = 0; p.LauncherAp = 0; p.Grenades = 0;
-                    Radio(u, u.Name + ": Searched " + p.Name + "." + (had ? " Took their " + (gun?.Name ?? "weapon") + " and ammo." : " Nothing on them."));
+                    Radio(u, u.Name + ": Searched " + p.Name + "." + (had ? " Took their " + (gun?.Name ?? "weapon") + " and ammo." : " Nothing on them."), "info", p.Position);
                 }
-                else Radio(u, u.Name + ": Searched " + p.Name + ". Nothing on them.");
+                else Radio(u, u.Name + ": Searched " + p.Name + ". Nothing on them.", "info", p.Position);
                 Finish(u, null);
                 return;
             }
@@ -389,7 +396,7 @@ namespace FieldTable.Sim
                 Fog.Spot(this, u.Force, x, u);
                 found.Add(Article(x.Def.Name ?? "someone") + " at " + Map.SquareOf(x.Position));
             }
-            Radio(u, u.Name + ": Search done. " + (found.Count == 0 ? "Nothing here." : "Found " + JoinAnd(found) + "."));
+            Radio(u, u.Name + ": Search done. " + (found.Count == 0 ? "Nothing here." : "Found " + JoinAnd(found) + "."), "info");
             Finish(u, null);
         }
 
@@ -436,7 +443,7 @@ namespace FieldTable.Sim
             if (c == null || !ReferenceEquals(c.CarriedBy, u)) return;
             c.CarriedBy = null;
             foreach (var x in units.Where(x => x.Order != null && x.Order.Verb == Verbs.Carry && ReferenceEquals(x.Order.TargetUnit, c)).ToList()) Finish(x, null);
-            Radio(u, Callsign(u) + ": " + c.Name + " is at " + (o.Where ?? Map.SquareOf(u.Position).ToString()) + ".");
+            Radio(u, Callsign(u) + ": " + c.Name + " is at " + (o.Where ?? Map.SquareOf(u.Position).ToString()) + ".", "casualty", c.Position);
         }
 
         // ---------- share ammo ----------
@@ -446,14 +453,28 @@ namespace FieldTable.Sim
             if (!Work(u, dt, ShareSeconds)) return;
             var group = o.Group == 0 ? new List<Unit> { u } :
                 units.Where(x => x.CanAct && x.Order != null && x.Order.Group == o.Group && Vec2.Distance(x.Position, u.Position) <= 25f).ToList();
-            int total = group.Sum(x => x.Ammo), full = group.Sum(x => x.Def.Ammo);
-            float share = full > 0 ? total / (float)full : 0f;
-            foreach (var x in group)
+            // Ammo only goes to someone whose weapon takes it: rifle rounds by caliber, and launcher rounds between launchers.
+            float main = 0f;
+            foreach (var kind in group.GroupBy(x => Caliber(x.Def.Weapon)))
             {
-                x.Ammo = (int)Math.Floor(x.Def.Ammo * share);
-                Finish(x, null);
+                var same = kind.ToList();
+                int total = same.Sum(x => x.Ammo), full = same.Sum(x => x.Def.Ammo);
+                float share = full > 0 ? total / (float)full : 0f;
+                foreach (var x in same) x.Ammo = (int)Math.Floor(x.Def.Ammo * share);
+                if (same.Contains(u)) main = share;
             }
-            GroupDone(u, o, Callsign(u) + ": Ammo's spread out. Everyone's at " + Math.Round(share * 100) + "%.");
+            foreach (var kind in group.Where(x => x.Def.Launcher != null).GroupBy(x => Caliber(x.Def.Launcher)))
+            {
+                var same = kind.ToList();
+                int he = same.Sum(x => x.LauncherAmmo), ap = same.Sum(x => x.LauncherAp);
+                for (int i = 0; i < same.Count; i++)
+                {
+                    same[i].LauncherAmmo = he / same.Count + (i < he % same.Count ? 1 : 0);
+                    same[i].LauncherAp = ap / same.Count + (i < ap % same.Count ? 1 : 0);
+                }
+            }
+            foreach (var x in group) Finish(x, null);
+            GroupDone(u, o, Callsign(u) + ": Ammo's spread out. Everyone's at " + Math.Round(main * 100) + "%.");
         }
 
         // ---------- CASEVAC ----------
@@ -465,11 +486,11 @@ namespace FieldTable.Sim
             if (Evac != null || o.Point == null) return;
             Vec2 lz = Clamp(o.Point.Value);
             var doc = units.FirstOrDefault(x => ReferenceEquals(x.Force, u.Force) && x.CanAct && x.Def.Medic) ?? u;
-            Radio(doc, (doc.Def.Medic ? "Doc" : doc.Name) + ": " + NineLine(u.Force, lz));
+            Radio(doc, (doc.Def.Medic ? "Doc" : doc.Name) + ": " + NineLine(u.Force, lz), "lz", lz);
             int minutes = CasevacMinMinutes - 1 + Roll(CasevacMaxMinutes - CasevacMinMinutes + 1, "Dustoff", "minutes until CASEVAC arrives");
             bool road = Map.TerrainAt(lz).Id == "road" || Map.TerrainAt(lz).Id == "trail";
             Evac = new Casevac { Lz = lz, Helicopter = !road, ArriveStep = Clock.Step + minutes * 60 * SimClock.StepsPerSecond };
-            Radio(null, "Dustoff: Copy your 9-line. " + (road ? "Ambulance" : "Bird") + " is " + minutes + " minutes out to LZ " + Map.SquareOf(lz) + ".");
+            Radio(null, "Dustoff: Copy your 9-line. " + (road ? "Ambulance" : "Bird") + " is " + minutes + " minutes out to LZ " + Map.SquareOf(lz) + ".", "lz", lz);
         }
 
         /// <summary>The CASEVAC 9-line, built from what the squad knows right now.</summary>
@@ -509,7 +530,7 @@ namespace FieldTable.Sim
                 e.Landed = true;
                 e.LandedStep = Clock.Step;
                 Record(new CasevacMoved(e.Lz, true, e.Helicopter));
-                Radio(null, "Dustoff: " + (e.Helicopter ? "Bird" : "Ambulance") + " is at LZ " + Map.SquareOf(e.Lz) + ". Bring them to us.");
+                Radio(null, "Dustoff: " + (e.Helicopter ? "Bird" : "Ambulance") + " is at LZ " + Map.SquareOf(e.Lz) + ". Bring them to us.", "lz", e.Lz);
             }
             // Load every casualty who can't walk out, within reach of the landing zone.
             foreach (var x in units)
@@ -527,7 +548,7 @@ namespace FieldTable.Sim
             }
             if (Clock.Step - e.LandedStep < CasevacWaitSeconds * SimClock.StepsPerSecond) return;
             Record(new CasevacMoved(e.Lz, false, e.Helicopter));
-            Radio(null, "Dustoff: " + (e.Loaded == 0 ? "Nobody at the LZ. Leaving." : "Leaving with " + e.Loaded + (e.Loaded == 1 ? " casualty." : " casualties.")));
+            Radio(null, "Dustoff: " + (e.Loaded == 0 ? "Nobody at the LZ. Leaving." : "Leaving with " + e.Loaded + (e.Loaded == 1 ? " casualty." : " casualties.")), "lz", e.Lz);
             Evac = null;
         }
     }

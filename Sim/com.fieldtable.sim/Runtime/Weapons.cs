@@ -33,6 +33,9 @@ namespace FieldTable.Sim
         /// <summary>Blast radius in meters for armor-piercing (AP) rounds, which punch through walls. 0 when it has none.</summary>
         public float ApBlast { get; set; }
 
+        /// <summary>What ammo it takes, like "5.56". Only the same ammo can be shared. Empty means only its own kind.</summary>
+        public string Caliber { get; set; }
+
         /// <summary>Fitted with a suppressor or flash hider: quieter, and no muzzle flash at night.</summary>
         public bool Suppressed { get; set; }
     }
