@@ -76,6 +76,8 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 .banner { position: absolute; inset: auto 12px 50% 12px; transform: translateY(50%); text-align: center; background: rgba(25, 27, 22, .94); border: 1px solid var(--sand); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .banner h2 { margin: 0; font: 800 32px/1 var(--display); letter-spacing: .03em; }
 .banner p { margin: 0; color: var(--muted); }
+.banner .rating { font: 800 48px/1 var(--display); letter-spacing: .04em; color: var(--sand); }
+.banner .rating small { display: block; font: 500 11px/1.6 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .boot { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; text-align: center; padding: 20px; background: #11120e; }
 .boot h2 { margin: 0; font: 800 30px/1 var(--display); letter-spacing: .04em; }
 .boot p { margin: 0; color: var(--muted); max-width: 34ch; }
@@ -578,7 +580,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   const RATE = { m27: 0.16, "m27-ar": 0.09, m4: 0.16, ak: 0.12, pkm: 0.075 };
   const PROJ = { m320: { fl: 1.0, arc: 14 }, "m320-ap": { fl: 1.0, arc: 14 }, grenade: { fl: 1.1, arc: 5 }, rpg: { fl: 0.55, arc: 0, rocket: true }, "rpg-ap": { fl: 0.55, arc: 0, rocket: true } };
 
-  const S = { cam: { x: 400, y: 300, s: 1 }, fitS: 1, roster: [], state: null, log: [], rolls: [], flip: {}, sel: -1, tap: null, pending: null, busy: false, speed: 4, tab: "net", briefMode: "quick", mw: 800, mh: 600, sq: 100 };
+  const S = { cam: { x: 400, y: 300, s: 1 }, fitS: 1, roster: [], state: null, log: [], rolls: [], flip: {}, sel: -1, tap: null, marks: [], hover: null, pending: null, busy: false, speed: 4, tab: "net", briefMode: "quick", mw: 800, mh: 600, sq: 100 };
   let P = null;  // the turn being played back
   let raf = 0;
 
@@ -1020,6 +1022,64 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     flat(ctx);
   }
 
+  // ------------------------------------------------------------------ radio markers
+  // Everything important said on the radio leaves a pin where it happened. Tap a pin (or hover it) to read the call.
+  const MARK_KIND = {
+    contact: { col: "#e2675c", glyph: "!", name: "Contact" },
+    casualty: { col: "#e0a24f", glyph: "+", name: "Casualty" },
+    set: { col: "#78aee0", glyph: "✓", name: "Set" },
+    smoke: { col: "#b9b6ab", glyph: "≈", name: "Smoke" },
+    lz: { col: "#7fbf7a", glyph: "H", name: "Landing zone" },
+    info: { col: "#d4b46a", glyph: "i", name: "Report" }
+  };
+  const MARK_FADE = 600, MARK_LAST = 1200;   // seconds: a pin fades over ten minutes and is gone after twenty
+  const nowStep = () => P ? P.T.startStep + Math.min(P.t, P.dur) * 10 : S.state ? S.state.step : 0;
+  const ago = step => { const m = Math.max(0, Math.round((nowStep() - step) / 600)); return m < 1 ? "just now" : m + " min ago"; };
+  const markLine = m => m.text + " · " + ago(m.step);
+  function addMark(m) {
+    // A new call of the same kind in the same spot replaces the old pin.
+    S.marks = S.marks.filter(o => !(o.k === m.k && Math.hypot(o.x - m.x, o.y - m.y) < 8));
+    m.born = performance.now();
+    S.marks.push(m);
+    if (S.marks.length > 40) S.marks.shift();
+  }
+  const liveMarks = () => { const s = nowStep(); return S.marks.filter(m => m.step <= s && (s - m.step) / 10 < MARK_LAST); };
+  function drawMarks(c, now) {
+    const s = nowStep(), r = 8 * DPR, shown = liveMarks();
+    S.marks.forEach(m => { m.sx = null; });
+    for (const m of shown) {
+      const K = MARK_KIND[m.k] || MARK_KIND.info, age = (s - m.step) / 10, pop = Math.max(0, 1 - (now - m.born) / 400);
+      const f = P3(c, m.x, m.y, 0), rr = r * (1 + pop * 0.6), top = f.y - 16 * DPR;
+      ctx.globalAlpha = S.hover === m || (S.tap && S.tap.mark === m) ? 1 : Math.max(0.35, 1 - Math.max(0, age - 60) / MARK_FADE * 0.65);
+      ctx.strokeStyle = K.col; ctx.lineWidth = 1.5 * DPR;
+      ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(f.x, top + rr); ctx.stroke();
+      ctx.beginPath(); ctx.arc(f.x, top, rr, 0, 7); ctx.fillStyle = "rgba(25,27,22,0.92)"; ctx.fill(); ctx.lineWidth = 2 * DPR; ctx.stroke();
+      ctx.fillStyle = K.col; ctx.font = "700 " + Math.round(10 * DPR * (1 + pop * 0.6)) + "px " + FM; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(K.glyph, f.x, top + 0.5 * DPR);
+      m.sx = f.x; m.sy = top;
+    }
+    ctx.globalAlpha = 1;
+    const h = S.hover;
+    if (h && h.sx != null) {
+      // Kept on the table even when the pin is near an edge.
+      const font = "500 " + Math.round(11 * DPR) + "px " + FM, text = markLine(h);
+      ctx.font = font;
+      const half = ctx.measureText(text).width / 2 + 6 * DPR;
+      halo(text, clamp(h.sx, half, cv.width - half), h.sy - 18 * DPR, font, (MARK_KIND[h.k] || MARK_KIND.info).col, "center", true);
+    }
+    if (shown.some(m => now - m.born < 400)) need();
+  }
+  // The pin under a point on the screen, nearest first.
+  function markAt(sx, sy) {
+    let best = null, bd = 13 * DPR;
+    for (const m of S.marks) {
+      if (m.sx == null) continue;
+      const d = Math.hypot(sx - m.sx, sy - m.sy);
+      if (d < bd) { bd = d; best = m; }
+    }
+    return best;
+  }
+
   // ------------------------------------------------------------------ smoke, breaches, and CASEVAC
   function cloudsNow() { return P ? P.clouds : (S.state && S.state.smoke) || []; }
   function drawSmoke(c, t) {
@@ -1151,6 +1211,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     drawEffects(c, t, ds, a);
     drawSmoke(c, t);
     drawTags(c, ds);
+    drawMarks(c, a * 1000);
     drawTap(c);
   }
 
@@ -1185,7 +1246,8 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     for (const r of T.radio) {
       if (r.u >= 0) pulses.push({ t: t0(r.s), u: r.u });
       const k = r.text.indexOf(": ");
-      queue.push({ t: t0(r.s), e: { kind: /Man down|going under|I'm hit/.test(r.text) ? "radio bad" : "radio", step: r.s, who: k > 0 ? r.text.slice(0, k) : "", text: k > 0 ? r.text.slice(k + 2) : r.text } });
+      queue.push({ t: t0(r.s), e: { kind: /Man down|going under|I'm hit|Check fire/.test(r.text) ? "radio bad" : "radio", step: r.s, who: k > 0 ? r.text.slice(0, k) : "", text: k > 0 ? r.text.slice(k + 2) : r.text },
+        mark: r.x != null ? { x: r.x, y: r.y, k: r.k, step: r.s, text: r.text } : null });
     }
     const spotted = new Set();
     for (const e of T.events) {
@@ -1210,6 +1272,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   function flushQueue(quiet) {
     while (P.queue.length && P.queue[0].t <= P.t) {
       const q = P.queue.shift();
+      if (q.mark) addMark(q.mark);
       if (q.e) addLog(q.e); else if (!quiet) toast(q.toast);
     }
   }
@@ -1240,8 +1303,11 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 
   function showOutcome(st) {
     const won = st.outcome === "success", b = $("banner");
-    const grades = st.objectives.secondary.map(x => "<li class=\"" + x.status + "\">" + (x.status === "met" ? "✓ " : "✗ ") + esc(x.text) + "</li>").join("");
-    b.innerHTML = "<h2>" + (won ? "Bridge seized" : "Mission failed") + "</h2><p>" + esc(st.outcomeText) + "</p><ul class=\"grades\">" + grades + "</ul><button class=\"btn primary small\" type=\"button\" id=\"againBtn\">New map</button>";
+    const ff = st.friendlyFire || 0;
+    const grades = st.objectives.secondary.map(x => "<li class=\"" + x.status + "\">" + (x.status === "met" ? "✓ " : "✗ ") + esc(x.text) + "</li>").join("")
+      + (ff ? "<li class=\"failed\">✗ Friendly fire: " + ff + (ff === 1 ? " Marine" : " Marines") + " hit by our own fire</li>" : "");
+    const rating = st.rating ? "<div class=\"rating\"><small>Rating</small>" + esc(st.rating) + "</div>" : "";
+    b.innerHTML = "<h2>" + (won ? "Bridge seized" : "Mission failed") + "</h2>" + rating + "<p>" + esc(st.outcomeText) + "</p><ul class=\"grades\">" + grades + "</ul><button class=\"btn primary small\" type=\"button\" id=\"againBtn\">New map</button>";
     b.hidden = false;
     $("againBtn").onclick = () => newMission(randomSeed());
     addLog({ kind: "event" + (won ? "" : " bad"), step: st.step, text: st.outcomeText });
@@ -1418,7 +1484,12 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       return;
     }
     if (S.tap) {
-      card.innerHTML = "<span class=\"nm\">" + esc(S.tap.name) + "</span><span class=\"meta\">" + esc(S.tap.grid) + " · " + esc(S.tap.ground) + "</span><div class=\"row\"><button type=\"button\" class=\"primary\" data-say=\"" + esc(S.tap.name) + "\">Use " + esc(S.tap.name) + "</button></div>";
+      // Tapping the map gives its six-digit coordinates, ready to drop into an order.
+      const t = S.tap, at = coordOf(t.x, t.y), named = !t.mark && t.name !== t.grid;
+      card.innerHTML = "<span class=\"nm\">" + esc(t.name) + "</span><span class=\"meta\">" + (t.mark ? esc(markLine(t.mark)) + "<br>" : "") + esc(t.grid) + " · " + at + " · " + esc(t.ground) + "</span><div class=\"row\">"
+        + (named ? "<button type=\"button\" class=\"primary\" data-say=\"" + esc(t.name) + "\">Use " + esc(t.name) + "</button>" : "")
+        + "<button type=\"button\"" + (named ? "" : " class=\"primary\"") + " data-say=\"" + at + "\">Use " + at + "</button>"
+        + "<button type=\"button\" data-say=\"" + esc(t.grid) + "\">Use " + esc(t.grid) + "</button></div>";
       card.hidden = false;
       return;
     }
@@ -1427,6 +1498,8 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 
   // ------------------------------------------------------------------ taps, drags, pinches
   const gridOf = (x, y) => String.fromCharCode(65 + clamp(Math.floor(x / S.sq), 0, 25)) + (clamp(Math.floor(y / S.sq), 0, 98) + 1);
+  // Six-digit coordinates: meters east from the west edge, then meters north from the south edge, like "452 287".
+  const coordOf = (x, y) => [x, S.mh - y].map(v => String(clamp(Math.floor(v), 0, 999)).padStart(3, "0")).join(" ");
   function groundName(x, y) {
     const cx = clamp((x / S.cell) | 0, 0, S.cw - 1), cy = clamp((y / S.cell) | 0, 0, S.chh - 1);
     const t = S.map.terrains[S.cells[cy * S.cw + cx]];
@@ -1435,6 +1508,12 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   function tapAt(sx, sy) {
     const c = S.c;
     if (!c || P) return;
+    const pin = markAt(sx, sy);
+    if (pin) {
+      S.sel = -1;
+      S.tap = { x: pin.x, y: pin.y, name: (MARK_KIND[pin.k] || MARK_KIND.info).name, grid: gridOf(pin.x, pin.y), ground: groundName(pin.x, pin.y), mark: pin };
+      renderCard(); need(); return;
+    }
     let best = -1, bd = 1e9;
     for (let i = 0; i < S.roster.length; i++) {
       const d = fromState(i);
@@ -1474,7 +1553,12 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   });
   cv.addEventListener("pointermove", e => {
     const p = ptrs.get(e.pointerId);
-    if (!p) return;
+    if (!p) {
+      // A mouse resting on a pin shows its call.
+      const h = e.pointerType === "mouse" ? markAt(e.offsetX * DPR, e.offsetY * DPR) : null;
+      if (h !== S.hover) { S.hover = h; cv.style.cursor = h ? "pointer" : ""; need(); }
+      return;
+    }
     const x = e.offsetX * DPR, y = e.offsetY * DPR;
     if (ptrs.size === 1) {
       const dx = x - p.x, dy = y - p.y;
@@ -1496,6 +1580,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   };
   cv.addEventListener("pointerup", up);
   cv.addEventListener("pointercancel", e => { ptrs.delete(e.pointerId); pinch = null; });
+  cv.addEventListener("pointerleave", () => { if (S.hover) { S.hover = null; cv.style.cursor = ""; need(); } });
   cv.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.offsetX * DPR, e.offsetY * DPR, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
   $("zin").onclick = () => zoomAt(cv.width / 2, cv.height / 2, 1.6);
   $("zout").onclick = () => zoomAt(cv.width / 2, cv.height / 2, 1 / 1.6);
@@ -1613,7 +1698,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       L.push("- " + r.name + ": " + (ROLE[r.figure] || r.kind).toLowerCase() + (r.team ? ", " + r.team : "") + kit + " (also called " + r.calls.join(", ") + "), at " + u.grid + (u.condition !== "ok" || u.legHit || u.armHit ? ", " + hurtText(u) : "") + (u.order ? ", now doing: " + orderText(u.order) : ""));
     });
     L.push("", "VERBS: use exactly one of these per order, with the blanks shown:", VERB_HELP);
-    L.push("", "WHERE: a grid square (columns A to " + String.fromCharCode(64 + S.map.cols) + ", rows 1 to " + S.map.rows + ", 100 meters each, like \"E3\"), a place below written exactly as shown, a Marine or team name, or a kind of ground in a square, written like \"woods at C3\" (woods, field, crops, reeds, scrub, orchard, hedge, wall, rocks, gully, road, trail, creek, building, farmyard, cliff, bridge).", "PLACES:");
+    L.push("", "WHERE: a grid square (columns A to " + String.fromCharCode(64 + S.map.cols) + ", rows 1 to " + S.map.rows + ", 100 meters each, like \"E3\"), a place below written exactly as shown, six-digit coordinates written like \"452 287\" (meters east, then meters north), a Marine or team name, or a kind of ground in a square, written like \"woods at C3\" (woods, field, crops, reeds, scrub, orchard, hedge, wall, rocks, gully, road, trail, creek, building, farmyard, cliff, bridge).", "PLACES:");
     S.map.places.forEach(p => { if (p.kind !== "control") L.push("- " + p.label + " (" + p.grid + ")" + (p.note ? ", " + p.note : "")); });
     S.map.buildings.forEach(b => L.push("- " + b.label + " (" + gridOf(b.x + b.w / 2, b.y + b.h / 2) + ")"));
     L.push("", "GROUND IN EACH SQUARE, most first:");
@@ -1633,6 +1718,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       "- \"On me\" or \"to me\" means where Lead is: where \"Lead\".",
       "- A Marine or team and a place with no verb, like \"Charlie, C3\", means move there.",
       "- When they name ground and a square, like \"the woods at C3\", use that as where, and check the square really has it.",
+      "- Six-digit coordinates, like \"452 287\" or \"452287\", are a where: write them as \"452 287\".",
       "- Leave out blanks the player didn't give. Don't make up places, Marines, or contacts. If a place or name isn't in the lists, add a short line to sayAgain in a Marine's voice instead, like \"Bravo: Say again, which building?\"",
       "- If the player asks for something none of the verbs cover, add it to notCovered with who and a plain summary, and leave it out of orders.",
       "- readbacks: one short line per order in a Marine's radio voice, from whoever got it.",
@@ -1686,13 +1772,15 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       if (!who) { out.sayAgain.push("Say again, who is that for?"); continue; }
       const place = places.find(p => lo.includes(p.toLowerCase()));
       const grid = /\b([a-z])\s?([1-9])\b/i.exec(s.replace(/\b(a|i)\b/gi, ""));
+      const coords = /\b(\d{3})\s*[-\/]?\s*(\d{3})\b/.exec(s);
       // A Marine or team and a place with no verb means move there.
-      const verb = (WORDS.find(([, re]) => re.test(lo)) || [])[0] || (place || grid ? "move" : null);
+      const verb = (WORDS.find(([, re]) => re.test(lo)) || [])[0] || (place || grid || coords ? "move" : null);
       if (!verb) { out.sayAgain.push(who + ": Say again, what do you want us to do?"); continue; }
       const o = { who, verb };
       const ground = /\b(woods|forest|trees|tree ?line|orchard|fields?|crops|corn|reeds|marsh|scrub|brush|hedge(row)?|wall|rocks|gully|ditch|road|trail|creek|building|farmyard|cliff)\s+(in|at|on)\s+([a-h])\s?([1-9])\b/i.exec(s);
       const contact = contacts.find(n => lo.includes(n.toLowerCase())) || (/\b(pkm|machine gun|gunner)\b/.test(lo) && contacts.find(n => /PKM/.test(n))) || (/\brpg\b/.test(lo) && contacts.find(n => /RPG/.test(n)));
       if (/\b(on me|to me)\b/.test(lo)) o.where = "Lead";
+      else if (coords) o.where = coords[1] + " " + coords[2];
       else if (ground) o.where = ground[1].toLowerCase() + " at " + ground[4].toUpperCase() + ground[5];
       else if (place) o.where = place;
       else if (grid) o.where = grid[1].toUpperCase() + grid[2];
@@ -1794,7 +1882,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       const m = await call("NewMission", S.data.t, S.data.u, S.data.n, seed);
       S.m = m; S.seed = seed; S.map = m.map; S.roster = m.roster; S.state = m.state;
       S.mw = m.map.w * m.map.cell; S.mh = m.map.h * m.map.cell; S.sq = m.map.square;
-      S.log = []; S.rolls = []; S.flip = {}; S.sel = -1; S.tap = null; S.pending = null; S.busy = false;
+      S.log = []; S.rolls = []; S.flip = {}; S.sel = -1; S.tap = null; S.marks = []; S.hover = null; S.pending = null; S.busy = false;
       buildGround(m.map);
       S.breaches = 0;
       squareGround(m.map);

@@ -188,6 +188,12 @@ namespace FieldTable.Playtest
                     w.WriteNumber("s", e.Step);
                     w.WriteNumber("u", e.From == null ? -1 : IndexOf(e.From));
                     w.WriteString("text", e.Text);
+                    // A call about a place gets a marker on the map: where, and what kind of news.
+                    if (e.At is Vec2 at)
+                    {
+                        w.WriteNumber("x", R(at.X)); w.WriteNumber("y", R(at.Y));
+                        w.WriteString("k", e.Kind ?? "info");
+                    }
                     w.WriteEndObject();
                 }
                 w.WriteEndArray();
@@ -385,10 +391,12 @@ namespace FieldTable.Playtest
             w.WriteNumber("step", sim.Clock.Step);
             w.WriteNumber("turnLimit", Mission.TurnLimit);
             WriteObjectives(w);
+            w.WriteNumber("friendlyFire", mission.FriendlyFireHits);
             if (mission.Outcome != null)
             {
                 w.WriteString("outcome", mission.Outcome);
                 w.WriteString("outcomeText", mission.OutcomeText);
+                w.WriteString("rating", mission.Rating);
             }
             w.WriteStartArray("units");
             foreach (var u in sim.Units)
