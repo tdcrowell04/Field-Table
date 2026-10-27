@@ -184,6 +184,21 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   .pane { padding-block: 8px; }
 }
 @media (max-width: 420px) { .top .eyebrow { display: none; } }
+
+/* The full-screen map: the table fills the whole screen, and the title, the desk, and the order box follow below it.
+   The map pans instead of scrolling the page, so buttons jump down to the orders and back up to the map. */
+.zoom { align-items: flex-end; }
+.tbtn svg { display: block; }
+.toMap { margin-left: auto; flex: none; background: none; border: 0; border-left: 1px solid var(--line); padding: 0 12px; font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--sand); cursor: pointer; }
+body.big { height: auto; min-height: 100%; overflow-y: auto; }
+body.big .app { height: auto; display: flex; flex-direction: column; gap: 8px; padding: 0 0 max(12px, env(safe-area-inset-bottom, 0px)); }
+body.big .table { order: -1; flex: none; height: 100vh; height: 100dvh; border: 0; border-radius: 0; }
+body.big .top, body.big .desk, body.big .orders { margin-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
+body.big .top { padding-top: 6px; }
+body.big .desk { flex: none; height: min(75vh, 640px); height: min(75dvh, 640px); }
+body.big .zoom { top: max(8px, env(safe-area-inset-top, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); }
+body.big .card, body.big .dice { top: max(8px, env(safe-area-inset-top, 0px)); }
+body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
 @media (prefers-reduced-motion: reduce) { .die, .boot .bar i { animation: none; } }
 </style>
 
@@ -200,6 +215,8 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       <button class="tbtn" id="zin" type="button" aria-label="Zoom in">+</button>
       <button class="tbtn" id="zout" type="button" aria-label="Zoom out">−</button>
       <button class="tbtn" id="zfit" type="button" aria-label="Show the whole map">⤢</button>
+      <button class="tbtn" id="zbig" type="button" aria-pressed="false" aria-label="Full-screen map"></button>
+      <button class="tbtn" id="toDesk" type="button" hidden>Orders ↓</button>
     </div>
     <div class="card" id="card" hidden></div>
     <div class="dice" id="dice" aria-live="polite"></div>
@@ -225,6 +242,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       <button type="button" role="tab" data-tab="squad" aria-selected="false">Squad</button>
       <button type="button" role="tab" data-tab="brief" aria-selected="false">Brief</button>
       <button type="button" role="tab" data-tab="dice" aria-selected="false">Dice</button>
+      <button type="button" class="toMap" id="toMap" hidden>Map ↑</button>
     </div>
     <div class="pane" id="pane" role="tabpanel" tabindex="0"></div>
   </section>
@@ -1258,6 +1276,8 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 
   // ------------------------------------------------------------------ playing a turn back
   function startPlayback(T) {
+    // With the map full screen, come back up to watch the turn.
+    if (isBig()) window.scrollTo({ top: 0, behavior: "smooth" });
     const rand = rng(T.turn * 7919 + S.seed), t0 = s => (s - T.startStep) / 10;
     const tracers = [], proj = [], blasts = [], pulses = [], queue = [];
     for (const sh of T.shots) {
@@ -1313,7 +1333,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     if (T.state.blown) paintCells(T.state.blown.cells);
     $("playbar").hidden = true;
     if (T.state.outcome) showOutcome(T.state);
-    logDb("turns", { turn: T.turn, addIn: S.lastPick || null, outcome: T.state.outcome || null, marinesDown: S.roster.filter((r, i) => r.side === "us" && T.state.units[i] && /down|dead/.test(T.state.units[i].condition)).length, shots: T.shots.length });
+    logDb("turns", { turn: T.turn, addIn: S.lastPick || null, outcome: T.state.outcome || null, marinesDown: S.roster.filter((r, i) => r.side === "us" && r.figure !== "terp" && T.state.units[i] && /down|dead/.test(T.state.units[i].condition)).length, shots: T.shots.length });
     clockText(); setButtons(); renderPane(); renderCard(); need();
   }
   function syncSpeed() { document.querySelectorAll("[data-speed]").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.speed === S.speed))); }
@@ -1385,7 +1405,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 
   function renderPane(keepBottom) {
     const pane = $("pane");
-    document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+    document.querySelectorAll(".tabs button[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
     if (!S.m) { pane.innerHTML = "<p class=\"empty\">The squad is getting ready.</p>"; return; }
     if (S.tab === "net") {
       const nearBottom = pane.scrollHeight - pane.scrollTop - pane.clientHeight < 60;
@@ -1450,12 +1470,13 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     S.roster.forEach((r, i) => {
       const u = st[i];
       if (!u) return;
-      if (r.side === "us") { if (isDrone(i)) return; if (u.gone) squad.out++; else if (u.condition === "ok") squad.up++; else if (u.condition === "wounded") squad.hurt++; else if (u.condition === "down") squad.down++; else squad.dead++; return; }
+      // The squad's Marines: not the drone, and not the interpreter.
+      if (r.side === "us") { if (isDrone(i) || r.figure === "terp") return; if (u.gone) squad.out++; else if (u.condition === "ok") squad.up++; else if (u.condition === "wounded") squad.hurt++; else if (u.condition === "down") squad.down++; else squad.dead++; return; }
       if (r.side !== "op") return;
       const age = Math.max(0, Math.round((S.state.step - (u.lastSeen || 0)) / 600));
       seen.push(esc(r.name) + " at " + esc(u.grid) + (u.seen ? (u.condition && u.condition !== "ok" ? ", " + esc(u.condition) : ", seen now") : ", last seen " + (age < 1 ? "just now" : age + " min ago")));
     });
-    const squadLine = (squad.up + squad.hurt) + " of 14 can fight" + (squad.hurt ? " · " + squad.hurt + " wounded" : "") + (squad.down ? " · " + squad.down + " down" : "") + (squad.out ? " · " + squad.out + " evacuated" : "") + (squad.dead ? " · " + squad.dead + " dead" : "")
+    const squadLine = (squad.up + squad.hurt) + " of " + (squad.up + squad.hurt + squad.down + squad.dead + squad.out) + " can fight" + (squad.hurt ? " · " + squad.hurt + " wounded" : "") + (squad.down ? " · " + squad.down + " down" : "") + (squad.out ? " · " + squad.out + " evacuated" : "") + (squad.dead ? " · " + squad.dead + " dead" : "")
       + (S.state.casevac ? " · CASEVAC " + (S.state.casevac.landed ? "on the ground at " : "inbound to ") + S.state.casevac.grid : "");
     return "<div class=\"brief\"><h2>" + esc(S.m.title) + "</h2>"
       + "<div class=\"obj main\"><h3 class=\"mini\">Main objective</h3>" + objRow(o.mainStatus, o.main, o.mainStatus) + "</div>"
@@ -1623,6 +1644,35 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   $("zout").onclick = () => zoomAt(cv.width / 2, cv.height / 2, 1 / 1.6);
   $("zfit").onclick = fit;
 
+  // ------------------------------------------------------------------ the full-screen map
+  const GROW = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+  const SHRINK = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+  const isBig = () => document.body.classList.contains("big");
+  function setBig(on, asked) {
+    document.body.classList.toggle("big", on);
+    const b = $("zbig");
+    b.innerHTML = on ? SHRINK : GROW;
+    b.setAttribute("aria-pressed", String(on));
+    b.setAttribute("aria-label", on ? "Shrink the map" : "Full-screen map");
+    $("toDesk").hidden = !on; $("toMap").hidden = !on;
+    try { localStorage.setItem("ft-big-map", on ? "1" : "0"); } catch (e) { /* only a convenience */ }
+    // Where the browser allows it, go truly full screen too, hiding its own bars.
+    if (asked) {
+      const el = document.documentElement;
+      try {
+        if (on && el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen().catch(() => {});
+        if (!on && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      } catch (e) { /* not allowed here: the page layout alone does it */ }
+    }
+    window.scrollTo(0, 0);
+  }
+  $("zbig").onclick = () => setBig(!isBig(), true);
+  $("toDesk").onclick = () => document.querySelector(".top").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("toMap").onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  let bigSaved = false;
+  try { bigSaved = localStorage.getItem("ft-big-map") === "1"; } catch (e) { /* only a convenience */ }
+  setBig(bigSaved, false);
+
   function resize() {
     const box = $("tableBox"), wasFit = Math.abs(S.cam.s - S.fitS) < 1e-6;
     DPR = Math.min(2, window.devicePixelRatio || 1);
@@ -1657,7 +1707,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     if (u) lookAt(u.x, u.y, 46);
     renderCard(); renderPane();
   });
-  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; renderPane(); if (S.tab !== "net") $("pane").scrollTop = 0; });
+  document.querySelectorAll(".tabs button[data-tab]").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; renderPane(); if (S.tab !== "net") $("pane").scrollTop = 0; });
   $("orderForm").addEventListener("submit", e => { e.preventDefault(); send(); });
   $("playBtn").onclick = () => playTurn();
   $("ppause").onclick = () => { if (!P) return; P.playing = !P.playing; $("ppause").textContent = P.playing ? "Pause" : "Play"; last = 0; need(); };

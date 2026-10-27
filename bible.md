@@ -281,6 +281,7 @@ Live AI is allowed in this game. This project is separate from Conduits' no-AI-a
   - If Haiku isn't available, a simple built-in reader takes orders: who, the verb words, place names, and grid squares.
   - The page saves to its own database what was typed, how it was read, anything not covered yet, and how each turn ended. Nothing else.
   - On a phone turned sideways (any screen wider than it is tall), the map goes on the left, and the net, squad, brief, dice, and order box stack on the right.
+  - The map can go full screen, with everything else below it: *"I want the map to be able to be fullscreen with the other stuff below it"* (how it works is in ledger round 15)
   - Radio calls about a place leave a pin there; tap one to read the call. Tapping the ground shows its six-digit coordinates with a button that puts them in the order box. The end screen shows the rating.
   - Haiku also plays the director, picking an add-in or none before each turn from the ones the code says fit, and gives villagers, prisoners, and shouting fighters their own words. The code decides what they know; a line that changes or drops a square, a number, or a name is thrown out and the code's own words stand.
 - Cloud: Added later only if lots of players can't run the local model. If it comes, it runs through a backend we control, never with a key inside the game.
@@ -641,6 +642,8 @@ In chat, after round 13: *"How is it that in the artifact game all of the spotti
 | The start | Accepted | |
 | Ammo types | Accepted | |
 | A second bridge | Accepted | |
+
+In chat, after round 14: *"I want the map to be able to be fullscreen with the other stuff below it"*
 
 ## Open questions
 
