@@ -184,7 +184,7 @@ namespace FieldTable.Sim
             if (terp != null || SameLanguage(e.Force, PlayerForce))
             {
                 var who = terp ?? hear.OrderBy(m => Vec2.Distance(m.Position, e.Position)).First();
-                Radio(who, (terp != null ? "Interpreter" : Callsign(who)) + ": They're shouting \"" + words + "\" at " + square + ".", "info", Map.SquareCenter(square), "an enemy fighter");
+                Radio(who, (terp != null ? "Interpreter" : Callsign(who)) + ": They're shouting \"" + words + "\" at " + square + ".", "info", Map.SquareCenter(square), "an enemy soldier");
             }
             else
             {

@@ -11,7 +11,7 @@ namespace FieldTable.Sim
     /// </summary>
     public static class BridgeSeizure
     {
-        /// <summary>How many enemy fighters there can be: their goal picks the number within this range.</summary>
+        /// <summary>How many enemy soldiers there can be: their goal picks the number within this range.</summary>
         public const int MinEnemy = 3, MaxEnemy = 9;
 
         /// <summary>Makes the mission. A die picks the enemy's goal unless one is asked for (hold, delay, blow, or ambush).</summary>
