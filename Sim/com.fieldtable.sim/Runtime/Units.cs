@@ -91,6 +91,27 @@ namespace FieldTable.Sim
 
         /// <summary>Which drawn figure shows this unit on the table.</summary>
         public string Figure { get; set; }
+
+        /// <summary>Rounds for the second weapon that pierce walls and armor (AP). LauncherAmmo counts the high-explosive (HE) ones.</summary>
+        public int LauncherAp { get; set; }
+
+        /// <summary>Smoke grenades carried.</summary>
+        public int Smoke { get; set; }
+
+        /// <summary>Wears a helmet, which now and then stops a hit to the head.</summary>
+        public bool Helmet { get; set; }
+
+        /// <summary>Wears plates, which stop half the hits to the chest.</summary>
+        public bool Plate { get; set; }
+
+        /// <summary>The kind of drone this unit carries and flies, or null for none.</summary>
+        public string Drone { get; set; }
+
+        /// <summary>Flies instead of walking: goes straight over everything, and isn't a target.</summary>
+        public bool Flying { get; set; }
+
+        /// <summary>How high it flies, in meters, for what it can see.</summary>
+        public float Altitude { get; set; }
     }
 
     /// <summary>
@@ -138,8 +159,34 @@ namespace FieldTable.Sim
 
         public float Load { get; set; }
         public int LauncherAmmo { get; set; }
+        public int LauncherAp { get; set; }
         public int Grenades { get; set; }
+        public int Smokes { get; set; }
         public int Wounds { get; internal set; }
+
+        /// <summary>Hit in the arm: shoots at half accuracy.</summary>
+        public bool ArmHit { get; internal set; }
+
+        /// <summary>Hit in the leg: can't walk, and has to be carried.</summary>
+        public bool LegHit { get; internal set; }
+
+        /// <summary>Minutes this unit lasts once down without treatment. A chest or belly wound is quicker.</summary>
+        public int BleedMinutes { get; internal set; } = 15;
+
+        /// <summary>Not on the map: evacuated, or a drone still in its case.</summary>
+        public bool Gone { get; internal set; }
+
+        /// <summary>Taken out by CASEVAC.</summary>
+        public bool Evacuated { get; internal set; }
+
+        /// <summary>Taken prisoner.</summary>
+        public bool Detained { get; internal set; }
+
+        /// <summary>Who is carrying this casualty right now, or null.</summary>
+        public Unit CarriedBy { get; internal set; }
+
+        /// <summary>For a drone: the Marine who flies it.</summary>
+        public Unit Operator { get; internal set; }
 
         /// <summary>When the unit went down, in steps. -1 while it's up.</summary>
         public int DownSince { get; internal set; } = -1;
@@ -182,7 +229,9 @@ namespace FieldTable.Sim
             Ammo = def.Ammo;
             Load = def.Load;
             LauncherAmmo = def.LauncherAmmo;
+            LauncherAp = def.LauncherAp;
             Grenades = def.Grenades;
+            Smokes = def.Smoke;
         }
 
         /// <summary>True when an order can call this unit by the given name.</summary>
@@ -196,7 +245,10 @@ namespace FieldTable.Sim
             return false;
         }
 
-        public bool CanAct => Condition == Condition.Ok || Condition == Condition.Wounded;
+        public bool CanAct => (Condition == Condition.Ok || Condition == Condition.Wounded) && !Gone && !Detained;
+
+        /// <summary>How high its eyes are: a flying drone's altitude, or the posture's eye height.</summary>
+        public float EyeHeight => Def.Flying ? Def.Altitude : Postures.Height(Posture);
 
         public void SetSuppression(float value) => Suppression = Math.Max(0f, Math.Min(1f, value));
     }

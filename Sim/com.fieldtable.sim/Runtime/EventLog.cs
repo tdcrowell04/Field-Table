@@ -107,12 +107,17 @@ namespace FieldTable.Sim
         public Vec2 At { get; }
         public WeaponDef Weapon { get; }
 
-        public BlastAt(Unit shooter, Vec2 at, WeaponDef weapon)
+        /// <summary>True for an armor-piercing round: a small blast that punches through walls.</summary>
+        public bool Ap { get; }
+        public float Radius { get; }
+
+        public BlastAt(Unit shooter, Vec2 at, WeaponDef weapon, bool ap = false)
         {
-            Shooter = shooter; At = at; Weapon = weapon;
+            Shooter = shooter; At = at; Weapon = weapon; Ap = ap;
+            Radius = ap && weapon.ApBlast > 0f ? weapon.ApBlast : weapon.Blast;
         }
 
-        public override string Describe() => Weapon.Name + " from " + Shooter.Name + " goes off.";
+        public override string Describe() => Weapon.Name + (Ap ? " (AP)" : "") + " from " + Shooter.Name + " goes off.";
     }
 
     public sealed class UnitWounded : SimEvent
@@ -157,6 +162,48 @@ namespace FieldTable.Sim
     }
 
     /// <summary>A line on the radio net. Written from templates now; the in-game AI can voice them later.</summary>
+    public sealed class SmokeAt : SimEvent
+    {
+        public Unit Thrower { get; }
+        public SmokeCloud Cloud { get; }
+        public SmokeAt(Unit thrower, SmokeCloud cloud) { Thrower = thrower; Cloud = cloud; }
+        public override string Describe() => Thrower.Name + " throws smoke.";
+    }
+
+    public sealed class BreachMade : SimEvent
+    {
+        public Unit Unit { get; }
+        public Vec2 At { get; }
+        public float Radius { get; }
+        public BreachMade(Unit unit, Vec2 at, float radius) { Unit = unit; At = at; Radius = radius; }
+        public override string Describe() => Unit.Name + " opens a breach.";
+    }
+
+    public sealed class UnitDetained : SimEvent
+    {
+        public Unit Unit { get; }
+        public Unit By { get; }
+        public UnitDetained(Unit unit, Unit by) { Unit = unit; By = by; }
+        public override string Describe() => By.Name + " detains " + Unit.Name + ".";
+    }
+
+    public sealed class UnitEvacuated : SimEvent
+    {
+        public Unit Unit { get; }
+        public UnitEvacuated(Unit unit) { Unit = unit; }
+        public override string Describe() => Unit.Name + " is evacuated.";
+    }
+
+    /// <summary>The CASEVAC vehicle or helicopter arriving at the landing zone, or leaving it.</summary>
+    public sealed class CasevacMoved : SimEvent
+    {
+        public Vec2 Lz { get; }
+        public bool Arrived { get; }
+        public bool Helicopter { get; }
+        public CasevacMoved(Vec2 lz, bool arrived, bool helicopter) { Lz = lz; Arrived = arrived; Helicopter = helicopter; }
+        public override string Describe() => (Helicopter ? "The CASEVAC helicopter " : "The CASEVAC vehicle ") + (Arrived ? "arrives." : "leaves.");
+    }
+
     public sealed class RadioCall : SimEvent
     {
         public Unit From { get; }

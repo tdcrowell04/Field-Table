@@ -21,6 +21,12 @@ namespace FieldTable.Sim
         /// <summary>Seconds to treat someone: a corpsman, and anyone else.</summary>
         public const float MedicSeconds = 60f, BuddySeconds = 180f;
 
+        /// <summary>Minutes someone hit in the chest or belly lasts once down without treatment.</summary>
+        public const int MinutesToBleedOutTorso = 10;
+
+        /// <summary>A helmet stops a hit to the head on this or less, out of 20.</summary>
+        public const int HelmetSaves = 3;
+
         const float SuppressionFadePerSecond = 0.08f;
         const float PinnedAt = 0.8f;
 
@@ -42,14 +48,25 @@ namespace FieldTable.Sim
         {
             foreach (var u in units)
             {
-                if (u.Condition == Condition.Dead) { u.IsMoving = false; continue; }
+                if (u.Condition == Condition.Dead || u.Gone) { u.IsMoving = false; continue; }
+                if (u.Def.Flying) { FlyTick(u, dt); Move(u, dt); continue; }
                 BleedOut(u);
                 if (!u.CanAct) { u.IsMoving = false; continue; }
                 if (u.Order == null && !ReferenceEquals(u.Force, PlayerForce)) Brain(u);
                 Think(u, dt);
                 Move(u, dt);
             }
+            // Casualties being carried go where their carriers go.
+            foreach (var u in units)
+            {
+                var c = u.CarriedBy;
+                if (c == null) continue;
+                if (!c.CanAct || u.Gone || u.Condition == Condition.Dead) { u.CarriedBy = null; continue; }
+                u.Position = Clamp(c.Position + new Vec2(0.5f, 0.6f));
+                u.Facing = c.Facing;
+            }
             foreach (var u in units) Fight(u, dt);
+            if (Clock.Step % SimClock.StepsPerSecond == 0) EverySecond();
             foreach (var u in units)
             {
                 u.SetSuppression(u.Suppression - SuppressionFadePerSecond * dt);
@@ -120,7 +137,9 @@ namespace FieldTable.Sim
                             if (patient.Condition == Condition.Down) patient.Stabilized = true;
                             else { patient.Wounds = 0; patient.Condition = Condition.Ok; }
                             Record(new UnitTreated(u, patient));
-                            Radio(u, (u.Def.Medic ? "Doc" : u.Name) + ": " + patient.Name + " is " + (patient.Condition == Condition.Down ? "stable." : "patched up and good to go."));
+                            // Patching up doesn't fix a bad arm or leg: it still shoots at half, or still can't walk.
+                            string state = patient.Condition == Condition.Down ? "stable." : patient.LegHit ? "patched up, but can't walk." : patient.ArmHit ? "patched up. Arm's still bad." : "patched up and good to go.";
+                            Radio(u, (u.Def.Medic ? "Doc" : u.Name) + ": " + patient.Name + " is " + state);
                             Finish(u, null);
                         }
                     }
@@ -158,6 +177,10 @@ namespace FieldTable.Sim
 
                 case Verbs.Report:
                     Finish(u, null);
+                    break;
+
+                default:
+                    ThinkMore(u, o, dt);
                     break;
             }
         }
@@ -200,6 +223,17 @@ namespace FieldTable.Sim
                     u.Posture = Posture.Kneeling;
                     Finish(u, null);
                     TeamSet(u, o);
+                    break;
+                case Verbs.Bound:
+                    o.Arrived = true;
+                    u.Posture = Posture.Kneeling;
+                    if (o.Group == 0) Finish(u, null);
+                    break;
+                case Verbs.Overwatch:
+                    u.Posture = Posture.Kneeling;
+                    break;
+                case Verbs.Carry:
+                    SetDown(u, o);
                     break;
             }
         }
@@ -256,6 +290,13 @@ namespace FieldTable.Sim
 
         void Move(Unit u, float dt)
         {
+            if (u.Def.Flying) { Fly(u, dt); return; }
+            if (u.CarriedBy != null || (u.LegHit && u.Path != null))
+            {
+                u.Path = null;
+                u.IsMoving = false;
+                return;
+            }
             if (u.Path == null || u.PathIndex >= u.Path.Count)
             {
                 u.IsMoving = false;
@@ -278,6 +319,12 @@ namespace FieldTable.Sim
             var here = Map.TerrainAt(u.Position);
             float factor = here.MoveFactor;
             if (u.Condition == Condition.Wounded) factor *= 0.6f;
+            // Carrying a casualty: half speed with a helper, a quarter alone, and no running.
+            if (Carrying(u) is Unit load)
+            {
+                speed = u.Def.WalkSpeed;
+                factor *= CarryHelpers(u, load) > 0 ? 0.5f : 0.25f;
+            }
             factor *= 1f - 0.5f * u.Suppression;
             float budget = Math.Max(0.02f, speed * factor) * dt;
 
@@ -330,16 +377,16 @@ namespace FieldTable.Sim
             if (u.Suppression >= PinnedAt) return;
             if (u.IsMoving && u.Speed == MoveSpeed.Run) return;
             if (Map.TerrainAt(u.Position).Deep) return;
-            if (u.Order != null && (u.Order.Verb == Verbs.TreatCasualty || u.Order.Verb == Verbs.Hide)) return;
+            if (u.Order != null && (u.Order.Verb == Verbs.TreatCasualty || u.Order.Verb == Verbs.Hide || u.Order.Verb == Verbs.FlyDrone || u.Order.Verb == Verbs.Carry)) return;
 
             Unit target = null;
             Vec2? area = null;
             var o = u.Order;
             if (o != null && (o.Verb == Verbs.Fire || o.Verb == Verbs.Suppress))
             {
-                if (o.TargetUnit != null && o.TargetUnit.Condition != Condition.Dead)
+                if (o.TargetUnit != null && o.TargetUnit.Condition != Condition.Dead && !o.TargetUnit.Gone)
                 {
-                    if (Sight.Between(Map, u, o.TargetUnit).Clear) target = o.TargetUnit;
+                    if (Sight.Between(Map, u, o.TargetUnit).SeenBy(u)) target = o.TargetUnit;
                     else if (o.Verb == Verbs.Suppress) area = Fog.For(u.Force).About(o.TargetUnit.Id)?.LastKnownPosition ?? o.TargetUnit.Position;
                 }
                 else if (o.Point != null) area = o.Point;
@@ -350,12 +397,28 @@ namespace FieldTable.Sim
             Vec2 aim = target?.Position ?? area.Value;
             float range = Vec2.Distance(u.Position, aim);
             var launcher = Weapon(u.Def.Launcher);
-            if (launcher != null && u.LauncherAmmo > 0 && range >= 30f && range <= launcher.Range && WorthABlast(u, aim, target))
+            if (launcher != null && range >= 30f && range <= launcher.Range && !(o != null && o.Fired))
             {
-                u.LauncherAmmo--;
-                u.FireCooldown = launcher.Cycle;
-                Blast(u, launcher, aim);
-                return;
+                // An order that names HE or AP fires one of those rounds, then keeps on with the rifle;
+                // otherwise the launcher is used when it's worth it.
+                string asked = o != null && !o.Fired ? (o.Kind ?? "").Trim().ToUpperInvariant() : "";
+                bool wantAp = asked == "AP", wantHe = asked == "HE";
+                bool worth = wantAp || wantHe || WorthABlast(u, aim, target);
+                if (worth)
+                {
+                    // AP for someone behind a wall or inside a building, HE for people in the open.
+                    bool ap = wantAp || (!wantHe && Map.TerrainAt(aim).Cover >= 0.5f);
+                    if (ap && u.LauncherAp <= 0) ap = false;
+                    if (!ap && u.LauncherAmmo <= 0) ap = u.LauncherAp > 0;
+                    if (ap ? u.LauncherAp > 0 : u.LauncherAmmo > 0)
+                    {
+                        if (ap) u.LauncherAp--; else u.LauncherAmmo--;
+                        if (wantAp || wantHe) o.Fired = true;
+                        u.FireCooldown = launcher.Cycle;
+                        Blast(u, launcher, aim, ap);
+                        return;
+                    }
+                }
             }
 
             var gun = Weapon(u.Def.Weapon);
@@ -377,12 +440,17 @@ namespace FieldTable.Sim
                 bool hit = roll <= Math.Round(p * 100);
                 Record(new ShotFired(u, u.Position, target.Position, gun.Id, hit));
                 Suppress(target.Position, gun.Suppress, 5f, u);
-                if (hit) Wound(target, gun);
+                if (hit)
+                {
+                    // One roll to hit; then how many rounds of the burst hit, each with its own wound roll.
+                    int rounds = gun.Burst > 1 ? Roll(gun.Burst, u.Name, "rounds that hit " + target.Name, true) : 1;
+                    for (int i = 0; i < rounds && target.Condition != Condition.Dead; i++) Wound(target, gun);
+                }
             }
             else
             {
                 Record(new ShotFired(u, u.Position, area.Value, gun.Id, false));
-                foreach (var v in units.Where(x => x.CanAct && AreHostile(u.Force, x.Force) && Vec2.Distance(x.Position, area.Value) <= 6f).ToList())
+                foreach (var v in units.Where(x => x.CanAct && !x.Def.Flying && AreHostile(u.Force, x.Force) && Vec2.Distance(x.Position, area.Value) <= 6f).ToList())
                 {
                     float p = HitChance(u, v, gun) * 0.3f;
                     if (Roll(100, u.Name, "suppressing fire near " + v.Name + " (" + Pct(p) + ")") <= Math.Round(p * 100)) Wound(v, gun);
@@ -397,18 +465,22 @@ namespace FieldTable.Sim
             var gun = Weapon(u.Def.Weapon);
             float reach = Math.Max(gun?.Range ?? 0f, Weapon(u.Def.Launcher)?.Range ?? 0f);
             var knowledge = Fog.For(u.Force);
+            // On overwatch, anything in the watched area comes first.
+            Vec2? watch = u.Order != null && u.Order.Verb == Verbs.Overwatch ? u.Order.Watch : null;
             Unit best = null;
             float bestD = float.MaxValue;
             foreach (var t in units)
             {
-                if (!t.CanAct || !AreHostile(u.Force, t.Force)) continue;
+                if (!t.CanAct || t.Def.Flying || !AreHostile(u.Force, t.Force)) continue;
                 var c = knowledge.About(t.Id);
                 if (c == null || !c.Visible) continue;
                 float d = Vec2.Distance(u.Position, t.Position);
-                if (d > reach || d >= bestD) continue;
-                if (!Sight.Between(Map, u, t).Clear) continue;
+                if (d > reach) continue;
+                float score = watch != null && Vec2.Distance(t.Position, watch.Value) <= OverwatchArea ? d - 10000f : d;
+                if (score >= bestD) continue;
+                if (!Sight.Between(Map, u, t).SeenBy(u)) continue;
                 best = t;
-                bestD = d;
+                bestD = score;
             }
             return best;
         }
@@ -431,9 +503,12 @@ namespace FieldTable.Sim
             p *= target.Posture == Posture.Prone ? 0.5f : target.Posture == Posture.Kneeling ? 0.75f : 1f;
             float cover = Map.TerrainAt(target.Position).Cover;
             if (target.Posture == Posture.Standing) cover *= 0.5f;
+            // Inside the same building it's room to room: the walls don't stand between them.
+            if (d <= 25f && Map.TerrainAt(target.Position).SeeOut && Map.TerrainAt(shooter.Position).SeeOut) cover = 0f;
             p *= 1f - cover;
             if (target.IsMoving) p *= 0.7f;
             if (shooter.IsMoving) p *= 0.4f;
+            if (shooter.ArmHit) p *= 0.5f;
             p *= 1f - 0.7f * shooter.Suppression;
             var sight = Sight.Between(Map, shooter, target);
             p *= 1f - sight.Obscured;
@@ -442,14 +517,20 @@ namespace FieldTable.Sim
             return Math.Max(0.01f, Math.Min(0.9f, p));
         }
 
-        void Blast(Unit u, WeaponDef w, Vec2 aim)
+        /// <summary>
+        /// A grenade or rocket. HE: the full blast, but a wall or building between you and it protects you.
+        /// AP: a small blast that punches through walls, so cover doesn't help whoever is behind the spot it hits.
+        /// </summary>
+        void Blast(Unit u, WeaponDef w, Vec2 aim, bool ap = false)
         {
             u.FiredAtStep = Clock.Step;
             Fog.Reveal(this, u, w);
             float d = Vec2.Distance(u.Position, aim);
             float p = Math.Min(0.9f, w.Accuracy * (float)Math.Pow(100.0 / Math.Max(d, 25f), 0.5));
+            if (u.ArmHit) p *= 0.5f;
             Vec2 at = aim;
-            if (Roll(100, u.Name, w.Name + " at " + Map.SquareOf(Clamp(aim)) + " (" + Pct(p) + ")", true) > Math.Round(p * 100))
+            string round = w.Name + (w.ApBlast > 0f ? (ap ? " AP" : " HE") : "");
+            if (Roll(100, u.Name, round + " at " + Map.SquareOf(Clamp(aim)) + " (" + Pct(p) + ")", true) > Math.Round(p * 100))
             {
                 // A miss lands 5 to 15 meters off, in one of eight directions.
                 int dir = Roll(8, u.Name, "where it lands");
@@ -457,13 +538,28 @@ namespace FieldTable.Sim
                 double ang = dir * Math.PI / 4;
                 at = Clamp(aim + new Vec2((float)Math.Cos(ang), (float)Math.Sin(ang)) * off);
             }
-            Record(new ShotFired(u, u.Position, at, w.Id, true));
-            Record(new BlastAt(u, at, w));
-            foreach (var v in units.Where(x => x.Condition != Condition.Dead && Vec2.Distance(x.Position, at) <= w.Blast).ToList())
+            Record(new ShotFired(u, u.Position, at, w.Id + (ap ? "-ap" : ""), true));
+            Explode(u, w, at, ap);
+        }
+
+        /// <summary>A round goes off where it landed: everyone inside the blast rolls.</summary>
+        internal void Explode(Unit u, WeaponDef w, Vec2 at, bool ap)
+        {
+            var blast = new BlastAt(u, at, w, ap);
+            Record(blast);
+            float radius = blast.Radius;
+            foreach (var v in units.Where(x => x.Condition != Condition.Dead && !x.Gone && !x.Def.Flying && Vec2.Distance(x.Position, at) <= radius).ToList())
             {
                 float dist = Vec2.Distance(v.Position, at);
-                float cover = Map.TerrainAt(v.Position).SeeOut && !Map.TerrainAt(at).SeeOut ? 0.8f : Map.TerrainAt(v.Position).Cover * 0.5f;
-                float chance = (1f - dist / w.Blast) * (1f - cover) * (v.Posture == Posture.Prone ? 0.6f : 1f);
+                float cover = 0f;
+                if (!ap)
+                {
+                    var here = Map.TerrainAt(v.Position);
+                    if (here.SeeOut && !Map.TerrainAt(at).SeeOut) cover = 0.8f;
+                    else if (!Sight.Trace(Map, at, 0.3f, v.Position, Postures.Height(v.Posture) * 0.6f).Clear) continue;
+                    else cover = here.Cover * 0.5f;
+                }
+                float chance = (1f - dist / radius) * (1f - cover) * (v.Posture == Posture.Prone ? 0.6f : 1f);
                 if (chance <= 0f) continue;
                 if (Roll(100, v.Name, "caught in the blast (" + Pct(chance) + ")", true) <= Math.Round(chance * 100)) Wound(v, w);
             }
@@ -474,39 +570,92 @@ namespace FieldTable.Sim
         {
             foreach (var v in units)
             {
-                if (v.Condition == Condition.Dead || (shooter != null && ReferenceEquals(v.Force, shooter.Force))) continue;
+                if (v.Condition == Condition.Dead || v.Gone || v.Def.Flying || (shooter != null && ReferenceEquals(v.Force, shooter.Force))) continue;
                 float d = Vec2.Distance(v.Position, at);
                 if (d > radius) continue;
                 v.SetSuppression(v.Suppression + amount * (d <= 2f ? 1f : 0.6f));
             }
         }
 
+        /// <summary>
+        /// A hit, by where it lands (a d20): 1–2 head, 3–9 chest, 10–12 belly, 13–16 arm, 17–20 leg.
+        /// A helmet now and then stops a head hit, and plates stop half the chest hits.
+        /// </summary>
         void Wound(Unit v, WeaponDef w)
         {
-            if (v.Condition == Condition.Dead) return;
-            int roll = Roll(20, v.Name, "how bad the hit is", true);
-            if (roll <= 2 && v.Condition != Condition.Ok)
+            if (v.Condition == Condition.Dead || v.Gone) return;
+            int where = Roll(20, v.Name, "where the hit lands", true);
+            bool stopped = false;
+            if (where <= 2 && v.Def.Helmet) stopped = Roll(20, v.Name, "the helmet (stops it on " + HelmetSaves + " or less)", true) <= HelmetSaves;
+            else if (where >= 3 && where <= 9 && v.Def.Plate) stopped = Roll(2, v.Name, "the plate (stops it on a 1)", true) == 1;
+            HitIn(v, w, where, stopped);
+        }
+
+        /// <summary>What a hit does, from where it landed (1 to 20) and whether a helmet or plate stopped it.</summary>
+        internal void HitIn(Unit v, WeaponDef w, int where, bool stopped)
+        {
+            if (v.Condition == Condition.Dead || v.Gone) return;
+            bool ours = ReferenceEquals(v.Force, PlayerForce);
+            if (where <= 2)
             {
-                Kill(v, "killed by " + w.Name);
+                if (stopped)
+                {
+                    Saved(v, ours ? v.Name + ": Helmet took it! I'm good." : null, "is saved by the helmet");
+                    return;
+                }
+                Kill(v, "killed by " + w.Name + ", hit in the head");
                 return;
             }
-            if (roll <= Math.Round(20 * w.Lethality) || v.Wounds >= 1)
+            if (where <= 12)
+            {
+                bool chest = where <= 9;
+                if (chest && stopped)
+                {
+                    Saved(v, ours ? v.Name + ": Plate took it! I'm good." : null, "is saved by the plate");
+                    return;
+                }
+                if (v.Condition == Condition.Down) { Kill(v, "killed by " + w.Name); return; }
+                v.Wounds++;
+                Down(v, w.Name + (chest ? ", hit in the chest" : ", hit in the belly"), MinutesToBleedOutTorso);
+                return;
+            }
+            bool arm = where <= 16;
+            if (v.Condition == Condition.Down) return;
+            if (v.Condition == Condition.Wounded)
             {
                 v.Wounds++;
-                Down(v, w.Name);
+                Down(v, w.Name + (arm ? ", hit again in the arm" : ", hit again in the leg"), MinutesToBleedOut);
                 return;
             }
             v.Wounds++;
             v.Condition = Condition.Wounded;
-            Record(new UnitWounded(v, w.Name));
-            if (ReferenceEquals(v.Force, PlayerForce)) Radio(v, v.Name + ": I'm hit!");
+            if (arm) v.ArmHit = true;
+            else
+            {
+                v.LegHit = true;
+                v.Path = null;
+                v.IsMoving = false;
+                if (v.Order != null && Verbs.NeedsLegs(v.Order.Verb)) v.Order = null;
+            }
+            Record(new UnitWounded(v, w.Name + (arm ? ", hit in the arm" : ", hit in the leg")));
+            if (ours) Radio(v, v.Name + ": I'm hit! " + (arm ? "My arm." : "My leg, I can't walk."));
         }
 
-        void Down(Unit v, string cause)
+        /// <summary>A helmet or plate stopped it: knocked flat and pinned, not hurt.</summary>
+        void Saved(Unit v, string radio, string what)
+        {
+            v.SetSuppression(1f);
+            v.Posture = Posture.Prone;
+            Record(new UnitInTrouble(v, what));
+            if (radio != null) Radio(v, radio);
+        }
+
+        void Down(Unit v, string cause, int minutes = MinutesToBleedOut)
         {
             if (v.Condition == Condition.Down || v.Condition == Condition.Dead) return;
             v.Condition = Condition.Down;
             v.DownSince = Clock.Step;
+            v.BleedMinutes = minutes;
             v.Stabilized = false;
             v.Posture = Posture.Prone;
             v.Path = null;
@@ -530,7 +679,7 @@ namespace FieldTable.Sim
 
         void BleedOut(Unit u)
         {
-            if (u.Condition == Condition.Down && !u.Stabilized && Clock.Step - u.DownSince >= MinutesToBleedOut * 60 * SimClock.StepsPerSecond)
+            if (u.Condition == Condition.Down && !u.Stabilized && Clock.Step - u.DownSince >= u.BleedMinutes * 60 * SimClock.StepsPerSecond)
                 Kill(u, "died of wounds");
         }
 

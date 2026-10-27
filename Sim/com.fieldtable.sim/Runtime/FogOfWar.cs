@@ -130,6 +130,9 @@ namespace FieldTable.Sim
 
             SightResult sight = Sight.Between(map, observer, target);
             if (!sight.Clear) return 0f;
+            // Smoke stops eyes and NODs; a thermal sees through it.
+            if (sight.Smoke) { eye = 0f; nods = 0f; }
+            if (d > Math.Max(eye, Math.Max(nods, thermal))) return 0f;
 
             double secondsToSpot = 0.5 * Math.Pow(Math.Max(d, 10f) / 100.0, 1.4);
             float baseRate = (float)(1.0 / secondsToSpot);
@@ -174,7 +177,7 @@ namespace FieldTable.Sim
                     if (!ReferenceEquals(o.Force, force) || !o.CanAct) continue;
                     float d = Vec2.Distance(o.Position, shooter.Position);
                     if (d > earshot && !flash) continue;
-                    if (!Sight.Between(sim.Map, o, shooter).Clear) continue;
+                    if (!Sight.Between(sim.Map, o, shooter).SeenBy(o)) continue;
                     spotter = o;
                     break;
                 }
@@ -195,6 +198,22 @@ namespace FieldTable.Sim
             }
         }
 
+        /// <summary>Someone is found at close range (clearing a room, a careful search): the force sees them at once.</summary>
+        internal void Spot(Simulation sim, Force force, Unit target, Unit spotter)
+        {
+            Contact c = For(force).Track(target);
+            bool wasKnown = c.Known;
+            int lastSeen = c.LastSeenStep;
+            c.LastKnownPosition = target.Position;
+            c.LastSeenStep = sim.Clock.Step;
+            if (c.Visible) return;
+            c.Known = true;
+            c.Visible = true;
+            c.Progress = 1f;
+            sim.Record(new ContactSpotted(force, target, spotter, sim.Map.SquareOf(target.Position)));
+            if (sim.AreHostile(force, target.Force)) sim.CallContact(spotter, target, false, wasKnown, lastSeen);
+        }
+
         internal void Update(Simulation sim, float seconds)
         {
             foreach (Force force in sim.Forces)
@@ -202,7 +221,8 @@ namespace FieldTable.Sim
                 ForceKnowledge knowledge = For(force);
                 foreach (Unit target in sim.Units)
                 {
-                    if (ReferenceEquals(target.Force, force)) continue;
+                    // Nobody spots what isn't on the map, and the enemy doesn't pick out a small drone up high.
+                    if (ReferenceEquals(target.Force, force) || target.Gone || target.Def.Flying) continue;
 
                     float best = 0f;
                     Unit spotter = null;

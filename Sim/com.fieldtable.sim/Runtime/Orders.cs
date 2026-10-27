@@ -22,12 +22,31 @@ namespace FieldTable.Sim
         public const string Hide = "hide";
         public const string Drop = "drop";
         public const string Emote = "emote";
+        public const string Bound = "bound";
+        public const string Overwatch = "overwatch";
+        public const string ThrowSmoke = "throw smoke";
+        public const string Clear = "clear";
+        public const string Breach = "breach";
+        public const string FlyDrone = "fly drone";
+        public const string Talk = "talk";
+        public const string Search = "search";
+        public const string Carry = "carry";
+        public const string Detain = "detain";
+        public const string ShareAmmo = "share ammo";
+        public const string Request = "request";
 
         public static readonly IReadOnlyList<string> Built = new[]
         {
             Move, Hold, Fire, Suppress, TakeCover, ChangePosture, Assault, Withdraw, Follow,
             Observe, Report, TreatCasualty, ThrowGrenade, Hide, Drop, Emote,
+            Bound, Overwatch, ThrowSmoke, Clear, Breach, FlyDrone, Talk, Search, Carry, Detain, ShareAmmo, Request,
         };
+
+        /// <summary>Verbs that need the unit to walk somewhere. A Marine hit in the leg can't do these.</summary>
+        internal static bool NeedsLegs(string verb) =>
+            verb == Move || verb == Assault || verb == Withdraw || verb == Follow || verb == TakeCover || verb == Hide ||
+            verb == TreatCasualty || verb == Bound || verb == Clear || verb == Breach || verb == Talk || verb == Search ||
+            verb == Carry || verb == Detain;
     }
 
     /// <summary>
@@ -53,13 +72,27 @@ namespace FieldTable.Sim
         /// <summary>How: true lets the route go through deep water.</summary>
         public bool Swim { get; set; }
 
-        /// <summary>For emotes: "dance", "salute", "wave", and so on.</summary>
+        /// <summary>
+        /// What kind: for emotes, "dance", "salute", "wave", and so on; for a launcher, "HE" or "AP";
+        /// for a request, what's asked for, like "CASEVAC".
+        /// </summary>
         public string Kind { get; set; }
 
         internal Vec2? Point;
         internal Unit TargetUnit;
         internal bool Done;
         internal int Group;
+
+        // Working state for verbs that take more than one step.
+        internal Vec2? Watch;
+        internal Landmark Building;
+        internal int Half;
+        internal bool Arrived, LegDone, Fired;
+        internal float LegMeters;
+        internal Vec2 LastPos;
+        internal List<Vec2> SavedPath;
+        internal int SavedIndex;
+        internal int Phase;
 
         public Order Copy() => new Order { Verb = Verb, Where = Where, Target = Target, Speed = Speed, Posture = Posture, Swim = Swim, Kind = Kind };
     }

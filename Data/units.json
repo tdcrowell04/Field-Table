@@ -41,7 +41,8 @@
       "accuracy": 0.3,
       "suppress": 0.5,
       "blast": 5,
-      "lethality": 0.5
+      "lethality": 0.5,
+      "apBlast": 2
     },
     {
       "id": "grenade",
@@ -83,7 +84,8 @@
       "accuracy": 0.3,
       "suppress": 0.6,
       "blast": 6,
-      "lethality": 0.6
+      "lethality": 0.6,
+      "apBlast": 2
     }
   ],
   "units": [
@@ -95,7 +97,10 @@
       "ammo": 210,
       "grenades": 2,
       "load": 32,
-      "nightVision": true
+      "nightVision": true,
+      "helmet": true,
+      "plate": true,
+      "smoke": 1
     },
     {
       "id": "tl",
@@ -104,11 +109,15 @@
       "weapon": "m27",
       "ammo": 210,
       "launcher": "m320",
-      "launcherAmmo": 8,
+      "launcherAmmo": 5,
       "grenades": 2,
       "load": 35,
       "nightVision": true,
-      "thermal": true
+      "thermal": true,
+      "helmet": true,
+      "plate": true,
+      "smoke": 1,
+      "launcherAp": 3
     },
     {
       "id": "ar",
@@ -118,7 +127,10 @@
       "ammo": 660,
       "grenades": 2,
       "load": 38,
-      "nightVision": true
+      "nightVision": true,
+      "helmet": true,
+      "plate": true,
+      "smoke": 1
     },
     {
       "id": "aar",
@@ -128,7 +140,10 @@
       "ammo": 420,
       "grenades": 2,
       "load": 36,
-      "nightVision": true
+      "nightVision": true,
+      "helmet": true,
+      "plate": true,
+      "smoke": 1
     },
     {
       "id": "rf",
@@ -138,7 +153,10 @@
       "ammo": 210,
       "grenades": 2,
       "load": 32,
-      "nightVision": true
+      "nightVision": true,
+      "helmet": true,
+      "plate": true,
+      "smoke": 1
     },
     {
       "id": "dr",
@@ -148,7 +166,11 @@
       "ammo": 210,
       "grenades": 2,
       "load": 34,
-      "nightVision": true
+      "nightVision": true,
+      "helmet": true,
+      "plate": true,
+      "smoke": 1,
+      "drone": "quadcopter"
     },
     {
       "id": "doc",
@@ -158,7 +180,10 @@
       "ammo": 150,
       "load": 30,
       "nightVision": true,
-      "medic": true
+      "medic": true,
+      "helmet": true,
+      "plate": true,
+      "smoke": 1
     },
     {
       "id": "en-rf",
@@ -186,14 +211,26 @@
       "weapon": "ak",
       "ammo": 90,
       "launcher": "rpg",
-      "launcherAmmo": 3,
-      "load": 22
+      "launcherAmmo": 1,
+      "load": 22,
+      "launcherAp": 2
     },
     {
       "id": "civ",
       "name": "Civilian",
       "figure": "civ",
       "load": 2
+    },
+    {
+      "id": "quadcopter",
+      "name": "Quadcopter",
+      "figure": "drone",
+      "walkSpeed": 12,
+      "runSpeed": 12,
+      "flying": true,
+      "altitude": 60,
+      "thermal": true,
+      "load": 0
     }
   ]
 }

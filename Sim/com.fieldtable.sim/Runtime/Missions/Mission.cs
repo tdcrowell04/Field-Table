@@ -31,7 +31,10 @@ namespace FieldTable.Sim
         public const float OnObjective = 15f;
 
         /// <summary>True while a Marine who can fight is on the objective.</summary>
-        public bool MarineOnObjective => Sim.Units.Any(u => ReferenceEquals(u.Force, Marines) && u.CanAct && Vec2.Distance(u.Position, Objective.Center) <= OnObjective);
+        public bool MarineOnObjective => Sim.Units.Any(u => ReferenceEquals(u.Force, Marines) && !u.Def.Flying && u.CanAct && Vec2.Distance(u.Position, Objective.Center) <= OnObjective);
+
+        /// <summary>The Marines themselves, not counting the drone.</summary>
+        public IEnumerable<Unit> Squad => Sim.Units.Where(u => ReferenceEquals(u.Force, Marines) && !u.Def.Flying);
 
         /// <summary>"success", "failure", or null while it's still going.</summary>
         public string Outcome { get; private set; }
@@ -47,7 +50,7 @@ namespace FieldTable.Sim
         public void CheckOutcome()
         {
             if (Outcome != null) return;
-            var marines = Sim.Units.Where(u => ReferenceEquals(u.Force, Marines)).ToList();
+            var marines = Squad.ToList();
             Vec2 b = Objective.Center;
             bool onBridge = MarineOnObjective;
             bool enemyNear = Sim.Units.Any(u => ReferenceEquals(u.Force, Enemy) && u.CanAct && Vec2.Distance(u.Position, b) <= HoldRadius);

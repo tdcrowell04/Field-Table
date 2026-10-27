@@ -67,7 +67,7 @@ namespace FieldTable.Sim
             CheckIds("unit", Units, u => u.Id);
             CheckIds("weapon", Weapons, w => w.Id);
             foreach (var w in Weapons)
-                if (w.Range <= 0f || w.Burst < 1 || w.Cycle <= 0f || w.Accuracy < 0f || w.Accuracy > 1f || w.Suppress < 0f || w.Blast < 0f || w.Lethality < 0f || w.Lethality > 1f)
+                if (w.Range <= 0f || w.Burst < 1 || w.Cycle <= 0f || w.Accuracy < 0f || w.Accuracy > 1f || w.Suppress < 0f || w.Blast < 0f || w.ApBlast < 0f || w.Lethality < 0f || w.Lethality > 1f)
                     throw new FormatException("Weapon " + w.Id + " needs a range, burst, and cycle above 0, and accuracy and lethality from 0 to 1.");
             foreach (var t in Terrains)
                 if (t.MoveFactor < 0f || t.Cover < 0f || t.Cover > 1f || t.Height < 0f || t.SightBlock < 0f || t.Concealment < 0f || t.Concealment > 1f)
@@ -79,8 +79,11 @@ namespace FieldTable.Sim
                     if (u.Launcher != null && !Weapons.Exists(w => w.Id == u.Launcher)) throw new FormatException("Unit " + u.Id + " carries " + u.Launcher + ", which isn't in the weapon list.");
                 }
             foreach (var u in Units)
-                if (u.WalkSpeed <= 0f || u.RunSpeed <= 0f || u.CrawlSpeed <= 0f || u.Ammo < 0 || u.Load < 0f || u.Grenades < 0 || u.LauncherAmmo < 0)
-                    throw new FormatException("Unit " + u.Id + " needs speeds above 0 and ammo, grenades, and load of 0 or more.");
+            {
+                if (u.WalkSpeed <= 0f || u.RunSpeed <= 0f || u.CrawlSpeed <= 0f || u.Ammo < 0 || u.Load < 0f || u.Grenades < 0 || u.LauncherAmmo < 0 || u.LauncherAp < 0 || u.Smoke < 0 || u.Altitude < 0f)
+                    throw new FormatException("Unit " + u.Id + " needs speeds above 0 and ammo, grenades, smoke, and load of 0 or more.");
+                if (u.Drone != null && !Units.Exists(d => d.Id == u.Drone && d.Flying)) throw new FormatException("Unit " + u.Id + " flies " + u.Drone + ", which isn't a flying unit in the data.");
+            }
         }
 
         static void CheckIds<T>(string kind, List<T> items, Func<T, string> id)

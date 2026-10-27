@@ -142,7 +142,7 @@ namespace FieldTable.Sim
             var knowledge = Fog.For(frameViewer);
             foreach (var u in units)
             {
-                bool seen = ReferenceEquals(u.Force, frameViewer) || (knowledge.About(u.Id)?.Visible ?? false);
+                bool seen = !u.Gone && (ReferenceEquals(u.Force, frameViewer) || (knowledge.About(u.Id)?.Visible ?? false));
                 f.Units.Add(new UnitFrame(u, seen));
             }
             frames.Add(f);

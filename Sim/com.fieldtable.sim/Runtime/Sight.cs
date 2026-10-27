@@ -10,11 +10,18 @@ namespace FieldTable.Sim
         /// <summary>How much the things in the way thin out the view, from 0 (nothing) to just under 1.</summary>
         public readonly float Obscured;
 
-        public SightResult(bool clear, float obscured)
+        /// <summary>True when smoke is in the way. Eyes and NODs can't see through it; a thermal can.</summary>
+        public readonly bool Smoke;
+
+        public SightResult(bool clear, float obscured, bool smoke = false)
         {
             Clear = clear;
             Obscured = obscured;
+            Smoke = smoke;
         }
+
+        /// <summary>True when this observer can see along the line: clear, and either no smoke or a thermal to look through it.</summary>
+        public bool SeenBy(Unit observer) => Clear && (!Smoke || observer.Def.Thermal);
 
         public static readonly SightResult Blocked = new SightResult(false, 1f);
     }
@@ -36,7 +43,8 @@ namespace FieldTable.Sim
             float z0 = map.GroundAt(from) + eyeHeight;
             float z1 = map.GroundAt(to) + targetHeight;
             float dist = Vec2.Distance(from, to);
-            if (dist < map.CellSize) return new SightResult(true, 0f);
+            bool smoke = map.Smoke.Count > 0 && (map.InSmoke(from, z0) || map.InSmoke(to, z1));
+            if (dist < map.CellSize) return new SightResult(true, 0f, smoke);
 
             int n = (int)Math.Ceiling(dist / map.CellSize);
             float step = dist / n;
@@ -62,6 +70,7 @@ namespace FieldTable.Sim
                 float z = z0 + (z1 - z0) * t;
                 float g = map.GroundAt(p);
                 if (g > z) return SightResult.Blocked;
+                if (!smoke && map.Smoke.Count > 0 && map.InSmoke(p, z)) smoke = true;
 
                 TerrainDef terrain = map.TerrainAt(p);
                 if (leaving)
@@ -79,11 +88,11 @@ namespace FieldTable.Sim
                     if (obscured >= 1f) return SightResult.Blocked;
                 }
             }
-            return new SightResult(true, obscured);
+            return new SightResult(true, obscured, smoke);
         }
 
-        /// <summary>Line of sight between two units, eye to the top of the target, by their postures.</summary>
+        /// <summary>Line of sight between two units, eye to the top of the target, by their postures (or a drone's altitude).</summary>
         public static SightResult Between(MapGrid map, Unit observer, Unit target) =>
-            Trace(map, observer.Position, Postures.Height(observer.Posture), target.Position, Postures.Height(target.Posture));
+            Trace(map, observer.Position, observer.EyeHeight, target.Position, target.EyeHeight);
     }
 }

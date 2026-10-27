@@ -48,9 +48,10 @@ namespace FieldTable.Sim.Tests
         [Fact]
         public void BeingShotAtPinsYouDownAndItFades()
         {
+            // Past the rifle's reach but inside the machine gun's, so the duel can't end it early.
             var s = new Scene(seed: 2);
             var m = s.Add("m", "rf", s.Blue, 100, 300);
-            var e = s.Add("pkm", "en-pkm", s.Red, 400, 300);
+            var e = s.Add("pkm", "en-pkm", s.Red, 750, 300);
             m.Order = null;
             s.Sim.RunTurn();
             Assert.True(m.Suppression > 0.2f || m.Condition != Condition.Ok);

@@ -146,6 +146,15 @@ namespace FieldTable.Sim
     /// The ground the fight happens on: a fine grid of terrain cells with ground height,
     /// the coarser lettered squares players use for grid references, and named landmarks.
     /// </summary>
+    /// <summary>A cloud of smoke: where, how wide, how tall, and the step it clears.</summary>
+    public sealed class SmokeCloud
+    {
+        public Vec2 Center { get; set; }
+        public float Radius { get; set; } = 10f;
+        public float Height { get; set; } = 8f;
+        public int UntilStep { get; set; }
+    }
+
     public sealed class MapGrid
     {
         readonly byte[] cells;
@@ -167,6 +176,17 @@ namespace FieldTable.Sim
         public float SquareSize { get; }
 
         public IReadOnlyList<Landmark> Landmarks => landmarks;
+
+        /// <summary>Smoke hanging over the map right now. The simulation adds and clears it.</summary>
+        public List<SmokeCloud> Smoke { get; } = new List<SmokeCloud>();
+
+        /// <summary>True when a point at a height above sea level is inside a smoke cloud.</summary>
+        public bool InSmoke(Vec2 p, float z)
+        {
+            foreach (var c in Smoke)
+                if (Vec2.Distance(p, c.Center) <= c.Radius && z <= GroundAt(c.Center) + c.Height) return true;
+            return false;
+        }
 
         public MapGrid(string name, int width, int height, float cellSize, float squareSize, IList<TerrainDef> terrainTable, string fillTerrain)
         {

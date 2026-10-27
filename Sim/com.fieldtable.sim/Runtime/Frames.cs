@@ -17,7 +17,7 @@ namespace FieldTable.Sim
         public readonly float X, Y, Facing;
         public readonly Posture Posture;
         public readonly Condition Condition;
-        public readonly bool Moving, Firing, Seen;
+        public readonly bool Moving, Firing, Seen, Detained;
         public readonly string Emote;
 
         public UnitFrame(Unit u, bool seen)
@@ -32,6 +32,7 @@ namespace FieldTable.Sim
             Firing = u.IsFiring;
             Emote = u.Emote;
             Seen = seen;
+            Detained = u.Detained;
         }
     }
 }

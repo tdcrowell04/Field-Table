@@ -21,8 +21,9 @@ namespace FieldTable.Sim
             var mine = units.Where(u => ReferenceEquals(u.Force, force)).ToList();
             if (string.IsNullOrWhiteSpace(name)) return new List<Unit>();
             string n = name.Trim();
+            // A drone is only ever called by name, never as part of the squad or a team.
             if (n.Equals("squad", StringComparison.OrdinalIgnoreCase) || n.Equals("all", StringComparison.OrdinalIgnoreCase) || n.Equals("everyone", StringComparison.OrdinalIgnoreCase))
-                return mine;
+                return mine.Where(u => !u.Def.Flying).ToList();
             var team = mine.Where(u => string.Equals(u.Team, n, StringComparison.OrdinalIgnoreCase)).ToList();
             if (team.Count > 0) return team;
             return mine.Where(u => u.IsCalled(n)).ToList();
@@ -36,6 +37,8 @@ namespace FieldTable.Sim
         {
             var list = UnitsCalled(force, who);
             var results = new List<OrderCheck>();
+            order.Verb = (order.Verb ?? "").Trim().ToLowerInvariant();
+            var teams = list.Select(u => u.Team).Distinct().ToList();
             if (list.Count == 0)
             {
                 results.Add(new OrderCheck { Ok = false, Problem = "Nobody called " + who + " in " + force.Name + "." });
@@ -48,6 +51,8 @@ namespace FieldTable.Sim
             {
                 var o = order.Copy();
                 o.Group = group;
+                // Bounding: teams take turns when it's more than one team; inside a team, every other Marine.
+                if (o.Verb == Verbs.Bound) o.Half = teams.Count > 1 ? teams.IndexOf(list[i].Team) % 2 : Math.Max(0, able.IndexOf(list[i])) % 2;
                 Vec2 offset = default;
                 if (list.Count > 1 && able.Count > 1)
                 {
@@ -84,8 +89,16 @@ namespace FieldTable.Sim
             var check = new OrderCheck { Unit = unit };
             string verb = (order.Verb ?? "").Trim().ToLowerInvariant();
             order.Verb = verb;
+            if (unit.Def.Flying) return Fail(check, "Tell " + (unit.Operator?.Name ?? "the drone operator") + " to fly it there, Lead.");
+            if (unit.Detained) return Fail(check, unit.Name + " is detained.");
+            if (unit.Gone) return Fail(check, unit.Name + " isn't here any more.");
             if (!unit.CanAct) return Fail(check, unit.Name + " is " + (unit.Condition == Condition.Dead ? "dead" : "down") + " and can't act.");
             if (!Verbs.Built.Contains(verb)) return Fail(check, "not covered: " + verb);
+            if (unit.LegHit && Verbs.NeedsLegs(verb)) return Fail(check, unit.Name + ": Can't walk, Lead. I need to be carried.");
+
+            // A request names what it asks for, not a place or a person; flying the drone home names no place.
+            if (verb == Verbs.Request && string.IsNullOrWhiteSpace(order.Kind) && !string.IsNullOrWhiteSpace(order.Target)) { order.Kind = order.Target; order.Target = null; }
+            if (verb == Verbs.FlyDrone && order.Where != null && RecallWords.Contains(order.Where.Trim().ToLowerInvariant())) order.Where = null;
 
             // Where the order points, if anywhere.
             if (!string.IsNullOrWhiteSpace(order.Where))
@@ -155,6 +168,116 @@ namespace FieldTable.Sim
                 case Verbs.ChangePosture:
                     if (ParsePosture(order.Posture) == null) return Fail(check, "Say again, stand, kneel, or get down?");
                     break;
+
+                case Verbs.Bound:
+                    if (order.Point == null && order.TargetUnit != null) order.Point = Clamp(order.TargetUnit.Position + offset);
+                    if (order.Point == null) return Fail(check, "Say again, bound where?");
+                    if (!Route(check, unit, order)) return check;
+                    order.LastPos = unit.Position;
+                    break;
+
+                case Verbs.Overwatch:
+                    {
+                        // Where is the spot to watch from (optional); target is what to watch.
+                        Vec2? watch = order.TargetUnit?.Position;
+                        if (watch == null && !string.IsNullOrWhiteSpace(order.Target) && TryPlace(unit, order.Target, out Vec2 wp)) watch = wp;
+                        if (string.IsNullOrWhiteSpace(order.Where)) order.Point = null;
+                        order.Watch = watch;
+                        if (order.Point != null && !Route(check, unit, order)) return check;
+                        break;
+                    }
+
+                case Verbs.ThrowSmoke:
+                    if (unit.Smokes <= 0) return Fail(check, unit.Name + " is out of smoke.");
+                    if (order.Point == null && order.TargetUnit != null) order.Point = order.TargetUnit.Position;
+                    if (order.Point == null) order.Point = SmokeSpot(unit);
+                    if (Vec2.Distance(unit.Position, order.Point.Value) > ThrowRange) return Fail(check, "Too far to throw, that's past 35 meters.");
+                    break;
+
+                case Verbs.Clear:
+                    order.Building = BuildingAt(order.Point ?? order.TargetUnit?.Position);
+                    if (order.Building == null) return Fail(check, "Say again, which building?");
+                    order.Point = order.Building.Center;
+                    if (!Route(check, unit, order)) return check;
+                    break;
+
+                case Verbs.Breach:
+                    {
+                        if (order.Point == null) return Fail(check, "Say again, breach where?");
+                        // A grid square means anywhere in it; a named place means right there.
+                        GridRef? square = GridRef.TryParse((order.Where ?? "").Replace(" ", ""), out GridRef g) && Map.IsOnMap(g) ? g : (GridRef?)null;
+                        var bp = FindBreachPoint(order.Point.Value, unit.Position, square);
+                        if (bp == null) return Fail(check, "Nothing to breach there, Lead.");
+                        order.Watch = bp;
+                        order.Point = bp;
+                        if (!Route(check, unit, order)) return check;
+                        break;
+                    }
+
+                case Verbs.FlyDrone:
+                    if (DroneOf(unit) == null) return Fail(check, unit.Name + " doesn't have a drone.");
+                    break;
+
+                case Verbs.Talk:
+                    if (order.TargetUnit == null || ReferenceEquals(order.TargetUnit.Force, unit.Force)) return Fail(check, "Say again, talk to who?");
+                    if (order.TargetUnit.CanAct && AreHostile(unit.Force, order.TargetUnit.Force)) return Fail(check, order.TargetUnit.Name + " is fighting us, Lead. Detain them first.");
+                    order.Point = order.TargetUnit.Position;
+                    if (!Route(check, unit, order)) return check;
+                    break;
+
+                case Verbs.Search:
+                    if (order.TargetUnit != null && !ReferenceEquals(order.TargetUnit.Force, unit.Force))
+                    {
+                        if (order.TargetUnit.CanAct && AreHostile(unit.Force, order.TargetUnit.Force)) return Fail(check, order.TargetUnit.Name + " is still fighting, Lead.");
+                        order.Point = order.TargetUnit.Position;
+                    }
+                    else
+                    {
+                        order.TargetUnit = null;
+                        if (order.Point == null) order.Point = unit.Position;
+                    }
+                    if (Vec2.Distance(unit.Position, order.Point.Value) > 1f && !Route(check, unit, order)) return check;
+                    break;
+
+                case Verbs.Carry:
+                    {
+                        var cas = order.TargetUnit;
+                        if (cas == null || !ReferenceEquals(cas.Force, unit.Force) || ReferenceEquals(cas, unit) || cas.Def.Flying) return Fail(check, "Say again, carry who?");
+                        if (cas.Condition == Condition.Dead) return Fail(check, cas.Name + " is gone, Lead.");
+                        if (!(cas.Condition == Condition.Down || cas.LegHit)) return Fail(check, cas.Name + " can walk, Lead.");
+                        if (string.IsNullOrWhiteSpace(order.Where))
+                        {
+                            if (Evac == null) return Fail(check, "Carry " + cas.Name + " where, Lead?");
+                            order.Point = Evac.Lz;
+                            order.Where = "the LZ";
+                        }
+                        if (Paths.Find(cas.Position, order.Point.Value, order.Swim) == null) return Fail(check, "No way to carry " + cas.Name + " there from here.");
+                        var toCasualty = Paths.Find(unit.Position, cas.Position, order.Swim);
+                        if (toCasualty == null) return Fail(check, "No way to get to " + cas.Name + " from here.");
+                        check.Path = toCasualty;
+                        break;
+                    }
+
+                case Verbs.Detain:
+                    {
+                        var p = order.TargetUnit;
+                        if (p == null || ReferenceEquals(p.Force, unit.Force)) return Fail(check, "Say again, detain who?");
+                        if (p.Detained) return Fail(check, p.Name + " is already detained.");
+                        if (p.Condition == Condition.Dead) return Fail(check, p.Name + " is dead, Lead.");
+                        if (AreHostile(unit.Force, p.Force) && p.CanAct && !(p.Condition == Condition.Wounded && p.Suppression >= PinnedAt)) return Fail(check, p.Name + " is still fighting, Lead.");
+                        order.Point = p.Position;
+                        if (!Route(check, unit, order)) return check;
+                        break;
+                    }
+
+                case Verbs.Request:
+                    {
+                        string what = (order.Kind ?? "").Trim().ToLowerInvariant();
+                        if (!(what.Contains("casevac") || what.Contains("medevac") || what.Contains("dustoff"))) return Fail(check, "not covered: request " + (what.Length == 0 ? "something" : what));
+                        if (Evac != null) return Fail(check, "CASEVAC is already on the way, Lead.");
+                        if (order.Point == null) return Fail(check, "Say again, where's the LZ?");
+                        break;
+                    }
             }
 
             check.Ok = true;
@@ -213,7 +336,47 @@ namespace FieldTable.Sim
                 point = Map.SquareCenter(g);
                 return true;
             }
-            return false;
+            return TryGround(unit, name, out point);
+        }
+
+        // Everyday words for kinds of ground, and the terrain each means.
+        static readonly Dictionary<string, string[]> GroundWords = new Dictionary<string, string[]>
+        {
+            { "woods", new[] { "forest" } }, { "wood", new[] { "forest" } }, { "forest", new[] { "forest" } }, { "trees", new[] { "forest", "orchard" } },
+            { "treeline", new[] { "forest" } }, { "tree line", new[] { "forest" } }, { "pines", new[] { "forest" } }, { "orchard", new[] { "orchard" } },
+            { "field", new[] { "stubble", "plowed", "corn", "grass" } }, { "fields", new[] { "stubble", "plowed", "corn", "grass" } },
+            { "crops", new[] { "corn" } }, { "corn", new[] { "corn" } }, { "cornfield", new[] { "corn" } }, { "tall crops", new[] { "corn" } },
+            { "reeds", new[] { "marsh" } }, { "marsh", new[] { "marsh" } }, { "swamp", new[] { "marsh" } },
+            { "scrub", new[] { "scrub" } }, { "brush", new[] { "scrub" } }, { "bushes", new[] { "scrub" } },
+            { "hedge", new[] { "hedge" } }, { "hedgerow", new[] { "hedge" } }, { "wall", new[] { "wall" } }, { "stone wall", new[] { "wall" } },
+            { "rocks", new[] { "rocky" } }, { "gully", new[] { "gully" } }, { "ditch", new[] { "gully" } }, { "wash", new[] { "gully" } },
+            { "road", new[] { "road" } }, { "trail", new[] { "trail" } }, { "path", new[] { "trail" } }, { "creek", new[] { "creek" } }, { "stream", new[] { "creek" } },
+            { "building", new[] { "building" } }, { "buildings", new[] { "building" } }, { "house", new[] { "building" } }, { "farmyard", new[] { "yard" } }, { "yard", new[] { "yard" } },
+            { "cliff", new[] { "cliff" } }, { "bridge", new[] { "bridge" } },
+        };
+
+        /// <summary>
+        /// A kind of ground in a grid square, like "the woods at C3": the patch of it in that square nearest the unit.
+        /// </summary>
+        bool TryGround(Unit unit, string name, out Vec2 point)
+        {
+            point = default;
+            var m = System.Text.RegularExpressions.Regex.Match(name.Trim().ToLowerInvariant(), @"^(?:the\s+)?(.+?)\s+(?:in|at|on|of)\s+([a-z]\s?\d{1,2})$");
+            if (!m.Success || !GroundWords.TryGetValue(m.Groups[1].Value.Trim(), out string[] kinds)) return false;
+            if (!GridRef.TryParse(m.Groups[2].Value.Replace(" ", ""), out GridRef g) || !Map.IsOnMap(g)) return false;
+            Vec2 c = Map.SquareCenter(g);
+            float half = Map.SquareSize / 2f;
+            float best = float.MaxValue;
+            bool found = false;
+            for (float y = c.Y - half + 1f; y < c.Y + half; y += 2f)
+                for (float x = c.X - half + 1f; x < c.X + half; x += 2f)
+                {
+                    var p = new Vec2(x, y);
+                    if (!Map.InBounds(p) || Array.IndexOf(kinds, Map.TerrainAt(p).Id) < 0) continue;
+                    float d = Vec2.Distance(p, unit.Position);
+                    if (d < best) { best = d; point = p; found = true; }
+                }
+            return found;
         }
 
         /// <summary>A unit an order points at: a spotted enemy, a civilian, or a friend.</summary>
@@ -221,10 +384,36 @@ namespace FieldTable.Sim
         {
             var friend = units.FirstOrDefault(u => ReferenceEquals(u.Force, unit.Force) && u.IsCalled(name));
             if (friend != null) return friend;
-            var known = Fog.For(unit.Force).Contacts.Select(c => c.Unit).Where(u => u.Condition != Condition.Dead).ToList();
+            var known = Fog.For(unit.Force).Contacts.Select(c => c.Unit).Where(u => u.Condition != Condition.Dead && !u.Gone).ToList();
+            // An exact name wins over a partial one, so "Rifleman 1" never means "Rifleman 12".
+            var exact = known.Where(u => u.IsCalled(name)).OrderBy(u => Vec2.Distance(unit.Position, Fog.For(unit.Force).About(u.Id).LastKnownPosition)).FirstOrDefault();
+            if (exact != null) return exact;
             string n = name.Trim().ToLowerInvariant();
             var matches = known.Where(u => u.IsCalled(name) || (u.Name ?? "").ToLowerInvariant().Contains(n) || (u.Def.Name ?? "").ToLowerInvariant().Contains(n)).ToList();
             return matches.OrderBy(u => Vec2.Distance(unit.Position, Fog.For(unit.Force).About(u.Id).LastKnownPosition)).FirstOrDefault();
+        }
+
+        static readonly HashSet<string> RecallWords = new HashSet<string> { "back", "home", "land", "me", "here", "base" };
+
+        /// <summary>The building at or nearest a point, within 12 meters.</summary>
+        Landmark BuildingAt(Vec2? p)
+        {
+            if (p == null) return null;
+            Vec2 at = p.Value;
+            return Map.Landmarks.Where(l => l.Kind == "building")
+                .Select(l => (l, d: l.Contains(at) ? 0f : Vec2.Distance(l.Center, at)))
+                .Where(x => x.d <= 12f).OrderBy(x => x.d).Select(x => x.l).FirstOrDefault();
+        }
+
+        /// <summary>Where to pop smoke when no spot is named: 15 meters toward the nearest known enemy, or at their feet.</summary>
+        Vec2 SmokeSpot(Unit unit)
+        {
+            var near = Fog.For(unit.Force).Contacts.Where(c => AreHostile(unit.Force, c.Unit.Force) && c.Unit.CanAct)
+                .OrderBy(c => Vec2.Distance(c.LastKnownPosition, unit.Position)).FirstOrDefault();
+            if (near == null) return unit.Position;
+            Vec2 to = near.LastKnownPosition - unit.Position;
+            float len = to.Length;
+            return len < 0.1f ? unit.Position : Clamp(unit.Position + to * (Math.Min(15f, len) / len));
         }
 
         Unit NearestCasualty(Unit unit) =>
@@ -284,7 +473,7 @@ namespace FieldTable.Sim
             string s = (o.Speed ?? "").ToLowerInvariant();
             if (s == "run" || s == "rush" || s == "sprint") return MoveSpeed.Run;
             if (s == "crawl" || s == "low crawl") return MoveSpeed.Crawl;
-            if (o.Verb == Verbs.Withdraw) return MoveSpeed.Run;
+            if (o.Verb == Verbs.Withdraw || o.Verb == Verbs.Bound) return MoveSpeed.Run;
             return MoveSpeed.Walk;
         }
 

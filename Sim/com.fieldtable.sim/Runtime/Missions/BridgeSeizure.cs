@@ -10,6 +10,9 @@ namespace FieldTable.Sim
     /// </summary>
     public static class BridgeSeizure
     {
+        /// <summary>How many enemy fighters hold the far bank: a random number in this range each mission.</summary>
+        public const int MinEnemy = 5, MaxEnemy = 9;
+
         public static Mission Create(GameData data, NamePools names, ulong seed)
         {
             if (data == null) throw new ArgumentNullException(nameof(data));
@@ -76,7 +79,7 @@ namespace FieldTable.Sim
             mission.Secondary.Add(new SecondaryObjective("civilians", "No civilians hurt", m => m.AnyoneHurt(m.Civilians)));
             // Nothing can damage the bridge yet, so this one holds until explosives that can are built.
             mission.Secondary.Add(new SecondaryObjective("bridge", "The bridge left standing", m => false));
-            mission.Secondary.Add(new SecondaryObjective("marines", "Every Marine comes home alive", m => m.Sim.Units.Any(u => ReferenceEquals(u.Force, m.Marines) && u.Condition == Condition.Dead)));
+            mission.Secondary.Add(new SecondaryObjective("marines", "Every Marine comes home alive", m => m.Squad.Any(u => u.Condition == Condition.Dead)));
             return mission;
         }
 
@@ -108,6 +111,13 @@ namespace FieldTable.Sim
                 u.Callsigns.AddRange(s.calls);
                 u.Facing = i + 1 < column.Count ? Bearing(column[i + 1], column[i]) : 0f;
                 sim.AddUnit(u);
+                // A Marine who flies a drone carries it in its case until it's launched.
+                if (u.Def.Drone != null)
+                {
+                    var drone = new Unit(s.id + "-drone", "Drone", data.FindUnit(u.Def.Drone), force, u.Position) { Operator = u, Gone = true };
+                    drone.Callsigns.Add("drone");
+                    sim.AddUnit(drone);
+                }
             }
         }
 
@@ -137,10 +147,21 @@ namespace FieldTable.Sim
                 u.Facing = Bearing(best, bridge);
                 sim.AddUnit(u);
             }
-            Place("pkm", "PKM gunner", "en-pkm", 80f, 220f, Posture.Prone);
-            Place("enemy-1", "Rifleman 1", "en-rf", 25f, 90f, Posture.Kneeling);
-            Place("enemy-2", "Rifleman 2", "en-rf", 25f, 90f, Posture.Kneeling);
-            Place("rpg", "RPG gunner", "en-rpg", 40f, 130f, Posture.Kneeling);
+            // A random 5 to 9 fighters, each a random kind: rifleman, machine gunner, or RPG gunner.
+            int count = MinEnemy + (int)(Next(rng) * (MaxEnemy - MinEnemy + 1));
+            var kinds = new[]
+            {
+                (def: "en-rf", name: "Rifleman", near: 25f, far: 90f, posture: Posture.Kneeling),
+                (def: "en-pkm", name: "PKM gunner", near: 80f, far: 220f, posture: Posture.Prone),
+                (def: "en-rpg", name: "RPG gunner", near: 40f, far: 130f, posture: Posture.Kneeling),
+            };
+            var numbered = new int[kinds.Length];
+            for (int i = 0; i < count; i++)
+            {
+                int k = Math.Min(kinds.Length - 1, (int)(Next(rng) * kinds.Length));
+                var kind = kinds[k];
+                Place("enemy-" + (i + 1), kind.name + " " + (++numbered[k]), kind.def, kind.near, kind.far, kind.posture);
+            }
         }
 
         static void AddCivilians(Simulation sim, Force force, GameData data, MapGrid map, Dice rng, Landmark village)

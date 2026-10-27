@@ -27,8 +27,11 @@ namespace FieldTable.Sim
         /// <summary>Blast radius in meters for grenades and rockets. 0 for bullets.</summary>
         public float Blast { get; set; }
 
-        /// <summary>Chance a hit puts someone down instead of wounding them, 0 to 1.</summary>
+        /// <summary>Chance a hit puts someone down instead of wounding them, 0 to 1. (Where a hit lands decides it now; kept for mods.)</summary>
         public float Lethality { get; set; } = 0.4f;
+
+        /// <summary>Blast radius in meters for armor-piercing (AP) rounds, which punch through walls. 0 when it has none.</summary>
+        public float ApBlast { get; set; }
 
         /// <summary>Fitted with a suppressor or flash hider: quieter, and no muzzle flash at night.</summary>
         public bool Suppressed { get; set; }

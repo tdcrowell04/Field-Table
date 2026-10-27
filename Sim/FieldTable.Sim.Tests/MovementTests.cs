@@ -134,6 +134,20 @@ namespace FieldTable.Sim.Tests
         }
 
         [Fact]
+        public void TheWoodsAtASquareMeansTheNearestPartOfThem()
+        {
+            var s = new Scene(paint: m => m.FillRect(240, 220, 40, 60, "forest"));
+            var m = s.Add("m", "rf", s.Blue, 100, 250);
+            Assert.True(s.Sim.TryPlace(m, "the woods at C3", out Vec2 p));
+            Assert.Equal("forest", s.Map.TerrainAt(p).Id);
+            Assert.InRange(p.X, 240f, 243f);
+            Assert.True(s.Order(m, Verbs.Move, "woods in C3").Ok);
+            var none = s.Order(m, Verbs.Move, "the reeds at C3");
+            Assert.False(none.Ok);
+            Assert.Equal("Say again, where is the reeds at C3?", none.Problem);
+        }
+
+        [Fact]
         public void AVerbThatIsNotBuiltYetGoesToTheAI()
         {
             var s = new Scene();

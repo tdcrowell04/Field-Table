@@ -17,10 +17,13 @@ namespace FieldTable.Sim.Tests
             {
                 var m = Make(seed);
                 var units = m.Sim.Units;
-                Assert.Equal(14, units.Count(u => u.Force == m.Marines));
-                Assert.Equal(4, units.Count(u => u.Force == m.Enemy));
+                Assert.Equal(14, m.Squad.Count());
+                var drone = Assert.Single(units, u => u.Force == m.Marines && u.Def.Flying);
+                Assert.True(drone.Gone);
+                Assert.Equal("charlie-rf", drone.Operator.Id);
+                Assert.InRange(units.Count(u => u.Force == m.Enemy), BridgeSeizure.MinEnemy, BridgeSeizure.MaxEnemy);
                 Assert.InRange(units.Count(u => u.Force == m.Civilians), 1, 5);
-                foreach (var u in units)
+                foreach (var u in units.Where(u => !u.Gone))
                 {
                     var t = m.Sim.Map.TerrainAt(u.Position);
                     Assert.False(t.Deep, "Seed " + seed + ": " + u.Name + " starts in deep water.");
