@@ -12,7 +12,7 @@ The bible says it best: *"If this isn't fun, nothing above it will be."* Triston
 
 - **A generated map:** a fresh one for every mission, built by code from building blocks. No hand-built maps. *"cinder ford doesn't need to be hand built."*
 - **One squad:** today's 13-Marine rifle squad (Alpha, Bravo, Charlie, and the squad leader) plus the platoon's corpsman.
-- **One mission:** the bridge seizure (Cinder Ford), one of Triston's 25 mission start states, with add-ins switched in by code.
+- **A handful of missions:** the bridge seizure (Cinder Ford), plus the start states Triston keeps from Claude's drafts (ledger round 15, (a)), with add-ins switched in by code. One is picked for each new mission.
 - **WEGO turns,** with a 1-minute default you can change in settings.
 - **Typed orders,** in Plain English mode first.
 - **Verbs:** all of them, from `verbs.md`. *"We're adding all of the verbs."*
@@ -53,7 +53,7 @@ Each piece ends with something you can run or test.
 10. **The order reader:** the AI, locked by a grammar.
 11. **The sand table view:** the tilted camera, the figures, rings, tracers, and the drone feed when a drone is up.
 12. **The screen:** selecting units, the order box, order cards, the path overlay, the net log, the dice, and the combat log.
-13. **The mission:** the bridge seizure start state, its add-ins, the brief, how it ends, and the debrief.
+13. **The missions:** the bridge seizure and the other start states kept, each with its add-ins, brief, how it ends, and debrief.
 14. **Playtest and tune** until Triston says it's fun.
 
 ## Who does what
