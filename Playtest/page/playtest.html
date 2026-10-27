@@ -581,7 +581,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   const RATE = { m27: 0.16, "m27-ar": 0.09, m4: 0.16, ak: 0.12, pkm: 0.075 };
   const PROJ = { m320: { fl: 1.0, arc: 14 }, "m320-ap": { fl: 1.0, arc: 14 }, grenade: { fl: 1.1, arc: 5 }, rpg: { fl: 0.55, arc: 0, rocket: true }, "rpg-ap": { fl: 0.55, arc: 0, rocket: true } };
 
-  const S = { cam: { x: 400, y: 300, s: 1 }, fitS: 1, roster: [], state: null, log: [], rolls: [], flip: {}, sel: -1, tap: null, marks: [], hover: null, pending: null, busy: false, speed: 4, tab: "net", briefMode: "quick", mw: 800, mh: 600, sq: 100 };
+  const S = { cam: { x: 400, y: 300, s: 1 }, fitS: 1, roster: [], state: null, log: [], rolls: [], flip: {}, sel: -1, tap: null, marks: [], hover: null, picks: [], lastPick: null, pending: null, busy: false, speed: 4, tab: "net", briefMode: "quick", mw: 800, mh: 600, sq: 100 };
   let P = null;  // the turn being played back
   let raf = 0;
 
@@ -1313,7 +1313,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     if (T.state.blown) paintCells(T.state.blown.cells);
     $("playbar").hidden = true;
     if (T.state.outcome) showOutcome(T.state);
-    logDb("turns", { turn: T.turn, outcome: T.state.outcome || null, marinesDown: S.roster.filter((r, i) => r.side === "us" && T.state.units[i] && /down|dead/.test(T.state.units[i].condition)).length, shots: T.shots.length });
+    logDb("turns", { turn: T.turn, addIn: S.lastPick || null, outcome: T.state.outcome || null, marinesDown: S.roster.filter((r, i) => r.side === "us" && T.state.units[i] && /down|dead/.test(T.state.units[i].condition)).length, shots: T.shots.length });
     clockText(); setButtons(); renderPane(); renderCard(); need();
   }
   function syncSpeed() { document.querySelectorAll("[data-speed]").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.speed === S.speed))); }
@@ -1335,13 +1335,15 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     blow: "The enemy was out to blow the bridge.",
     ambush: "The enemy was lying in wait to ambush you on the bridge."
   };
+  const ADDIN_TEXT = { reinforcements: "reinforcements", civilians: "civilians running", sniper: "a sniper", ied: "an IED", pullback: "the enemy pulling back", radio: "a dead radio" };
   function showOutcome(st) {
     const won = st.outcome === "success", b = $("banner");
     const ff = st.friendlyFire || 0;
     const grades = st.objectives.secondary.map(x => "<li class=\"" + x.status + "\">" + (x.status === "met" ? "✓ " : "✗ ") + esc(x.text) + "</li>").join("")
       + (ff ? "<li class=\"failed\">✗ Friendly fire: " + ff + (ff === 1 ? " Marine" : " Marines") + " hit by our own fire</li>" : "");
     const rating = st.rating ? "<div class=\"rating\"><small>Rating</small>" + esc(st.rating) + "</div>" : "";
-    const truth = GOAL_TEXT[st.enemyGoal] ? "<p>" + GOAL_TEXT[st.enemyGoal] + "</p>" : "";
+    const truth = (GOAL_TEXT[st.enemyGoal] ? "<p>" + GOAL_TEXT[st.enemyGoal] + "</p>" : "")
+      + (st.addIns && st.addIns.length ? "<p>The director switched in " + st.addIns.map(a => (ADDIN_TEXT[a.id] || a.id) + " (turn " + a.turn + ")").join(", ") + ".</p>" : "");
     b.innerHTML = "<h2>" + (won ? "Bridge seized" : "Mission failed") + "</h2>" + rating + "<p>" + esc(st.outcomeText) + "</p>" + truth + "<ul class=\"grades\">" + grades + "</ul><button class=\"btn primary small\" type=\"button\" id=\"againBtn\">New map</button>";
     b.hidden = false;
     $("againBtn").onclick = () => newMission(randomSeed());
@@ -1896,6 +1898,44 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     } catch (e) { /* the code's own words stand */ }
   }
 
+  // ------------------------------------------------------------------ the director
+  // Before each turn the code lists the add-ins that fit right now, inside its limits; Haiku picks one or none.
+  // Without Haiku, a die does: about one time in three.
+  async function directorPick() {
+    let d;
+    try { d = await call("DirectorOptions"); } catch (e) { return null; }
+    const ids = (d.options || []).map(o => o.id);
+    if (!ids.length) return null;
+    if (caps.sample) {
+      const st = S.state, o = S.m.objective;
+      const ours = S.roster.map((r, i) => [r, st.units[i]]).filter(([r, u]) => r.side === "us" && r.figure !== "drone" && r.figure !== "terp" && u && !u.gone);
+      const down = ours.filter(([, u]) => /down|dead/.test(u.condition)).length;
+      const closest = Math.round(Math.min(...ours.filter(([, u]) => u.x != null).map(([, u]) => Math.hypot(u.x - o.x, u.y - o.y))));
+      const seen = S.roster.filter((r, i) => r.side === "op" && st.units[i] && st.units[i].seen).length;
+      const prompt = [
+        "You're the director of a war game mission, like the AI Director in Left 4 Dead: you keep it tense and interesting, and never unfair.",
+        "Here's where the mission stands, and the add-ins that fit right now. Pick one to switch on, or none if it's tense enough already.",
+        "- Turn " + st.turn + " of " + st.turnLimit + ".",
+        "- Marines down or dead: " + down + " of " + ours.length + ".",
+        "- The closest Marine is " + closest + " m from the bridge.",
+        "- Enemy fighters the Marines can see right now: " + seen + ".",
+        "- Add-ins already switched on: " + (S.picks.length ? S.picks.join(", ") : "none") + ".",
+        "Add-ins that fit:",
+        ...d.options.map(x => "- " + x.id + ": " + x.what),
+        "Answer with JSON: {\"pick\": \"<one of the ids above, or none>\"}"
+      ].join("\n");
+      try {
+        const out = await Promise.race([
+          caps.sample.json(prompt, { model: "claude-haiku-5-5", modelTier: "quick" }),
+          new Promise((_, no) => setTimeout(() => no(new Error("slow")), 5000))
+        ]);
+        const p = out && typeof out.pick === "string" ? out.pick.trim().toLowerCase() : "";
+        return ids.includes(p) ? p : null;
+      } catch (e) { /* fall through to the die */ }
+    }
+    return Math.random() < 0.35 ? ids[Math.floor(Math.random() * ids.length)] : null;
+  }
+
   async function playTurn() {
     if (S.busy || P || !S.m || S.state.outcome) return;
     if (box.value.trim() && !S.pending) { await send(); addLog({ kind: "event", text: "Check the orders, then press Play turn." }); return; }
@@ -1922,7 +1962,11 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
         pd.read.sayAgain.forEach(s => addLog({ kind: "radio warn", who: "", text: s }));
         S.pending = null;
       }
-      const T = await call("RunTurn");
+      const pick = await directorPick();
+      const T = await call("RunTurn", pick);
+      S.lastPick = pick;
+      if (pick) S.picks.push(pick);
+      if (T.joined) S.roster.push(...T.joined);
       await voice(T);
       S.busy = false;
       startPlayback(T);
@@ -1949,7 +1993,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       const m = await call("NewMission", S.data.t, S.data.u, S.data.n, seed);
       S.m = m; S.seed = seed; S.map = m.map; S.roster = m.roster; S.state = m.state;
       S.mw = m.map.w * m.map.cell; S.mh = m.map.h * m.map.cell; S.sq = m.map.square;
-      S.log = []; S.rolls = []; S.flip = {}; S.sel = -1; S.tap = null; S.marks = []; S.hover = null; S.pending = null; S.busy = false;
+      S.log = []; S.rolls = []; S.flip = {}; S.sel = -1; S.tap = null; S.marks = []; S.hover = null; S.pending = null; S.busy = false; S.picks = []; S.lastPick = null;
       buildGround(m.map);
       S.breaches = 0; S.painted = 0;
       squareGround(m.map);

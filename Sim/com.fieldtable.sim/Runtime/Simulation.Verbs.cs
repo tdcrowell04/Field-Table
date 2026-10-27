@@ -192,6 +192,8 @@ namespace FieldTable.Sim
             CasevacTick();
             ThinkPlans();
             ThinkSurrender();
+            IedTick();
+            RadioTick();
         }
 
         // ---------- clear a building ----------

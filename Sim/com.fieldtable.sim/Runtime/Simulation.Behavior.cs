@@ -701,8 +701,12 @@ namespace FieldTable.Sim
         internal void RemoveUnitForTest(Unit u) => units.Remove(u);
 
         /// <summary>A call on the net. Important ones carry a kind and a place, so the map can mark them.</summary>
-        internal void Radio(Unit from, string text, string kind = null, Vec2? at = null, string speaker = null) =>
+        internal void Radio(Unit from, string text, string kind = null, Vec2? at = null, string speaker = null)
+        {
+            // A team whose radio is down isn't heard on the net, unless Lead is close enough to hear them shout.
+            if (OffTheNet(from)) return;
             Record(new RadioCall(from, text, kind, kind != null ? at ?? from?.Position : null, speaker));
+        }
 
         // ---------- calling out contacts ----------
 

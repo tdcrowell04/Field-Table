@@ -93,6 +93,7 @@ namespace FieldTable.Sim
             if (unit.Detained) return Fail(check, unit.Name + " is detained.");
             if (unit.Gone) return Fail(check, unit.Name + " isn't here any more.");
             if (!unit.CanAct) return Fail(check, unit.Name + " is " + (unit.Condition == Condition.Dead ? "dead" : "down") + " and can't act.");
+            if (OffTheNet(unit)) return Fail(check, unit.Team + " isn't answering, Lead. Their radio's down; get within " + (int)ShoutingDistance + " m and shout it.");
             if (!Verbs.Built.Contains(verb)) return Fail(check, "not covered: " + verb);
             if (unit.LegHit && Verbs.NeedsLegs(verb)) return Fail(check, unit.Name + ": Can't walk, Lead. I need to be carried.");
 

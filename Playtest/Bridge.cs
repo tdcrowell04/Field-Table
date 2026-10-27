@@ -68,14 +68,35 @@ namespace FieldTable.Playtest
         [JSInvokable]
         public static string GiveOrders(string ordersJson) => Json(w => WriteChecks(w, ordersJson, true));
 
-        /// <summary>Plays one minute and returns it for playback: frames, shots, blasts, radio, rolls, events, and the outcome.</summary>
+        /// <summary>The add-ins the director could switch on before the next turn, for the in-game AI to pick from.</summary>
         [JSInvokable]
-        public static string RunTurn() => Json(w =>
+        public static string DirectorOptions() => Json(w =>
+        {
+            w.WriteStartArray("options");
+            foreach (var o in mission.Director?.Options() ?? new List<AddInOption>())
+            {
+                w.WriteStartObject();
+                w.WriteString("id", o.Id);
+                w.WriteString("what", o.What);
+                w.WriteEndObject();
+            }
+            w.WriteEndArray();
+        });
+
+        /// <summary>
+        /// Plays one minute and returns it for playback: frames, shots, blasts, radio, rolls, events, and the outcome.
+        /// First it switches on the add-in the director picked, if any; units it brings in come back as "joined".
+        /// </summary>
+        [JSInvokable]
+        public static string RunTurn(string addIn) => Json(w =>
         {
             var sim = Current.Sim;
             if (mission.Outcome != null) throw new InvalidOperationException("The mission is over: " + mission.OutcomeText);
+            int known = sim.Units.Count;
             int turn = sim.Clock.Turn;
             int from = sim.Log.Events.Count;
+            // Switched on before the turn, so whatever it says on the net plays back with the turn.
+            if (!string.IsNullOrEmpty(addIn)) mission.Director?.Apply(addIn);
             int startStep = sim.Clock.Step;
             sim.RunTurn();
             mission.CheckOutcome();
@@ -258,6 +279,7 @@ namespace FieldTable.Playtest
                 }
                 w.WriteEndArray();
 
+                if (sim.Units.Count > known) WriteRoster(w, "joined", known);
                 WriteState(w);
             }
         });
@@ -371,10 +393,12 @@ namespace FieldTable.Playtest
         // ---------- units ----------
 
         /// <summary>Every unit's fixed facts, in the order frames list them. Enemies show only what a Marine could tell by looking.</summary>
-        static void WriteRoster(Utf8JsonWriter w)
+        static void WriteRoster(Utf8JsonWriter w) => WriteRoster(w, "roster", 0);
+
+        static void WriteRoster(Utf8JsonWriter w, string name, int from)
         {
-            w.WriteStartArray("roster");
-            foreach (var u in mission.Sim.Units)
+            w.WriteStartArray(name);
+            foreach (var u in mission.Sim.Units.Skip(from))
             {
                 bool ours = ReferenceEquals(u.Force, mission.Marines);
                 w.WriteStartObject();
@@ -411,8 +435,17 @@ namespace FieldTable.Playtest
                 w.WriteString("outcome", mission.Outcome);
                 w.WriteString("outcomeText", mission.OutcomeText);
                 w.WriteString("rating", mission.Rating);
-                // At the end, what the enemy was really up to.
+                // At the end, what the enemy was really up to, and what the director switched in.
                 if (mission.Enemy.Plan != null) w.WriteString("enemyGoal", mission.Enemy.Plan.Goal);
+                w.WriteStartArray("addIns");
+                foreach (var (id, when) in mission.Director?.Used ?? new List<(string, int)>())
+                {
+                    w.WriteStartObject();
+                    w.WriteString("id", id);
+                    w.WriteNumber("turn", when);
+                    w.WriteEndObject();
+                }
+                w.WriteEndArray();
             }
             w.WriteStartArray("units");
             foreach (var u in sim.Units)

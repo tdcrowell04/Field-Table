@@ -82,6 +82,10 @@ namespace FieldTable.Sim
             // The secondary objectives come from the commander's intent, plus bringing everyone home.
             mission.Secondary.Add(new SecondaryObjective("civilians", "No civilians hurt", m => m.AnyoneHurt(m.Civilians)));
             mission.Secondary.Add(new SecondaryObjective("bridge", "The bridge left standing", m => m.BridgeBlown));
+
+            // The director, with what it needs to place things: the banks, and the road over the bridge.
+            var road = map.Landmarks.Where(l => l.Kind == "line" && l.Label.StartsWith("Route ", StringComparison.Ordinal)).OrderBy(l => DistanceTo(b0, l.Points)).FirstOrDefault();
+            mission.Director = new Director(mission, data, new Dice(seed, 13), water.Points, enemySide, road?.Points);
             mission.Secondary.Add(new SecondaryObjective("marines", "Every Marine comes home alive", m => m.Squad.Any(u => u.Condition == Condition.Dead)));
             return mission;
         }
@@ -327,7 +331,7 @@ namespace FieldTable.Sim
         }
 
         /// <summary>The nearest spot someone can stand, not in water or a building and not on top of anyone, within 30 m.</summary>
-        static Vec2 Standable(MapGrid map, Vec2 p, IEnumerable<Vec2> taken)
+        internal static Vec2 Standable(MapGrid map, Vec2 p, IEnumerable<Vec2> taken)
         {
             var others = taken.ToList();
             bool Ok(Vec2 q)
@@ -347,7 +351,7 @@ namespace FieldTable.Sim
         }
 
         /// <summary>True when an enemy in its spot has a clear line to a Marine standing there, within eye range by day.</summary>
-        static bool Sees(MapGrid map, Unit e, Vec2 p) =>
+        internal static bool Sees(MapGrid map, Unit e, Vec2 p) =>
             Vec2.Distance(e.Position, p) <= FogOfWar.DayEyeRange && Sight.Trace(map, e.Position, Postures.Height(e.Posture), p, Postures.Height(Posture.Standing)).Clear;
 
         /// <summary>
@@ -471,7 +475,7 @@ namespace FieldTable.Sim
 
         // ---------- helpers ----------
 
-        static float Next(Dice d) => (d.NextUInt() >> 8) * (1f / 16777216f);
+        internal static float Next(Dice d) => (d.NextUInt() >> 8) * (1f / 16777216f);
 
         static List<T> Shuffle<T>(IList<T> list, Dice rng)
         {
@@ -490,7 +494,7 @@ namespace FieldTable.Sim
         /// How far a point is from the water's line, plus on one bank and minus on the other. It follows the bends,
         /// so a spot round a bend is still on the bank it's really on.
         /// </summary>
-        static float Bank(IReadOnlyList<Vec2> line, Vec2 p)
+        internal static float Bank(IReadOnlyList<Vec2> line, Vec2 p)
         {
             int best = 0;
             float bestD = float.MaxValue;
@@ -504,10 +508,10 @@ namespace FieldTable.Sim
             return cross < 0f ? -bestD : bestD;
         }
 
-        static Vec2 Inside(MapGrid map, Vec2 p) =>
+        internal static Vec2 Inside(MapGrid map, Vec2 p) =>
             new Vec2(Math.Max(3f, Math.Min(map.WidthMeters - 3f, p.X)), Math.Max(3f, Math.Min(map.HeightMeters - 3f, p.Y)));
 
-        static float Bearing(Vec2 a, Vec2 b) => (float)(Math.Atan2(b.X - a.X, -(b.Y - a.Y)) * 180.0 / Math.PI + 360.0) % 360f;
+        internal static float Bearing(Vec2 a, Vec2 b) => (float)(Math.Atan2(b.X - a.X, -(b.Y - a.Y)) * 180.0 / Math.PI + 360.0) % 360f;
 
         static float DistanceTo(Vec2 p, IReadOnlyList<Vec2> line)
         {

@@ -27,6 +27,9 @@ namespace FieldTable.Sim
         /// <summary>What the mission asks for on top of the main objective. They don't decide winning or losing; the end grades them.</summary>
         public List<SecondaryObjective> Secondary { get; } = new List<SecondaryObjective>();
 
+        /// <summary>The director, which switches add-ins in as the mission goes. Null for a mission without one.</summary>
+        public Director Director { get; internal set; }
+
         /// <summary>A Marine this close to the objective is on it.</summary>
         public const float OnObjective = 15f;
 

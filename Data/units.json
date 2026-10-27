@@ -106,6 +106,29 @@
       "blast": 12,
       "lethality": 0.8,
       "caliber": "demo"
+    },
+    {
+      "id": "svd",
+      "name": "SVD sniper rifle",
+      "range": 800,
+      "burst": 1,
+      "cycle": 4,
+      "accuracy": 0.55,
+      "suppress": 0.3,
+      "lethality": 0.7,
+      "caliber": "7.62x54R"
+    },
+    {
+      "id": "ied",
+      "name": "IED",
+      "range": 1,
+      "burst": 1,
+      "cycle": 1,
+      "accuracy": 1,
+      "suppress": 1.0,
+      "blast": 7,
+      "lethality": 0.8,
+      "caliber": "ied"
     }
   ],
   "units": [
@@ -251,6 +274,14 @@
       "weapon": "ak",
       "ammo": 90,
       "load": 18
+    },
+    {
+      "id": "en-snp",
+      "name": "Enemy sniper",
+      "figure": "oprf",
+      "weapon": "svd",
+      "ammo": 40,
+      "load": 14
     },
     {
       "id": "civ",

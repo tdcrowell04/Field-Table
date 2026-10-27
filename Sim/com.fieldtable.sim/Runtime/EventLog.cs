@@ -128,7 +128,7 @@ namespace FieldTable.Sim
             Radius = ap && weapon.ApBlast > 0f ? weapon.ApBlast : weapon.Blast;
         }
 
-        public override string Describe() => Weapon.Name + (Ap ? " (AP)" : "") + " from " + Shooter.Name + " goes off.";
+        public override string Describe() => Weapon.Name + (Ap ? " (AP)" : "") + (Shooter == null ? "" : " from " + Shooter.Name) + " goes off.";
     }
 
     public sealed class UnitWounded : SimEvent
@@ -197,6 +197,31 @@ namespace FieldTable.Sim
         public float Radius { get; }
         public BreachMade(Unit unit, Vec2 at, float radius) { Unit = unit; At = at; Radius = radius; }
         public override string Describe() => Unit.Name + " opens a breach.";
+    }
+
+    public sealed class IedWentOff : SimEvent
+    {
+        public Ied Ied { get; }
+        public Unit By { get; }
+        public IedWentOff(Ied ied, Unit by) { Ied = ied; By = by; }
+        public override string Describe() => "An IED goes off under " + By.Name + ".";
+    }
+
+    public sealed class IedFound : SimEvent
+    {
+        public Ied Ied { get; }
+        public Unit By { get; }
+        public IedFound(Ied ied, Unit by) { Ied = ied; By = by; }
+        public override string Describe() => By.Name + " spots an IED.";
+    }
+
+    /// <summary>The director switched an add-in on: what, and in plain words.</summary>
+    public sealed class AddInSwitchedOn : SimEvent
+    {
+        public string Id { get; }
+        public string What { get; }
+        public AddInSwitchedOn(string id, string what) { Id = id; What = what; }
+        public override string Describe() => "The director switches in " + What + ".";
     }
 
     public sealed class UnitSurrendered : SimEvent
