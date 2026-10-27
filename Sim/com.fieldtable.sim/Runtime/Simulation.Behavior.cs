@@ -379,7 +379,7 @@ namespace FieldTable.Sim
 
         void Fight(Unit u, float dt)
         {
-            if (!u.CanAct || u.Def.Weapon == null) return;
+            if (!u.CanAct || u.Def.Weapon == null || u.Asleep) return;
             u.FireCooldown -= dt;
             if (u.FireCooldown > 0f) return;
             if (u.Suppression >= PinnedAt) return;

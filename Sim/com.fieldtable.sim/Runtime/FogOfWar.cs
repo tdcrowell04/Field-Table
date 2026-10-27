@@ -120,7 +120,7 @@ namespace FieldTable.Sim
         /// <summary>How fast one observer is spotting one target, as progress per second. 0 when it can't.</summary>
         public static float SpotRate(MapGrid map, Unit observer, Unit target, LightLevel light = LightLevel.Day)
         {
-            if (!observer.CanAct) return 0f;
+            if (!observer.CanAct || observer.Asleep) return 0f;
             float d = Vec2.Distance(observer.Position, target.Position);
 
             float eye = EyeRange(light);

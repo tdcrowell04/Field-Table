@@ -457,7 +457,16 @@ namespace FieldTable.Sim
                 if (ReferenceEquals(x.Force, u.Force) || x.Gone || x.CanAct || x.Cargo == null || Vec2.Distance(u.Position, x.Position) > SearchReach) continue;
                 taken.Add(TakeCargo(u, x) + " from " + x.Name);
             }
-            Radio(u, u.Name + ": Search done. " + (found.Count == 0 ? "Nothing here." : "Found " + JoinAnd(found) + ".") + (taken.Count > 0 ? " Took " + JoinAnd(taken) + "." : ""), "info");
+            // Kit left on the ground close by gets wrecked.
+            var wrecked = new List<string>();
+            foreach (var g in gear.Where(g => !g.Wrecked && Vec2.Distance(u.Position, g.Position) <= SearchReach))
+            {
+                g.Wrecked = true;
+                Record(new GearWrecked(g, u));
+                wrecked.Add(g.Name);
+            }
+            Radio(u, u.Name + ": Search done. " + (found.Count == 0 ? "Nothing here." : "Found " + JoinAnd(found) + ".") + (taken.Count > 0 ? " Took " + JoinAnd(taken) + "." : "")
+                + (wrecked.Count > 0 ? " Wrecked " + JoinAnd(wrecked) + "." : ""), "info");
             Finish(u, null);
         }
 

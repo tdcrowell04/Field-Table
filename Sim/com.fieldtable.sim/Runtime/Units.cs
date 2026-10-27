@@ -198,6 +198,9 @@ namespace FieldTable.Sim
         public bool Surrendered { get; internal set; }
         internal int SurrenderCheckedStep = -100000;
 
+        /// <summary>Asleep at his post: he can't spot or shoot anyone until something wakes him.</summary>
+        public bool Asleep { get; internal set; }
+
         /// <summary>Taken prisoner by the other side and led away.</summary>
         public bool Captured { get; internal set; }
 

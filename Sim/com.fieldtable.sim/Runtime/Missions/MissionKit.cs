@@ -63,16 +63,18 @@ namespace FieldTable.Sim
 
         /// <summary>
         /// Organizes a side's soldiers the way an army does: in each squad of up to 9, in the order they were made, the
-        /// first rifleman leads it and carries its radio, and in a squad of 6 or more the next one leads a team. Then
-        /// each kind is numbered again from 1, so the names run in order.
+        /// first rifleman leads it and carries its radio, and in a squad of 6 or more the next one leads a team. Squads can
+        /// be named instead. Then each kind is numbered again from 1, so the names run in order.
         /// </summary>
-        public static void Organize(GameData data, IList<Unit> soldiers)
+        public static void Organize(GameData data, IList<Unit> soldiers, params IList<Unit>[] squads)
         {
             var leader = data.FindUnit("en-sl");
             var teamLeader = data.FindUnit("en-tl");
-            for (int start = 0; start < soldiers.Count; start += 9)
+            // The squads given, or else every 9 in order.
+            var groups = squads.Length > 0 ? squads.Select(q => q.ToList()).ToList()
+                : Enumerable.Range(0, (soldiers.Count + 8) / 9).Select(k => soldiers.Skip(k * 9).Take(9).ToList()).ToList();
+            foreach (var squad in groups)
             {
-                var squad = soldiers.Skip(start).Take(9).ToList();
                 var riflemen = squad.Where(u => u.Def.Id == "en-rf" && u.Name.StartsWith("Rifleman ", StringComparison.Ordinal)).ToList();
                 if (riflemen.Count > 0 && leader != null) { riflemen[0].Def = leader; riflemen[0].Name = "Squad leader"; }
                 if (riflemen.Count > 1 && squad.Count >= 6 && teamLeader != null) { riflemen[1].Def = teamLeader; riflemen[1].Name = "Team leader"; }

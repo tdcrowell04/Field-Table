@@ -13,6 +13,15 @@ namespace FieldTable.Sim
         public Ied(Vec2 position) { Position = position; }
     }
 
+    /// <summary>Kit left on the ground that the squad can wreck by searching where it is, like an enemy post's radio.</summary>
+    public sealed class Gear
+    {
+        public string Name { get; }
+        public Vec2 Position { get; }
+        public bool Wrecked { get; internal set; }
+        public Gear(string name, Vec2 position) { Name = name; Position = position; }
+    }
+
     /// <summary>What the director can switch in that lives in the simulation itself: IEDs, and a team's radio going dead.</summary>
     public sealed partial class Simulation
     {
@@ -27,6 +36,16 @@ namespace FieldTable.Sim
 
         readonly List<Ied> ieds = new List<Ied>();
         public IReadOnlyList<Ied> Ieds => ieds;
+
+        readonly List<Gear> gear = new List<Gear>();
+        public IReadOnlyList<Gear> GearOnTheGround => gear;
+
+        internal Gear PlaceGear(string name, Vec2 at)
+        {
+            var g = new Gear(name, at);
+            gear.Add(g);
+            return g;
+        }
 
         // Which teams have a dead radio, and the last turn it stays dead.
         readonly Dictionary<string, int> radioDown = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);

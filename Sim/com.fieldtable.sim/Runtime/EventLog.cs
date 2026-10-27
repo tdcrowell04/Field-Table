@@ -277,6 +277,15 @@ namespace FieldTable.Sim
         public override string Describe() => By.Name + " takes " + Cargo + " from " + From.Name + ".";
     }
 
+    /// <summary>A Marine wrecked kit left on the ground, like an enemy post's radio.</summary>
+    public sealed class GearWrecked : SimEvent
+    {
+        public Gear Gear { get; }
+        public Unit By { get; }
+        public GearWrecked(Gear gear, Unit by) { Gear = gear; By = by; }
+        public override string Describe() => By.Name + " wrecks " + Gear.Name + ".";
+    }
+
     /// <summary>Someone walked off the edge of the map and out of the mission.</summary>
     public sealed class UnitLeftMap : SimEvent
     {
