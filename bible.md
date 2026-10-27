@@ -225,12 +225,13 @@ Every mission played in the Field Table prototype is a candidate mission for the
 - Player-built missions and campaigns: players can bring them built all the way or only partly. The AI fills in whatever they leave out, and they share them on Steam Workshop.
 - Cinder Ford: the bridge seizure is one of the 25 start states, played on a freshly generated map each time.
   - Main objective: seize and hold the bridge.
-  - Enemy: a random 5 to 9 fighters each mission, so "unknown strength" in the brief means something. They set up on the far bank, each picking the best cover with a view of the bridge: the PKM 80 to 220 m back, the riflemen 25 to 90 m, the RPG 40 to 130 m. Each fighter is a random kind, not always a PKM and an RPG: *"Not always PKM and rpg. Random."* The mix should fit the mission: *"I really think that enemy squad composition should make sense for what the scenario is and what the objective is and what the enemy objective is."* So (ledger round 14) the enemy gets its own goal, and the goal picks who's there and where. A die picks one: hold the bridge (riflemen dug in near it, a machine gun on the approach), delay you (a few fighters far back who fall back across), blow it (an engineer with charges plus guards, so "the bridge left standing" can now fail), or ambush (they let you onto the bridge, then open up). The brief hints, but doesn't say which.
+  - Enemy: a different number and mix each mission, so "unknown strength" in the brief means something. They set up on the far bank. Not always the same kinds: *"Not always PKM and rpg. Random."* The mix should fit the mission: *"I really think that enemy squad composition should make sense for what the scenario is and what the objective is and what the enemy objective is."* So (ledger round 14) the enemy gets its own goal, and the goal picks who's there and where. A die picks one: hold the bridge (riflemen dug in near it, a machine gun on the approach), delay you (a few fighters far back who fall back across), blow it (an engineer with charges plus guards, so "the bridge left standing" can now fail), or ambush (they let you onto the bridge, then open up). The brief hints, but doesn't say which. How many each goal brings, where they set up, and what sets them off are Claude's numbers, up for accept or veto in ledger round 15. The end screen says what the goal was.
   - Where the squad starts: on the near bank, out of the enemy's sight, not lined up: *"the scenarios should make sense and be dynamic. But I would think we wouldn't have the squad starting directly in the enemy's sight, all lined up right next to each other"* As close to 300 m from the bridge as the cover allows, never under 150 m. Fire teams in wedges facing the bridge, one behind another, and anyone the enemy could see moves to the nearest hidden spot within 30 m.
   - A second bridge: some maps have another bridge over the same river. The squad can start where it's a way round, so you can cross there and flank.
   - Civilians: 3 to 5, each in a house in the village by the bridge.
   - How it ends: you lose with 7 Marines down, or after turn 40. You win with a Marine within 15 m of the bridge and no enemy still fighting within 250 m, at the end of two turns in a row.
-  - Secondary objectives: no civilians hurt and the bridge left standing (both from the commander's intent), and every Marine comes home alive. Nothing can damage the bridge yet, so that one is always met until explosives that can hurt it are built.
+  - Secondary objectives: no civilians hurt and the bridge left standing (both from the commander's intent), and every Marine comes home alive. An enemy out to blow the bridge can now break the second one.
+  - The squad brings an interpreter (ledger round 14), because the villagers and the fighters don't speak English.
   - Secondary objectives don't change winning or losing. The quick brief shows how you're doing on each during the mission, and the end screen grades each one. *"In order to get the best rating you have to complete the other objectives"* The best rating is S+: *"S+ as highest"* Under it (ledger round 13, (b)): S+ with every secondary objective met, then S, A, and B as fewer are met, and C for winning with a Marine killed. A loss is F. Friendly fire lowers it: *"Yeah and friendly fire incidents or things like that also detract."* Each Marine hit by our own fire drops a win one grade, all the way to F: *"Down to F"*
   - Marine names: last names drawn from a list of 24 for each mission, including Reyes, Lund, Ortiz, Hale, and Kim.
 - Quick brief: the brief opens on a short version: the main objective, the secondary objectives, how you win and lose, the rules of engagement, and the enemy seen so far, each objective with a check or a cross as the mission goes. A Full brief button shows the whole thing. A new mission opens on the quick brief instead of the net, and the brief doesn't fill the start of the radio traffic; the net starts with the first orders.
@@ -270,7 +271,7 @@ Live AI is allowed in this game. This project is separate from Conduits' no-AI-a
   - You open it from a link on your phone, like the ledger. Nothing to install.
   - It runs the same simulation code the game uses, built for the browser with .NET's WebAssembly tools.
   - Its code lives in the repo, in `Playtest/`.
-  - What it has: the figures-page look on a generated bridge-seizure map, the 13-Marine squad, typed orders read by Haiku, and turns that play out.
+  - What it has: the figures-page look on a generated bridge-seizure map, the 13-Marine squad and its interpreter, typed orders read by Haiku, and turns that play out.
   - Figures are drawn 3 to 4 times life size so you can see them, and never smaller than a thumbnail. Buildings, trees, and the ground are true size.
   - Figures always draw on top of trees, so you never lose a Marine under the canopy. A building with someone inside turns see-through.
   - Daylight for now; night views next, once the page works on Triston's phone.
@@ -281,6 +282,7 @@ Live AI is allowed in this game. This project is separate from Conduits' no-AI-a
   - The page saves to its own database what was typed, how it was read, anything not covered yet, and how each turn ended. Nothing else.
   - On a phone turned sideways (any screen wider than it is tall), the map goes on the left, and the net, squad, brief, dice, and order box stack on the right.
   - Radio calls about a place leave a pin there; tap one to read the call. Tapping the ground shows its six-digit coordinates with a button that puts them in the order box. The end screen shows the rating.
+  - Haiku also plays the director, picking an add-in or none before each turn from the ones the code says fit, and gives villagers, prisoners, and shouting fighters their own words. The code decides what they know; a line that changes or drops a square, a number, or a name is thrown out and the code's own words stand.
 - Cloud: Added later only if lots of players can't run the local model. If it comes, it runs through a backend we control, never with a key inside the game.
 - Guardrails: A hard no on sexual, racist, illegal, or similar content in anything the AI writes. The grammar lock keeps parsed orders to real verbs, units, and grids, and a filter covers anything the AI writes freely (orders the code doesn't cover, and the pocket DM).
 - Bug reports: When a player is connected, orders the code doesn't cover get reported quietly. Reports send the order text and the game state, never voice recordings. Players are told in the privacy policy and get an off switch in settings. No popup during play.
@@ -642,7 +644,7 @@ In chat, after round 13: *"How is it that in the artifact game all of the spotti
 
 ## Open questions
 
-- [ ] Claude's calls from the round 14 build (ledger round 15)
+- [ ] Claude's calls from the round 14 build: the map size and cover, enemy goals, talk, and the director (ledger round 15)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 
