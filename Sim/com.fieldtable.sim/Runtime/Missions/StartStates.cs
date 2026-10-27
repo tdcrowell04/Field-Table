@@ -35,6 +35,7 @@ namespace FieldTable.Sim
             new StartState(Clear, "Clear the village", ClearVillage.Create),
             new StartState(SupplyAmbush, "Ambush a supply party", Sim.SupplyAmbush.Create),
             new StartState(Hill, "Take the hill", TakeTheHill.Create),
+            new StartState(DelayAdvance, "Delay the advance", Sim.DelayAdvance.Create),
         };
 
         public static StartState Find(string id) => All.FirstOrDefault(s => string.Equals(s.Id, id, StringComparison.OrdinalIgnoreCase));

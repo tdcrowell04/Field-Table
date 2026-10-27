@@ -28,6 +28,9 @@ namespace FieldTable.Sim
         public const int HelmetSaves = 3;
 
         const float SuppressionFadePerSecond = 0.08f;
+
+        /// <summary>Someone with nothing to shoot at looks for a target again this often, in seconds.</summary>
+        const float LookAgain = 0.5f;
         const float PinnedAt = 0.8f;
 
         readonly Dictionary<string, WeaponDef> weapons = new Dictionary<string, WeaponDef>();
@@ -400,7 +403,8 @@ namespace FieldTable.Sim
                 else if (o.Point != null) area = o.Point;
             }
             if (target == null && area == null) target = AutoTarget(u);
-            if (target == null && area == null) return;
+            // Nothing to shoot at: look again in half a second rather than every step.
+            if (target == null && area == null) { u.FireCooldown = LookAgain; return; }
 
             Vec2 aim = target?.Position ?? area.Value;
             float range = Vec2.Distance(u.Position, aim);
@@ -433,10 +437,11 @@ namespace FieldTable.Sim
             }
 
             var gun = Weapon(u.Def.Weapon);
-            if (gun == null || range > gun.Range) return;
+            if (gun == null || range > gun.Range) { u.FireCooldown = LookAgain; return; }
             if (u.Ammo < gun.Burst)
             {
                 if (u.Ammo > 0) { u.Ammo = 0; Radio(u, u.Name + ": I'm black on ammo!", "info"); }
+                u.FireCooldown = LookAgain;
                 return;
             }
             u.Ammo -= gun.Burst;

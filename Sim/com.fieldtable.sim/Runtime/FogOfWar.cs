@@ -224,6 +224,8 @@ namespace FieldTable.Sim
                     // Nobody spots what isn't on the map, and the enemy doesn't pick out a small drone up high.
                     if (ReferenceEquals(target.Force, force) || target.Gone || target.Def.Flying) continue;
 
+                    // Someone already in sight only needs one observer who still sees him; anyone else needs the best one.
+                    Contact c = knowledge.Track(target);
                     float best = 0f;
                     Unit spotter = null;
                     foreach (Unit observer in sim.Units)
@@ -234,10 +236,10 @@ namespace FieldTable.Sim
                         {
                             best = r;
                             spotter = observer;
+                            if (c.Visible) break;
                         }
                     }
 
-                    Contact c = knowledge.Track(target);
                     if (best > 0f)
                     {
                         if (c.Visible)
