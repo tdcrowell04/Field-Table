@@ -995,6 +995,27 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       else if (spot && !obj) continue;
       else halo(p.label.toUpperCase(), f.x, f.y + (obj ? 26 * DPR : 0), fontA, obj ? "#d4b46a" : village ? "rgba(239,233,218,0.95)" : "rgba(231,225,207,0.8)", "center", obj || village);
     }
+    // Each line's name on the line itself, at the first spot along it that doesn't sit on another name.
+    for (const L of (S.m && S.m.controls) || []) {
+      const text = L.label.toUpperCase(), seg = [];
+      let total = 0;
+      for (let i = 2; i < L.p.length; i += 2) { const d = Math.hypot(L.p[i] - L.p[i - 2], L.p[i + 1] - L.p[i - 1]); seg.push(d); total += d; }
+      const at = t => {
+        let k = t * total, i = 0;
+        while (i < seg.length - 1 && k > seg[i]) k -= seg[i++];
+        const u = seg[i] ? k / seg[i] : 0;
+        return P3(c, L.p[2 * i] + (L.p[2 * i + 2] - L.p[2 * i]) * u, L.p[2 * i + 1] + (L.p[2 * i + 3] - L.p[2 * i + 1]) * u, 0);
+      };
+      ctx.font = fontA;
+      const w = ctx.measureText(text).width, h = 13 * DPR;
+      let spot = null;
+      for (const t of [0.25, 0.75, 0.5, 0.15, 0.85, 0.35, 0.65, 0.05, 0.95]) {
+        const f = at(t), l = f.x - w / 2, y = f.y - 8 * DPR;
+        if (!taken.some(r => l < r[2] && l + w > r[0] && y - h / 2 < r[3] && y + h / 2 > r[1])) { spot = f; break; }
+      }
+      spot = spot || at(0.25);
+      halo(text, spot.x, spot.y - 8 * DPR, fontA, "#f0a39b", "center", true);
+    }
   }
 
   function drawObjective(c) {
@@ -1005,7 +1026,10 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     ctx.setLineDash([6 * DPR / c.s, 5 * DPR / c.s]);
     // A box round a farm, a wreck, or a village; a ring round a spot; nothing more for a trail, which is drawn already.
     if (o.x0 != null) { ctx.strokeRect(o.x0 - 3, o.y0 - 3, o.x1 - o.x0 + 6, o.y1 - o.y0 + 6); }
-    else if (S.m.kind !== "ambush") { ctx.beginPath(); ctx.arc(o.x, o.y, o.ring || 15, 0, 7); ctx.stroke(); }
+    else if (S.m.kind !== "ambush" && S.m.kind !== "delay") { ctx.beginPath(); ctx.arc(o.x, o.y, o.ring || 15, 0, 7); ctx.stroke(); }
+    // Phase lines and start lines: long dashes across the map.
+    ctx.strokeStyle = "rgba(226,103,92,0.85)"; ctx.setLineDash([14 * DPR / c.s, 8 * DPR / c.s]);
+    for (const L of S.m.controls || []) { ctx.beginPath(); ctx.moveTo(L.p[0], L.p[1]); for (let i = 2; i < L.p.length; i += 2) ctx.lineTo(L.p[i], L.p[i + 1]); ctx.stroke(); }
     // Marked buildings: dashed until cleared, then solid green.
     const cleared = (S.state && S.state.objectives.cleared) || [];
     for (const label of S.m.marked || []) {

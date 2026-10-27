@@ -70,6 +70,18 @@ namespace FieldTable.Playtest
                 }
                 w.WriteNumber("ring", mission.Kind == StartStates.Crossroads ? HoldCrossroads.HoldWithin : Mission.OnObjective);
                 w.WriteEndObject();
+                // Lines the mission draws across the map, like phase lines or a start line.
+                w.WriteStartArray("controls");
+                foreach (var l in mission.Sim.Map.Landmarks.Where(l => l.Kind == "control" && l.Points.Count >= 2))
+                {
+                    w.WriteStartObject();
+                    w.WriteString("label", l.Label);
+                    w.WriteStartArray("p");
+                    foreach (var pt in l.Points) { w.WriteNumberValue(R(pt.X)); w.WriteNumberValue(R(pt.Y)); }
+                    w.WriteEndArray();
+                    w.WriteEndObject();
+                }
+                w.WriteEndArray();
                 // Buildings the mission marks, like the ones to clear.
                 w.WriteStartArray("marked");
                 foreach (var m in mission.Marked) w.WriteStringValue(m.Label);
