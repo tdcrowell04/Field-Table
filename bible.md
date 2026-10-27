@@ -56,8 +56,8 @@ The game runs in WEGO turns: both sides give orders, then both sides move at the
 The player clicks a unit, then talks to it. Selecting first means the game always knows who an order is for, so the AI never has to guess.
 
 - Selecting units: Click a unit on the map or in the unit list. Saying a callsign also works.
-- Grid references: Click the map to drop the exact grid square into the order. A grid is always a grid. Clicking the map also gives the spot's six-digit coordinates, so the player never has to type them: *"Also clicking on the map should give the 6 digit coordinates so the player doesn't have to type them."*
-- Map markers: anything important said on the radio puts a marker on the map, and clicking or hovering it shows what was said: *"I want there to be icons that pop up on the map for all spotting not just drone spotting. So anything important that gets said on the radio has a map marker that shows text when you click or hover it."*
+- Grid references: Click the map to drop the exact grid square into the order. A grid is always a grid. Clicking the map also gives the spot's six-digit coordinates, so the player never has to type them: *"Also clicking on the map should give the 6 digit coordinates so the player doesn't have to type them."* Three digits for meters east from the map's west edge, three for meters north from the south edge: 452 287 is 452 m east and 287 m north, good to 1 m. Tapping the ground offers the coordinates first; tapping a named place offers its name first. Grid squares still work.
+- Map markers: anything important said on the radio puts a marker on the map, and clicking or hovering it shows what was said: *"I want there to be icons that pop up on the map for all spotting not just drone spotting. So anything important that gets said on the radio has a map marker that shows text when you click or hover it."* Enemies don't get one, since their see-through figure already marks where they were last seen; everything else does, fire positions included: *"I think for enemies it's already solved by the semi transparent enemy model, but other stuff should be marked including if you make fire positions and such."* Each kind has its own color and sign. A pin fades over 10 minutes and is gone after 20, and a new call of the same kind in the same spot replaces the old pin.
 - Typed orders: Free text.
 - Voice orders: Push-to-talk, using local speech-to-text (Whisper family). Primed with callsigns, the phonetic alphabet, building numbers, and the verb list. Spoken grids like "golf four" convert to G4. Added after typed orders work, since voice just produces text.
 - Order modes: A difficulty selector of its own, separate from the odds setting.
@@ -124,7 +124,7 @@ Fire and wounds, as built (ledger rounds 11 and 12):
 - HE and AP: HE gives the full blast (5 to 6 m), but a wall or building between you and the blast protects you. AP (armor-piercing, like the RPG's anti-tank rocket) has a small blast (2 m), but it punches through walls, so cover doesn't help whoever is behind the spot it hits. The M320 carries 5 HE and 3 AP; the RPG gunner 1 HE and 2 AP. Unless you name one, the launcher uses AP on someone in a building or behind a wall, and HE otherwise. Naming HE or AP fires one of those, then the Marine keeps firing his rifle: "Novak, HE on building 4." Armored vehicles get AP too: *"Yep and armored vehicles get AP too."*
 - Deep water: carrying over 15 kg into deep water and you go under; 20 seconds later you drown. Dropping gear takes a Marine down to 12 kg, light enough to swim.
 - The enemy, until the in-game AI steers it: it fights from where it starts, and falls back when it's hurt and pinned, or when half its side is down. Civilians get down when the shooting starts.
-- Friendly fire: a Marine hit by his own side is called on the net ("Check fire! Check fire!") and lowers the mission's rating.
+- Friendly fire: a Marine hit by his own side is called on the net ("Check fire! Check fire! Reyes is hit by our own fire.") and drops the mission's rating one grade, as far as F. The end screen lists it.
 
 The verbs from ledger round 13, as built:
 
@@ -134,10 +134,10 @@ The verbs from ledger round 13, as built:
 - Clear: 10 seconds for each 25 square meters of the building, and it goes on while anyone hostile is still inside. Everyone inside is found. Inside the same building, the walls don't count as cover.
 - Breach: 20 seconds to open a 3 m gap in a wall, hedge, building, or cliff, which leaves rubble. Doors come later, with the building insides.
 - The drone: 15 seconds to launch. It flies 12 m a second, 60 m up, sees with a thermal, and the enemy can't spot or shoot it yet. The battery lasts 20 minutes, then it flies home and lands. The operator kneels at the controller and doesn't fight while it's up. What it spots, his team calls in: "Charlie: Contact on the drone, ..."
-- Talk: 20 seconds next to them. A civilian tells what they've seen of the enemy, and the squad now knows it. Enemies won't talk yet. Triston wants more: *"There should be need of interpereter sometimes and sometimes the enemy should talk depending on what's going on. Again, stop making things so narrow, the scenarios in the artifact game were so dynamic and fun because the situation responded to how I handled everything."* (how, in ledger round 14)
+- Talk: 20 seconds next to them. A civilian tells what they've seen of the enemy, and the squad now knows it. *"There should be need of interpereter sometimes and sometimes the enemy should talk depending on what's going on. Again, stop making things so narrow, the scenarios in the artifact game were so dynamic and fun because the situation responded to how I handled everything."* So (ledger round 14): some missions put the squad among people who don't speak English, and then talking to them needs the interpreter (a new squad member) close by. The enemy talks when it fits: a wounded or detained fighter can be questioned and may lie, refuse, or give something up; fighters shout to each other; one alone and pinned may surrender. The AI plays each person and writes what they say. Code decides what they know and whether it's true, so no one can invent a fact.
 - Search: 20 seconds. A place: finds anyone within 40 m who can be seen at all, hidden or not. A person (down, detained, or a civilian): takes an enemy's weapon and ammo.
 - Detain: 30 seconds next to them. Civilians, enemies who are down, or wounded enemies pinned flat. A detained person can't do anything.
-- Share ammo: 30 seconds. Everyone in the team within 25 m with the same kind of ammo ends up at the same share of a full load, so the automatic rifleman still carries the most. *"Yes but ammo types matter too."*
+- Share ammo: 30 seconds. Everyone in the team within 25 m with the same kind of ammo ends up at the same share of a full load, so the automatic rifleman still carries the most. *"Yes but ammo types matter too."* Marines share only with others carrying the same round: 5.56 with 5.56. M320 rounds go only to another M320, split evenly.
 
 ## Look
 
@@ -166,7 +166,7 @@ The verbs from ledger round 13, as built:
 - Terrain values (speed, cover, height, how much it blocks sight, how well it hides you) live in `Data/terrain.json`. Game data lives in `Data/`, the same way a mod's files would.
 - The 15 map features, any of which can be in a map but don't have to be: hills, ridgelines and cliffs, rivers too deep to wade, creeks, lakes and ponds, marsh and reeds, forest, woodlots and orchards, hedgerows and stone walls, farm fields (plowed, stubble, and tall crops that hide you), roads and trails, bridges, villages and farms, towns, and gullies. Sci-fi and fantasy can add their own later.
 - Deep water: crossing a river takes a bridge, a boat, or a swim. *"don't miss the chance for a player to tell a fully kitted up marine to swim across the river and they can't and drown. Everything should be that custom."*
-- Each map gets 3 to 11 of the 15 features at random, plus whatever the start state requires (a bridge seizure needs water and a bridge). Maps are 8 by 6 squares of 100 m by default; a start state can set its own.
+- Each map gets 3 to 11 of the 15 features at random, plus whatever the start state requires (a bridge seizure needs water and a bridge). Maps are 8 by 6 squares of 100 m by default; a start state can set its own. Maps are big enough for the squad to start well back, and always have common-sense cover and avenues of approach, unless the scenario is about having none: *"Bigger maps plus ensuring there's common sense cover and avenues of approach, unless part of the scenario is there being no cover"*
 - With bridges in play, every road that crosses water gets a bridge. Without them, roads keep to one bank of a river and cross creeks at fords. Trails never run through deep water.
 - Villages have 4 to 9 buildings; towns are a street grid with 2 to 6 buildings per block. Both prefer a road but move off it if they must. Building sizes from the kit: shed 6×5 m, house 10×8, farmhouse 14×10, long house 18×9, barn 20×12, warehouse 30×20 (towns only). Buildings are numbered north to south, then west to east.
 - Cliffs run along part of a ridge's face, broken wherever a road, a settlement, or water crosses. Place names come from `Data/names.json`, so each setting can bring its own.
@@ -220,16 +220,18 @@ These come straight from problems hit while playing the Field Table prototype. E
 Every mission played in the Field Table prototype is a candidate mission for the game, kept or cut as the design matures.
 
 - Mission start states: Triston writes 25. Add-in pieces (a sniper, an IED, civilians wandering in, reinforcements, bad weather, comms dropping) get switched in and out by code depending on what's happening, like Left 4 Dead's AI Director. The in-game AI does the briefings, radio talk, and reactions.
+- The director starts now, in the playtest (ledger round 14). It watches the mission and switches in add-ins when they fit: reinforcements if you're slow, civilians running if the shooting gets close, a sniper or IED on the obvious route, the enemy pulling back if you flank them, a radio dropping out. The in-game AI picks which, inside limits the code sets, and voices it.
 - When the AI makes a mission, it fills a mission template and code checks the result. *"Yeah it uses the mission start states and fills in pre made adders to make it unique."*
 - Player-built missions and campaigns: players can bring them built all the way or only partly. The AI fills in whatever they leave out, and they share them on Steam Workshop.
 - Cinder Ford: the bridge seizure is one of the 25 start states, played on a freshly generated map each time.
   - Main objective: seize and hold the bridge.
-  - Enemy: a random 5 to 9 fighters each mission, so "unknown strength" in the brief means something. They set up on the far bank, each picking the best cover with a view of the bridge: the PKM 80 to 220 m back, the riflemen 25 to 90 m, the RPG 40 to 130 m. Each fighter is a random kind, not always a PKM and an RPG: *"Not always PKM and rpg. Random."* The mix should fit the mission: *"I really think that enemy squad composition should make sense for what the scenario is and what the objective is and what the enemy objective is."* (how, in ledger round 14)
-  - Where the squad starts: on the near bank, out of the enemy's sight, not lined up: *"the scenarios should make sense and be dynamic. But I would think we wouldn't have the squad starting directly in the enemy's sight, all lined up right next to each other"*
+  - Enemy: a random 5 to 9 fighters each mission, so "unknown strength" in the brief means something. They set up on the far bank, each picking the best cover with a view of the bridge: the PKM 80 to 220 m back, the riflemen 25 to 90 m, the RPG 40 to 130 m. Each fighter is a random kind, not always a PKM and an RPG: *"Not always PKM and rpg. Random."* The mix should fit the mission: *"I really think that enemy squad composition should make sense for what the scenario is and what the objective is and what the enemy objective is."* So (ledger round 14) the enemy gets its own goal, and the goal picks who's there and where. A die picks one: hold the bridge (riflemen dug in near it, a machine gun on the approach), delay you (a few fighters far back who fall back across), blow it (an engineer with charges plus guards, so "the bridge left standing" can now fail), or ambush (they let you onto the bridge, then open up). The brief hints, but doesn't say which.
+  - Where the squad starts: on the near bank, out of the enemy's sight, not lined up: *"the scenarios should make sense and be dynamic. But I would think we wouldn't have the squad starting directly in the enemy's sight, all lined up right next to each other"* As close to 300 m from the bridge as the cover allows, never under 150 m. Fire teams in wedges facing the bridge, one behind another, and anyone the enemy could see moves to the nearest hidden spot within 30 m.
+  - A second bridge: some maps have another bridge over the same river. The squad can start where it's a way round, so you can cross there and flank.
   - Civilians: 3 to 5, each in a house in the village by the bridge.
   - How it ends: you lose with 7 Marines down, or after turn 40. You win with a Marine within 15 m of the bridge and no enemy still fighting within 250 m, at the end of two turns in a row.
   - Secondary objectives: no civilians hurt and the bridge left standing (both from the commander's intent), and every Marine comes home alive. Nothing can damage the bridge yet, so that one is always met until explosives that can hurt it are built.
-  - Secondary objectives don't change winning or losing. The quick brief shows how you're doing on each during the mission, and the end screen grades each one. *"In order to get the best rating you have to complete the other objectives"* The best rating is S+: *"S+ as highest"* Under it (ledger round 13, (b)): S+ with every secondary objective met, then S, A, and B as fewer are met, and C for winning with a Marine killed. A loss is F. Friendly fire lowers it: *"Yeah and friendly fire incidents or things like that also detract."*
+  - Secondary objectives don't change winning or losing. The quick brief shows how you're doing on each during the mission, and the end screen grades each one. *"In order to get the best rating you have to complete the other objectives"* The best rating is S+: *"S+ as highest"* Under it (ledger round 13, (b)): S+ with every secondary objective met, then S, A, and B as fewer are met, and C for winning with a Marine killed. A loss is F. Friendly fire lowers it: *"Yeah and friendly fire incidents or things like that also detract."* Each Marine hit by our own fire drops a win one grade, all the way to F: *"Down to F"*
   - Marine names: last names drawn from a list of 24 for each mission, including Reyes, Lund, Ortiz, Hale, and Kim.
 - Quick brief: the brief opens on a short version: the main objective, the secondary objectives, how you win and lose, the rules of engagement, and the enemy seen so far, each objective with a check or a cross as the mission goes. A Full brief button shows the whole thing. A new mission opens on the quick brief instead of the net, and the brief doesn't fill the start of the radio traffic; the net starts with the first orders.
 
@@ -623,12 +625,24 @@ Every call gets ruled before anything is built. Rulings only; overruled ideas ar
 
 In chat, after round 13: *"How is it that in the artifact game all of the spotting and starts and stuff was figured out but we can't get it here"*
 
+### 2026-10-27: ledger round 14
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| Talk: interpreters, and the enemy talking | Accepted | |
+| An enemy that fits the mission | Accepted | |
+| Missions that respond to how you play | Accepted | |
+| Maps where nowhere is hidden | (c): bigger maps, plus common-sense cover and avenues of approach | *"Bigger maps plus ensuring there's common sense cover and avenues of approach, unless part of the scenario is there being no cover"* |
+| Friendly fire and the rating | Accepted, down to F | *"Down to F"* |
+| Map pins | Accepted, but not for enemies; fire positions too | *"I think for enemies it's already solved by the semi transparent enemy model, but other stuff should be marked including if you make fire positions and such."* |
+| Six-digit coordinates | Accepted | |
+| The start | Accepted | |
+| Ammo types | Accepted | |
+| A second bridge | Accepted | |
+
 ## Open questions
 
-- [ ] Talk with interpreters, and the enemy talking when it fits (ledger round 14)
-- [ ] An enemy mix that fits the scenario and the enemy's own objective, and missions that respond to how you play (ledger round 14)
-- [ ] Where the squad starts on maps where nowhere on the near bank is hidden (ledger round 14)
-- [ ] Claude's calls from the round 13 build: friendly fire grades, the map pins, the coordinates, the start, ammo by caliber, a second bridge (ledger round 14)
+- [ ] Claude's calls from the round 14 build (ledger round 15)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 
