@@ -1115,6 +1115,21 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     }
     S.breaches = list.length;
   }
+  // Ground that changed under the sim: a blown bridge's span drops into the water, and its ends go to rubble.
+  function paintCells(cells) {
+    if (!G || !cells || cells.length / 3 <= (S.painted || 0)) return;
+    const g = G.getContext("2d"), ids = S.map.terrains.map(t => t.id), c = S.cell;
+    g.setTransform(GPX, 0, 0, GPX, 0, 0);
+    for (let i = 0; i < cells.length; i += 3) {
+      const x = cells[i], y = cells[i + 1], t = cells[i + 2];
+      g.fillStyle = TCOL[t] || "#8a8a6a"; g.fillRect(x * c - 0.05, y * c - 0.05, c + 0.1, c + 0.1);
+      if (t === "rubble" || ih(x, y) > 0.86) { g.fillStyle = "rgba(60,50,40,0.55)"; g.fillRect(x * c + ih(x, y) * 0.6, y * c + ih(y, x) * 0.6, 0.4, 0.3); }
+      const k = ids.indexOf(t);
+      if (k >= 0) S.cells[y * S.cw + x] = k;
+    }
+    S.painted = cells.length / 3;
+    need();
+  }
   function casevacNow(t) {
     if (!P) return S.state && S.state.casevac ? Object.assign({}, S.state.casevac) : null;
     let e = P.evac0 ? Object.assign({}, P.evac0) : null;
@@ -1264,6 +1279,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       queue.push({ t: t0(e.s), e: { kind: "event" + (ours && (e.kind === "down" || e.kind === "died") ? " bad" : ""), step: e.s, text: e.text } });
     }
     for (const r of T.rolls) if (r.big) queue.push({ t: t0(r.s), toast: r });
+    for (const b of T.blown || []) queue.push({ t: t0(b.s), paint: b.cells });
     queue.sort((a, b) => a.t - b.t);
     const dur = T.frames.length ? (T.frames[T.frames.length - 1].s - T.startStep) / 10 : 60;
     const clouds = ((S.state && S.state.smoke) || []).concat(T.smoke);
@@ -1280,6 +1296,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     while (P.queue.length && P.queue[0].t <= P.t) {
       const q = P.queue.shift();
       if (q.mark) addMark(q.mark);
+      if (q.paint) { paintCells(q.paint); continue; }
       if (q.e) addLog(q.e); else if (!quiet) toast(q.toast);
     }
   }
@@ -1291,6 +1308,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     S.state = T.state;
     S.rolls = T.rolls;
     paintBreaches(T.state.breaches);
+    if (T.state.blown) paintCells(T.state.blown.cells);
     $("playbar").hidden = true;
     if (T.state.outcome) showOutcome(T.state);
     logDb("turns", { turn: T.turn, outcome: T.state.outcome || null, marinesDown: S.roster.filter((r, i) => r.side === "us" && T.state.units[i] && /down|dead/.test(T.state.units[i].condition)).length, shots: T.shots.length });
@@ -1308,13 +1326,21 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     setTimeout(() => el.remove(), 2600);
   }
 
+  // What the enemy was really up to, told at the end.
+  const GOAL_TEXT = {
+    hold: "The enemy was dug in to hold the bridge.",
+    delay: "The enemy was out to delay you, falling back as you came.",
+    blow: "The enemy was out to blow the bridge.",
+    ambush: "The enemy was lying in wait to ambush you on the bridge."
+  };
   function showOutcome(st) {
     const won = st.outcome === "success", b = $("banner");
     const ff = st.friendlyFire || 0;
     const grades = st.objectives.secondary.map(x => "<li class=\"" + x.status + "\">" + (x.status === "met" ? "✓ " : "✗ ") + esc(x.text) + "</li>").join("")
       + (ff ? "<li class=\"failed\">✗ Friendly fire: " + ff + (ff === 1 ? " Marine" : " Marines") + " hit by our own fire</li>" : "");
     const rating = st.rating ? "<div class=\"rating\"><small>Rating</small>" + esc(st.rating) + "</div>" : "";
-    b.innerHTML = "<h2>" + (won ? "Bridge seized" : "Mission failed") + "</h2>" + rating + "<p>" + esc(st.outcomeText) + "</p><ul class=\"grades\">" + grades + "</ul><button class=\"btn primary small\" type=\"button\" id=\"againBtn\">New map</button>";
+    const truth = GOAL_TEXT[st.enemyGoal] ? "<p>" + GOAL_TEXT[st.enemyGoal] + "</p>" : "";
+    b.innerHTML = "<h2>" + (won ? "Bridge seized" : "Mission failed") + "</h2>" + rating + "<p>" + esc(st.outcomeText) + "</p>" + truth + "<ul class=\"grades\">" + grades + "</ul><button class=\"btn primary small\" type=\"button\" id=\"againBtn\">New map</button>";
     b.hidden = false;
     $("againBtn").onclick = () => newMission(randomSeed());
     addLog({ kind: "event" + (won ? "" : " bad"), step: st.step, text: st.outcomeText });
@@ -1891,7 +1917,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       S.mw = m.map.w * m.map.cell; S.mh = m.map.h * m.map.cell; S.sq = m.map.square;
       S.log = []; S.rolls = []; S.flip = {}; S.sel = -1; S.tap = null; S.marks = []; S.hover = null; S.pending = null; S.busy = false;
       buildGround(m.map);
-      S.breaches = 0;
+      S.breaches = 0; S.painted = 0;
       squareGround(m.map);
       $("title").textContent = m.title;
       document.title = "Field Table Playtest";

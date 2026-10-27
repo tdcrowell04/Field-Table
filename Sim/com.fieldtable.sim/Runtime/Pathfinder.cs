@@ -38,27 +38,40 @@ namespace FieldTable.Sim
             g = new float[n];
             from = new int[n];
             seen = new int[n];
-            // A node is only as fast as its slowest meter, and wet if any meter of it is deep water,
-            // so walking anywhere inside a dry node stays dry.
-            int per = Math.Max(1, (int)Math.Round(NodeSize / map.CellSize));
             for (int y = 0; y < h; y++)
                 for (int x = 0; x < w; x++)
+                    Compute(x, y);
+        }
+
+        /// <summary>Works the nodes out again over a stretch of map whose ground has changed, like a blown bridge.</summary>
+        public void Refresh(Vec2 min, Vec2 max)
+        {
+            int x0 = Math.Max(0, (int)(min.X / NodeSize)), y0 = Math.Max(0, (int)(min.Y / NodeSize));
+            int x1 = Math.Min(w - 1, (int)(max.X / NodeSize)), y1 = Math.Min(h - 1, (int)(max.Y / NodeSize));
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++)
+                    Compute(x, y);
+        }
+
+        // A node is only as fast as its slowest meter, and wet if any meter of it is deep water,
+        // so walking anywhere inside a dry node stays dry.
+        void Compute(int x, int y)
+        {
+            int per = Math.Max(1, (int)Math.Round(NodeSize / map.CellSize));
+            int i = y * w + x;
+            float sp = float.MaxValue;
+            bool wet = false;
+            for (int cy = 0; cy < per; cy++)
+                for (int cx = 0; cx < per; cx++)
                 {
-                    int i = y * w + x;
-                    float sp = float.MaxValue;
-                    bool wet = false;
-                    for (int cy = 0; cy < per; cy++)
-                        for (int cx = 0; cx < per; cx++)
-                        {
-                            int mx = Math.Min(map.Width - 1, x * per + cx), my = Math.Min(map.Height - 1, y * per + cy);
-                            TerrainDef t = map.TerrainAt(mx, my);
-                            sp = Math.Min(sp, t.MoveFactor);
-                            wet |= t.Deep;
-                        }
-                    speed[i] = sp;
-                    deep[i] = wet;
-                    ground[i] = map.GroundAt(Center(x, y));
+                    int mx = Math.Min(map.Width - 1, x * per + cx), my = Math.Min(map.Height - 1, y * per + cy);
+                    TerrainDef t = map.TerrainAt(mx, my);
+                    sp = Math.Min(sp, t.MoveFactor);
+                    wet |= t.Deep;
                 }
+            speed[i] = sp;
+            deep[i] = wet;
+            ground[i] = map.GroundAt(Center(x, y));
         }
 
         Vec2 Center(int x, int y) => new Vec2((x + 0.5f) * NodeSize, (y + 0.5f) * NodeSize);

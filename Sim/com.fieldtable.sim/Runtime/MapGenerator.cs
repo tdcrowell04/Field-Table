@@ -48,6 +48,12 @@ namespace FieldTable.Sim
 
         /// <summary>A specific hill height the player asked for, in meters. Null leaves every hill random.</summary>
         public float? HillHeight { get; set; }
+
+        /// <summary>
+        /// True when the scenario is about having no cover. Otherwise every map gets common-sense cover and avenues of
+        /// approach: a covered way in to each bridge from both banks, and no big stretch of bare open ground.
+        /// </summary>
+        public bool OpenGround { get; set; }
     }
 
     /// <summary>Names for generated places, loaded from data so each setting and mod can bring its own.</summary>
@@ -190,6 +196,7 @@ namespace FieldTable.Sim
                 if (Has(MapFeatures.Woodlots)) MakeWoodlots();
                 if (Has(MapFeatures.Marsh)) MakeMarsh();
                 if (Has(MapFeatures.Gullies)) MakeGullies();
+                if (!req.OpenGround) MakeCover();
                 NumberBuildings();
 
                 if (water.Any(f => f.Terrain == "river")) made.Add(MapFeatures.Rivers);
@@ -700,6 +707,206 @@ namespace FieldTable.Sim
                     float width = rng.Range(10f, 22f);
                     gullies.Add(new MapFeature { Kind = "gully", Label = Name(names.Woods, " Gully"), Note = "dry wash", Terrain = "gully", Width = width, PaintWidth = width * 0.5f, Height = rng.Range(2f, 5f), Points = Squares(pts) });
                 }
+            }
+
+            // ---------- common-sense cover ----------
+
+            // Kinds of ground that block sight or hide someone, so a person can get out of view behind or in them.
+            static readonly HashSet<string> CoverTerrains = new HashSet<string> { "forest", "hedge", "wall", "corn", "marsh", "gully", "building", "yard", "cliff" };
+
+            /// <summary>
+            /// Cover where common sense says there'd be some: each bridge gets a covered way in from both banks, starting
+            /// from a wood, a hedged field, or a fold in the ground about 300 m back, and then any 100 m square with
+            /// nothing to hide behind nearby gets a copse or a hedge.
+            /// </summary>
+            void MakeCover()
+            {
+                foreach (var b in bridges.ToList())
+                {
+                    Vec2 a = new Vec2(b.Points[0][0] * sq, b.Points[0][1] * sq), z = new Vec2(b.Points[1][0] * sq, b.Points[1][1] * sq);
+                    Vec2 mid = (a + z) * 0.5f, along = Unit(z - a);
+                    float half = Vec2.Distance(a, z) / 2f;
+                    MakeApproach(mid, along, half);
+                    MakeApproach(mid, along * -1f, half);
+                }
+                BreakUpOpenGround();
+            }
+
+            bool Allowed(string f) => !req.Exclude.Contains(f);
+
+            /// <summary>Cover about 300 m back from one end of a bridge, and a covered way from it toward the bridge.</summary>
+            void MakeApproach(Vec2 bridge, Vec2 toBank, float half)
+            {
+                Vec2 bank = bridge + toBank * (half + 12f);
+                Vec2 start = default;
+                bool found = false;
+                for (int tries = 0; tries < 16 && !found; tries++)
+                {
+                    float turn = rng.Range(-0.6f, 0.6f), dist = rng.Range(260f, 360f);
+                    Vec2 dir = new Vec2(toBank.X * (float)Math.Cos(turn) - toBank.Y * (float)Math.Sin(turn), toBank.X * (float)Math.Sin(turn) + toBank.Y * (float)Math.Cos(turn));
+                    start = bridge + dir * dist;
+                    if (start.X < 40f || start.Y < 40f || start.X > w - 40f || start.Y > h - 40f) continue;
+                    // It has to be on this bank: nothing wet between the bridge's end and the spot.
+                    found = !Subdivide(new List<Vec2> { bank, start }, 8f).Any(p => NearWater(p, 2f));
+                }
+                if (!found) return;
+
+                // Cover to start from, unless a village or town is already there.
+                if (!InSettlement(start, 20f))
+                {
+                    var kinds = new List<string>();
+                    if (Allowed(MapFeatures.Forest) || Allowed(MapFeatures.Woodlots)) kinds.Add("woods");
+                    if (Allowed(MapFeatures.Hedgerows)) kinds.Add("hedged field");
+                    if (Allowed(MapFeatures.Hills)) kinds.Add("fold");
+                    if (kinds.Count == 0) return;
+                    switch (rng.Pick(kinds))
+                    {
+                        case "woods":
+                            woods.Add(Area(Name(names.Woods, " Wood"), "forest", Blob(start, rng.Range(45f, 75f))));
+                            made.Add(Allowed(MapFeatures.Forest) ? MapFeatures.Forest : MapFeatures.Woodlots);
+                            break;
+                        case "hedged field":
+                        {
+                            float hw = rng.Range(40f, 60f), hd = rng.Range(40f, 60f);
+                            Vec2 min = start - new Vec2(hw, hd), max = start + new Vec2(hw, hd);
+                            if (Allowed(MapFeatures.Fields)) { fields.Add(Rect(null, "area", rng.Pick(new[] { "grass", "stubble", "plowed" }), min, max, null)); made.Add(MapFeatures.Fields); }
+                            var corners = new[] { min, new Vec2(max.X, min.Y), max, new Vec2(min.X, max.Y) };
+                            // A gap in one side to get in by.
+                            int gap = rng.Int(0, 3);
+                            for (int i = 0; i < 4; i++)
+                            {
+                                Vec2 c0 = corners[i], c1 = corners[(i + 1) % 4];
+                                if (i == gap)
+                                {
+                                    hedges.Add(Line(null, "hedge", 3f, new List<Vec2> { c0, c0 + (c1 - c0) * 0.42f }, null, null));
+                                    hedges.Add(Line(null, "hedge", 3f, new List<Vec2> { c0 + (c1 - c0) * 0.58f, c1 }, null, null));
+                                }
+                                else hedges.Add(Line(null, "hedge", 3f, new List<Vec2> { c0, c1 }, null, null));
+                            }
+                            made.Add(MapFeatures.Hedgerows);
+                            break;
+                        }
+                        default:
+                        {
+                            // A low rise between the bridge and the spot: the ground behind it is out of sight of the river.
+                            float height = (float)Math.Round(rng.Range(MinHillHeight, 22f));
+                            Vec2 c = bridge + (start - bridge) * 0.62f;
+                            float r = rng.Range(55f, 75f);
+                            string label = "Hill " + height.ToString(CultureInfo.InvariantCulture);
+                            while (usedNames.Contains(label)) label += "A";
+                            usedNames.Add(label);
+                            hills.Add(new MapFeature { Kind = "hill", Label = label, Note = "+" + height.ToString(CultureInfo.InvariantCulture) + " m", Rect = new[] { (c.X - r) / sq, (c.Y - r) / sq, 2 * r / sq, 2 * r / sq }, Height = height });
+                            made.Add(MapFeatures.Hills);
+                            break;
+                        }
+                    }
+                }
+
+                // The way in: from the cover toward the bridge, bending so no one can see straight down it, and stopping
+                // short of the water.
+                Vec2 end = bridge + Unit(start - bridge) * rng.Range(100f, 140f);
+                Vec2 side = new Vec2(-(end - start).Y, (end - start).X);
+                side = Unit(side);
+                var route = new List<Vec2> { start };
+                for (int k = 1; k < 4; k++) route.Add(start + (end - start) * (k / 4f) + side * rng.Range(-25f, 25f));
+                route.Add(end);
+                if (Subdivide(route, 8f).Any(p => NearWater(p, 4f) || InSettlement(p, 0f))) return;
+
+                var wayKinds = new List<string>();
+                if (Allowed(MapFeatures.Hedgerows)) { wayKinds.Add("hedgerow"); wayKinds.Add("lane"); }
+                if (Allowed(MapFeatures.Forest) || Allowed(MapFeatures.Woodlots)) wayKinds.Add("tree line");
+                if (Allowed(MapFeatures.Gullies)) wayKinds.Add("gully");
+                if (wayKinds.Count == 0) return;
+                switch (rng.Pick(wayKinds))
+                {
+                    case "hedgerow":
+                        hedges.Add(Line(null, "hedge", 3f, route.Select(p => p + side * 6f).ToList(), null, null));
+                        made.Add(MapFeatures.Hedgerows);
+                        break;
+                    case "lane":
+                        hedges.Add(Line(null, "hedge", 3f, route.Select(p => p + side * 6f).ToList(), null, null));
+                        hedges.Add(Line(null, "hedge", 3f, route.Select(p => p - side * 6f).ToList(), null, null));
+                        made.Add(MapFeatures.Hedgerows);
+                        break;
+                    case "tree line":
+                        woods.Add(Line(null, "forest", rng.Range(28f, 40f), route, null, null));
+                        made.Add(Allowed(MapFeatures.Forest) ? MapFeatures.Forest : MapFeatures.Woodlots);
+                        break;
+                    default:
+                        float width = rng.Range(10f, 18f);
+                        gullies.Add(new MapFeature { Kind = "gully", Label = Name(names.Woods, " Gully"), Note = "dry wash", Terrain = "gully", Width = width, PaintWidth = width * 0.5f, Height = rng.Range(2.5f, 4.5f), Points = Squares(route) });
+                        made.Add(MapFeatures.Gullies);
+                        break;
+                }
+            }
+
+            /// <summary>Any 100 m square with nothing to hide behind within about 70 m of its middle gets a hedge or a copse.</summary>
+            void BreakUpOpenGround()
+            {
+                bool copses = Allowed(MapFeatures.Woodlots) || Allowed(MapFeatures.Forest), hedgeRows = Allowed(MapFeatures.Hedgerows);
+                if (!copses && !hedgeRows) return;
+                var cover = new List<(List<Vec2> pts, float r, bool line)>();
+                foreach (var f in hills.Concat(ridges).Concat(fields).Concat(hedges).Concat(woods).Concat(marshes).Concat(gullies).Concat(yards).Concat(structures).Concat(cliffs))
+                {
+                    if (f.Terrain == null || !CoverTerrains.Contains(f.Terrain)) continue;
+                    if (f.Points != null)
+                    {
+                        var pts = f.Points.Select(q => new Vec2(q[0] * sq, q[1] * sq)).ToList();
+                        if (f.Kind == "area")
+                        {
+                            Vec2 c = new Vec2(pts.Average(q => q.X), pts.Average(q => q.Y));
+                            cover.Add((new List<Vec2> { c }, pts.Max(q => Vec2.Distance(q, c)), false));
+                        }
+                        else cover.Add((pts, Math.Max(2f, f.Width) / 2f, true));
+                    }
+                    else if (f.Rect != null)
+                    {
+                        Vec2 c = new Vec2((f.Rect[0] + f.Rect[2] / 2f) * sq, (f.Rect[1] + f.Rect[3] / 2f) * sq);
+                        cover.Add((new List<Vec2> { c }, Math.Max(f.Rect[2], f.Rect[3]) * sq / 2f, false));
+                    }
+                    else if (f.Center != null) cover.Add((new List<Vec2> { new Vec2(f.Center[0] * sq, f.Center[1] * sq) }, 8f, false));
+                }
+                float Near(Vec2 p)
+                {
+                    float best = float.MaxValue;
+                    foreach (var (pts, r, line) in cover)
+                    {
+                        if (!line) { best = Math.Min(best, Vec2.Distance(p, pts[0]) - r); continue; }
+                        for (int i = 0; i + 1 < pts.Count; i++) best = Math.Min(best, MapGrid.DistanceToSegment(p, pts[i], pts[i + 1]) - r);
+                    }
+                    return best;
+                }
+                // Like farmland: a hedge along a field edge of the square, sometimes two, or a copse in a corner.
+                for (float y0 = 0f; y0 < h; y0 += sq)
+                    for (float x0 = 0f; x0 < w; x0 += sq)
+                    {
+                        Vec2 p = new Vec2(x0 + sq / 2f, y0 + sq / 2f);
+                        if (NearWater(p, 15f) || NearRoad(p, 8f) || InSettlement(p, 10f) || Near(p) < 70f) continue;
+                        var corners = new[] { new Vec2(x0, y0), new Vec2(x0 + sq, y0), new Vec2(x0 + sq, y0 + sq), new Vec2(x0, y0 + sq) };
+                        if (hedgeRows && (!copses || rng.Chance(0.65f)))
+                        {
+                            int first = rng.Int(0, 3), edges = rng.Chance(0.4f) ? 2 : 1;
+                            for (int e = 0; e < edges; e++)
+                            {
+                                Vec2 a = corners[(first + e) % 4], b = corners[(first + e + 1) % 4];
+                                var pts = new List<Vec2> { a + (b - a) * rng.Range(0f, 0.2f), a + (b - a) * rng.Range(0.75f, 1f) };
+                                if (Subdivide(pts, 8f).Any(q => NearWater(q, 4f) || NearRoad(q, 4f) || InSettlement(q, 5f))) continue;
+                                hedges.Add(Line(null, rng.Chance(0.2f) ? "wall" : "hedge", 3f, pts, null, null));
+                                cover.Add((pts, 1.5f, true));
+                                made.Add(MapFeatures.Hedgerows);
+                            }
+                        }
+                        else
+                        {
+                            Vec2 corner = corners[rng.Int(0, 3)];
+                            Vec2 c = corner + (p - corner) * rng.Range(0.15f, 0.35f);
+                            if (NearWater(c, 20f) || NearRoad(c, 20f)) continue;
+                            float r = rng.Range(14f, 24f);
+                            woods.Add(Area(null, "forest", Blob(c, r)));
+                            cover.Add((new List<Vec2> { c }, r, false));
+                            made.Add(MapFeatures.Woodlots);
+                        }
+                    }
             }
 
             // ---------- helpers ----------

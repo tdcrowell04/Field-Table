@@ -101,6 +101,17 @@ namespace FieldTable.Sim
     }
 
     /// <summary>A grenade or rocket going off.</summary>
+    /// <summary>The enemy blew the bridge: the cells that changed, and what each is now.</summary>
+    public sealed class BridgeBlown : SimEvent
+    {
+        public Unit By { get; }
+        public Landmark Bridge { get; }
+        public IReadOnlyList<(int x, int y, string terrain)> Cells { get; }
+
+        public BridgeBlown(Unit by, Landmark bridge, IReadOnlyList<(int x, int y, string terrain)> cells) { By = by; Bridge = bridge; Cells = cells; }
+        public override string Describe() => By.Name + " blows " + Bridge.Label + ".";
+    }
+
     public sealed class BlastAt : SimEvent
     {
         public Unit Shooter { get; }

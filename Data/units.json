@@ -94,6 +94,18 @@
       "lethality": 0.6,
       "apBlast": 2,
       "caliber": "PG-7"
+    },
+    {
+      "id": "demo",
+      "name": "Demolition charges",
+      "range": 1,
+      "burst": 1,
+      "cycle": 1,
+      "accuracy": 1,
+      "suppress": 1.0,
+      "blast": 12,
+      "lethality": 0.8,
+      "caliber": "demo"
     }
   ],
   "units": [
@@ -222,6 +234,14 @@
       "launcherAmmo": 1,
       "load": 22,
       "launcherAp": 2
+    },
+    {
+      "id": "en-eng",
+      "name": "Enemy engineer",
+      "figure": "oprf",
+      "weapon": "ak",
+      "ammo": 90,
+      "load": 18
     },
     {
       "id": "civ",

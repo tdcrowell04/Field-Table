@@ -315,20 +315,19 @@ namespace FieldTable.Sim.Tests
         }
 
         [Fact]
-        public void TheEnemyIsADifferentMixEachMission()
+        public void TheEnemyGoalPicksADifferentMixEachMission()
         {
             var names = NamePools.FromJson(Read("names.json"));
-            bool noPkm = false, noRpg = false;
-            for (ulong seed = 1; seed <= 20; seed++)
+            var goals = new System.Collections.Generic.HashSet<string>();
+            for (ulong seed = 1; seed <= 16; seed++)
             {
                 var m = BridgeSeizure.Create(Scene.Data, names, seed);
                 var enemy = m.Sim.Units.Where(u => u.Force == m.Enemy).ToList();
+                goals.Add(m.Enemy.Plan.Goal);
                 Assert.InRange(enemy.Count, BridgeSeizure.MinEnemy, BridgeSeizure.MaxEnemy);
                 Assert.Equal(enemy.Count, enemy.Select(u => u.Name).Distinct().Count());
-                noPkm |= enemy.All(u => u.Def.Id != "en-pkm");
-                noRpg |= enemy.All(u => u.Def.Id != "en-rpg");
             }
-            Assert.True(noPkm || noRpg);
+            Assert.True(goals.Count >= 3, "Only " + string.Join(", ", goals) + " came up in 16 missions.");
         }
     }
 }

@@ -71,6 +71,14 @@ namespace FieldTable.Sim.Tests
         }
 
         [Fact]
+        public void TheMapIsAKilometerSquare()
+        {
+            var m = Make(1);
+            Assert.Equal(1000f, m.Sim.Map.WidthMeters);
+            Assert.Equal(1000f, m.Sim.Map.HeightMeters);
+        }
+
+        [Fact]
         public void EveryoneKnowsTheirNames()
         {
             var m = Make(3);
@@ -172,7 +180,7 @@ namespace FieldTable.Sim.Tests
                 var enemy = m.Sim.Units.Where(u => u.Force == m.Enemy).ToList();
                 if (!squad.Any(u => enemy.Any(e => Sight.Trace(m.Sim.Map, e.Position, Postures.Height(e.Posture), u.Position, 1.7f).Clear && Vec2.Distance(e.Position, u.Position) <= FogOfWar.DayEyeRange))) hidden++;
             }
-            Assert.True(hidden >= 16, "Only " + hidden + " of 20 maps start the squad out of sight.");
+            Assert.True(hidden >= 19, "Only " + hidden + " of 20 maps start the squad out of sight.");
         }
 
         static Mission Won(ulong seed, System.Action<Mission> before = null)

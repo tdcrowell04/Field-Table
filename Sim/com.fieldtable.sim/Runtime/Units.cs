@@ -125,6 +125,9 @@ namespace FieldTable.Sim
         public string Name { get; set; }
         public string Faction { get; set; }
         public bool Civilian { get; set; }
+
+        /// <summary>What this side is out to do, for a side the game plays; null for the player's side and the usual brain.</summary>
+        public EnemyPlan Plan { get; set; }
     }
 
     /// <summary>One figure on the table: a single Marine, enemy, or civilian.</summary>

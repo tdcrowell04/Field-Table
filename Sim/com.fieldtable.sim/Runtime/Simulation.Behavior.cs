@@ -52,7 +52,7 @@ namespace FieldTable.Sim
                 if (u.Def.Flying) { FlyTick(u, dt); Move(u, dt); continue; }
                 BleedOut(u);
                 if (!u.CanAct) { u.IsMoving = false; continue; }
-                if (u.Order == null && !ReferenceEquals(u.Force, PlayerForce)) Brain(u);
+                if (u.Order == null && !ReferenceEquals(u.Force, PlayerForce) && !PlanBrain(u, dt)) Brain(u);
                 Think(u, dt);
                 Move(u, dt);
             }
@@ -262,7 +262,7 @@ namespace FieldTable.Sim
             }
             var side = units.Where(x => ReferenceEquals(x.Force, u.Force)).ToList();
             float lost = side.Count(x => !x.CanAct) / (float)Math.Max(1, side.Count);
-            if ((u.Wounds >= 1 && u.Suppression >= 0.6f) || lost >= 0.5f)
+            if ((u.Wounds >= 1 && u.Suppression >= 0.6f) || lost >= BreakingPoint(u.Force))
             {
                 var threats = Fog.For(u.Force).Contacts.Where(c => AreHostile(u.Force, c.Unit.Force)).Select(c => c.LastKnownPosition).ToList();
                 if (threats.Count > 0)
@@ -378,6 +378,9 @@ namespace FieldTable.Sim
             if (u.IsMoving && u.Speed == MoveSpeed.Run) return;
             if (Map.TerrainAt(u.Position).Deep) return;
             if (u.Order != null && (u.Order.Verb == Verbs.TreatCasualty || u.Order.Verb == Verbs.Hide || u.Order.Verb == Verbs.FlyDrone || u.Order.Verb == Verbs.Carry)) return;
+            // An ambush holds its fire until it's sprung, and the engineer doesn't stop setting his charges to shoot.
+            var plan = u.Force.Plan;
+            if (plan != null && (plan.HoldingFire || (ReferenceEquals(u, plan.Engineer) && !plan.ChargesSet))) return;
 
             Unit target = null;
             Vec2? area = null;

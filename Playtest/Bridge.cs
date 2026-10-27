@@ -157,6 +157,17 @@ namespace FieldTable.Playtest
                 foreach (var e in events.OfType<SmokeAt>()) WriteCloud(w, e.Cloud, e.Step);
                 w.WriteEndArray();
 
+                // A blown bridge: the ground that changed, as x, y, terrain, x, y, terrain...
+                w.WriteStartArray("blown");
+                foreach (var e in events.OfType<BridgeBlown>())
+                {
+                    w.WriteStartObject();
+                    w.WriteNumber("s", e.Step);
+                    WriteCells(w, e.Cells);
+                    w.WriteEndObject();
+                }
+                w.WriteEndArray();
+
                 w.WriteStartArray("breaches");
                 foreach (var e in events.OfType<BreachMade>())
                 {
@@ -397,6 +408,8 @@ namespace FieldTable.Playtest
                 w.WriteString("outcome", mission.Outcome);
                 w.WriteString("outcomeText", mission.OutcomeText);
                 w.WriteString("rating", mission.Rating);
+                // At the end, what the enemy was really up to.
+                if (mission.Enemy.Plan != null) w.WriteString("enemyGoal", mission.Enemy.Plan.Goal);
             }
             w.WriteStartArray("units");
             foreach (var u in sim.Units)
@@ -459,7 +472,11 @@ namespace FieldTable.Playtest
             }
             w.WriteEndArray();
 
-            // Smoke hanging now, every breach so far (the ground the page drew has changed there), and CASEVAC.
+            // Ground a blown bridge changed, smoke hanging now, every breach so far (the ground the page drew has changed
+            // there), and CASEVAC.
+            w.WriteStartObject("blown");
+            WriteCells(w, sim.Log.Events.OfType<BridgeBlown>().SelectMany(e => e.Cells).ToList());
+            w.WriteEndObject();
             w.WriteStartArray("smoke");
             foreach (var cloud in sim.Map.Smoke) WriteCloud(w, cloud, -1);
             w.WriteEndArray();
@@ -592,6 +609,13 @@ namespace FieldTable.Playtest
             o.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(v.GetString()) ? v.GetString().Trim() : null;
 
         static double R(float v) => Math.Round(v, 1);
+
+        static void WriteCells(Utf8JsonWriter w, IReadOnlyList<(int x, int y, string terrain)> cells)
+        {
+            w.WriteStartArray("cells");
+            foreach (var (x, y, t) in cells) { w.WriteNumberValue(x); w.WriteNumberValue(y); w.WriteStringValue(t); }
+            w.WriteEndArray();
+        }
 
         static Vec2 Inside(MapGrid map, Vec2 p) =>
             new Vec2(Math.Max(0f, Math.Min(map.WidthMeters - 0.01f, p.X)), Math.Max(0f, Math.Min(map.HeightMeters - 0.01f, p.Y)));

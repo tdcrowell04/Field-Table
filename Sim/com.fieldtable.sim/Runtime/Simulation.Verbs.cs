@@ -192,6 +192,7 @@ namespace FieldTable.Sim
         {
             Map.Smoke.RemoveAll(c => c.UntilStep <= Clock.Step);
             CasevacTick();
+            ThinkPlans();
         }
 
         // ---------- clear a building ----------

@@ -31,7 +31,21 @@ namespace FieldTable.Sim
         public const float OnObjective = 15f;
 
         /// <summary>True while a Marine who can fight is on the objective.</summary>
-        public bool MarineOnObjective => Sim.Units.Any(u => ReferenceEquals(u.Force, Marines) && !u.Def.Flying && u.CanAct && Vec2.Distance(u.Position, Objective.Center) <= OnObjective);
+        public bool MarineOnObjective => Sim.Units.Any(u => ReferenceEquals(u.Force, Marines) && !u.Def.Flying && u.CanAct && OnTheObjective(u.Position));
+
+        /// <summary>True once the enemy has blown the bridge.</summary>
+        public bool BridgeBlown => Sim.Log.Events.OfType<BridgeBlown>().Any();
+
+        /// <summary>
+        /// On the bridge, within 15 m of its middle. Once it's been blown, the crossing site still counts: within 15 m of
+        /// either end.
+        /// </summary>
+        bool OnTheObjective(Vec2 p)
+        {
+            if (Vec2.Distance(p, Objective.Center) <= OnObjective) return true;
+            if (!BridgeBlown || Objective.Points.Count < 2) return false;
+            return Vec2.Distance(p, Objective.Points[0]) <= OnObjective || Vec2.Distance(p, Objective.Points[Objective.Points.Count - 1]) <= OnObjective;
+        }
 
         /// <summary>The Marines themselves, not counting the drone.</summary>
         public IEnumerable<Unit> Squad => Sim.Units.Where(u => ReferenceEquals(u.Force, Marines) && !u.Def.Flying);

@@ -91,6 +91,20 @@ namespace FieldTable.Sim.Tests
         }
 
         [Fact]
+        public void MapsGetCommonSenseCoverUnlessTheScenarioIsOpenGround()
+        {
+            int Cover(MapData d) => d.Features.Count(f => f.Terrain == "hedge" || f.Terrain == "forest" || f.Terrain == "wall" || f.Terrain == "gully");
+            for (ulong seed = 1; seed <= 10; seed++)
+            {
+                var covered = Gen(seed, r => { r.Require.Add("bridges"); r.Exclude.Add("forest"); r.Exclude.Add("woodlots"); r.Exclude.Add("hedgerows"); r.Exclude.Add("gullies"); r.Exclude.Add("hills"); });
+                Assert.Equal(0, Cover(covered));
+                var open = Gen(seed, r => { r.Require.Add("bridges"); r.OpenGround = true; });
+                var normal = Gen(seed, r => r.Require.Add("bridges"));
+                Assert.True(Cover(normal) > Cover(open), "Seed " + seed + ": no cover was added.");
+            }
+        }
+
+        [Fact]
         public void HillsAreRandomFromFifteenToOneHundredFiftyMeters()
         {
             var heights = new List<float>();
