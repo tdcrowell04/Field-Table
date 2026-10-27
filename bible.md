@@ -726,6 +726,7 @@ In chat: *"Kansia is a name I just thought of, make sure that's not from anythin
 
 - [ ] The enemy country's name: Kansia, Triston's (ledger round 18)
 - [ ] The four factions for your side: Claude's researched drafts of the Marines, Army, Navy SEALs, and Air Force Pararescue (ledger round 18)
+- [ ] Which missions each side plays (ledger round 18)
 - [ ] Claude's calls from building the enemy army and the three new missions (ledger round 18)
 - [ ] The crossroads and the delay are won with no orders given; how much harder to make them (ledger round 18)
 
