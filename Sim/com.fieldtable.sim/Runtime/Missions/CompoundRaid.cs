@@ -243,7 +243,5 @@ namespace FieldTable.Sim
                 }
             };
         }
-
-        static float Dot(Vec2 a, Vec2 b) => a.X * b.X + a.Y * b.Y;
     }
 }

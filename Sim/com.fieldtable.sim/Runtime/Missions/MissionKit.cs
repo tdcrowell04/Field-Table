@@ -500,6 +500,23 @@ namespace FieldTable.Sim
             return len > 0f ? v * (1f / len) : new Vec2(0, 1);
         }
 
+        public static float Dot(Vec2 a, Vec2 b) => a.X * b.X + a.Y * b.Y;
+
+        /// <summary>A spot out along a way from a point, pulled in to 40 m short of the map's edge if that's nearer (but never under 150 m).</summary>
+        public static Vec2 OutAlong(MapGrid map, Vec2 from, Vec2 way, float distance)
+        {
+            float room = Vec2.Distance(from, EdgeToward(map, from, way)) - 40f;
+            return Inside(map, from + way * Math.Min(distance, Math.Max(150f, room)));
+        }
+
+        /// <summary>The compass word for a direction on the map, like "northeast". North is up the map.</summary>
+        public static string Compass(Vec2 d)
+        {
+            double angle = (Math.Atan2(d.X, -d.Y) * 180.0 / Math.PI + 360.0) % 360.0;
+            string[] names = { "north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest" };
+            return names[(int)Math.Round(angle / 45.0) % 8];
+        }
+
         public static Vec2 Unit(Vec2 v)
         {
             float len = v.Length;

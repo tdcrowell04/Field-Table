@@ -216,25 +216,8 @@ namespace FieldTable.Sim
         static bool Holders(Mission m, Force side) =>
             m.Sim.Units.Any(u => ReferenceEquals(u.Force, side) && u.CanAct && !u.Def.Flying && !u.Def.Interpreter && Vec2.Distance(u.Position, m.Objective.Center) <= HoldWithin);
 
-        /// <summary>A spot out along a way from the crossing, pulled in if the map's edge is nearer.</summary>
-        static Vec2 OutAlong(MapGrid map, Vec2 c, Vec2 way, float distance)
-        {
-            float room = Vec2.Distance(c, EdgeToward(map, c, way)) - 40f;
-            return Inside(map, c + way * Math.Min(distance, Math.Max(150f, room)));
-        }
-
         static bool Seen(MapGrid map, List<Unit> squad, Vec2 p) =>
             squad.Any(u => Vec2.Distance(u.Position, p) <= FogOfWar.DayEyeRange && Sight.Trace(map, u.Position, 1.7f, p, 1.1f).Clear);
-
-        static float Dot(Vec2 a, Vec2 b) => a.X * b.X + a.Y * b.Y;
-
-        static string Compass(Vec2 d)
-        {
-            // Map y runs south, so north is negative y.
-            double angle = (Math.Atan2(d.X, -d.Y) * 180.0 / Math.PI + 360.0) % 360.0;
-            string[] names = { "north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest" };
-            return names[(int)Math.Round(angle / 45.0) % 8];
-        }
 
         static string Hint(string goal, Vec2 second)
         {

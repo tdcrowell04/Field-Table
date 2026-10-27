@@ -30,6 +30,7 @@ namespace FieldTable.Sim
             new StartState(Bridge, "Bridge seizure", BridgeSeizure.Create),
             new StartState(Raid, "Compound raid", CompoundRaid.Create),
             new StartState(Crossroads, "Hold the crossroads", HoldCrossroads.Create),
+            new StartState(Crew, "Downed helicopter crew", DownedCrew.Create),
         };
 
         public static StartState Find(string id) => All.FirstOrDefault(s => string.Equals(s.Id, id, StringComparison.OrdinalIgnoreCase));
