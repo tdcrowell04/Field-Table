@@ -76,5 +76,5 @@ Ruled in ledger rounds 4 to 7 and logged in `bible.md`.
 - **Piece 5, movement:** done and tested here. Routes on a 2-meter grid around deep water and walls; walk, run, and crawl at terrain speeds; teams spread out on arrival; swimming, drowning in full kit, and dropping gear to swim.
 - **Piece 6, fire:** done and tested here. One d100 roll per burst, suppression and pinning, wounds and casualties, treating the wounded, and grenades and rockets that hit everyone in the blast. The numbers I picked go to Triston in ledger round 11.
 - **Pieces 7 and 9, so far:** 16 of the verbs in `verbs.md` are built, and a simple coded enemy fights from where it starts and falls back when it's hurt or losing. The smart enemy steered by the in-game AI comes later.
-- **Piece 13, so far:** the bridge seizure start state, its brief, and how it ends. 139 tests pass.
+- **Piece 13, so far:** the bridge seizure start state, its brief, how it ends, and its three secondary objectives. 147 tests pass.
 - **Phone playtest page:** built in `Playtest/` and published at https://claude.ai/artifact/A9AH1SGi5o5Rt2Uoe4bu9y. The same simulation runs in the phone's browser, Haiku reads typed orders, and each turn plays back on the sand table.

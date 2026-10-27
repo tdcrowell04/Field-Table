@@ -180,7 +180,8 @@ namespace FieldTable.Sim
                 }
                 if (spotter == null) continue;
                 Contact c = For(force).Track(shooter);
-                bool wasVisible = c.Visible;
+                bool wasVisible = c.Visible, wasKnown = c.Known;
+                int lastSeen = c.LastSeenStep;
                 c.Known = true;
                 c.Visible = true;
                 c.Progress = 1f;
@@ -189,8 +190,7 @@ namespace FieldTable.Sim
                 if (!wasVisible)
                 {
                     sim.Record(new ContactSpotted(force, shooter, spotter, sim.Map.SquareOf(shooter.Position)));
-                    if (ReferenceEquals(force, sim.PlayerForce))
-                        sim.Radio(spotter, (string.IsNullOrEmpty(spotter.Team) ? spotter.Name : spotter.Team) + ": Taking fire! " + (shooter.Def.Name ?? "enemy") + " at " + sim.Map.SquareOf(shooter.Position) + ".");
+                    sim.CallContact(spotter, shooter, true, wasKnown, lastSeen);
                 }
             }
         }
@@ -229,13 +229,14 @@ namespace FieldTable.Sim
                         c.Progress = Math.Min(1f, c.Progress + best * seconds);
                         if (c.Progress >= 1f)
                         {
+                            bool wasKnown = c.Known;
+                            int lastSeen = c.LastSeenStep;
                             c.Known = true;
                             c.Visible = true;
                             c.LastKnownPosition = target.Position;
                             c.LastSeenStep = sim.Clock.Step;
                             sim.Record(new ContactSpotted(force, target, spotter, sim.Map.SquareOf(target.Position)));
-                            if (ReferenceEquals(force, sim.PlayerForce) && sim.AreHostile(force, target.Force))
-                                sim.Radio(spotter, (string.IsNullOrEmpty(spotter.Team) ? spotter.Name : spotter.Team) + ": Contact, " + (target.Def.Name ?? "enemy").ToLowerInvariant() + " at " + sim.Map.SquareOf(target.Position) + ".");
+                            if (sim.AreHostile(force, target.Force)) sim.CallContact(spotter, target, false, wasKnown, lastSeen);
                         }
                     }
                     else

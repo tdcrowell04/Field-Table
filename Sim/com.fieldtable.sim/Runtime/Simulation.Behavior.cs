@@ -539,6 +539,32 @@ namespace FieldTable.Sim
 
         internal void Radio(Unit from, string text) => Record(new RadioCall(from, text));
 
+        // ---------- calling out contacts ----------
+
+        /// <summary>A contact out of sight this long counts as coming back when it's seen again.</summary>
+        public const int SecondsGoneToCallAgain = 30;
+
+        /// <summary>The square each team last called each contact in.</summary>
+        readonly Dictionary<string, GridRef> called = new Dictionary<string, GridRef>();
+
+        /// <summary>
+        /// A Marine calls out a contact on the net ("Taking fire!" when it's shooting, "Contact" when it's just seen).
+        /// Each team calls a contact once, and again only if it moves to another square or comes back after
+        /// being out of sight a while.
+        /// </summary>
+        internal void CallContact(Unit spotter, Unit target, bool takingFire, bool wasKnown, int lastSeenStep)
+        {
+            if (!ReferenceEquals(spotter.Force, PlayerForce)) return;
+            string who = string.IsNullOrEmpty(spotter.Team) ? spotter.Name : spotter.Team;
+            GridRef square = Map.SquareOf(target.Position);
+            string key = who + "|" + target.Id;
+            bool cameBack = wasKnown && Clock.Step - lastSeenStep >= SecondsGoneToCallAgain * SimClock.StepsPerSecond;
+            if (called.TryGetValue(key, out GridRef last) && last.Equals(square) && !cameBack) return;
+            called[key] = square;
+            string kind = target.Def.Name ?? "enemy";
+            Radio(spotter, who + (takingFire ? ": Taking fire! " + kind : ": Contact, " + kind.ToLowerInvariant()) + " at " + square + ".");
+        }
+
         static float Bearing(Vec2 a, Vec2 b) => (float)(Math.Atan2(b.X - a.X, -(b.Y - a.Y)) * 180.0 / Math.PI + 360.0) % 360f;
 
         static string Pct(float p) => Math.Round(p * 100) + "%";

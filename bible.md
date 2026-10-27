@@ -1,6 +1,6 @@
 # Field Table: game bible
 
-*Started Oct 16, 2026 · @Triston. Updated Oct 26, 2026 to match every ruling so far. Overruled ideas have been taken out.*
+*Started Oct 16, 2026 · @Triston. Updated Oct 27, 2026 to match every ruling so far. Overruled ideas have been taken out.*
 
 ## Overview
 
@@ -64,7 +64,7 @@ The player clicks a unit, then talks to it. Selecting first means the game alway
   - Plain English: normal talk.
   - Loose: anything goes and the AI sorts it out.
 - Order styles: Radio talk, plain English, and spells (for fantasy). Players can type in other languages too, if it's not too hard.
-- Verbs and blanks: The full verb list is in `verbs.md`: 86 verbs for tactical and tabletop RPG play, all built in the squad slice. *"We're adding all of the verbs."* Verbs are hard-coded: move, assault, overwatch, suppress, call for fire, treat casualty, carry, hold, report, and so on. Each verb has blanks for who, where, what target, and when or on what condition. The AI picks the verb and fills the blanks, locked by a grammar so it can only output units, grids, and verbs that exist.
+- Verbs and blanks: The full verb list is in `verbs.md`: 86 verbs for tactical and tabletop RPG play, all built in the squad slice. *"We're adding all of the verbs."* The first 16 built: move, hold, fire, suppress, take cover, change posture, assault, withdraw, follow, observe, report, treat casualty, throw grenade, hide, drop, and emote. *"When will they come"* (the order for the rest is in ledger round 12) Verbs are hard-coded: move, assault, overwatch, suppress, call for fire, treat casualty, carry, hold, report, and so on. Each verb has blanks for who, where, what target, and when or on what condition. The AI picks the verb and fills the blanks, locked by a grammar so it can only output units, grids, and verbs that exist.
 - How blanks: Speed, quiet or not, posture, distance to keep, which way to face, and when to open fire are blanks on a verb, not separate verbs.
 - SOPs: Standing orders the unit follows without being told, set once for the unit and changed for a single mission when needed, as in the prototype.
 - Formatted reports: The RTO, Doc, or team leaders build 9-lines, SALUTEs, and other formatted reports from what's already known; the player gives only the decisions that are theirs. *"I feel like I want the reports to be formatted as a choice in radio mode, doing the reports at all a choice in plain english, and a choice in free form but not really necessary."*
@@ -107,6 +107,15 @@ Code owns every hard fact it covers; the AI handles language. When an order fall
 | Validation (code) | Checking each command is possible: time, ammo, friendlies in the grid. Failures become in-world pushback |
 
 - Memory: The game holds the mission log; the AI only gets the small slice each call needs.
+
+Fire and wounds, as built (ledger round 11):
+
+- Wounds: a hit rolls a d20. From a rifle, 8 in 20 put the Marine down and the rest wound them (still fights, moves slower). A second hit always puts them down, and a 1 or 2 on someone already hurt kills them.
+- The clock on a casualty: a Marine who's down dies after 15 minutes without treatment. Doc stabilizes someone in 60 seconds; any other Marine takes 3 minutes. *"And then casevac depending on where hit and everything? Because every GSW is different"* (where a Marine is hit, and CASEVAC, are in ledger round 12)
+- Blasts: grenades and rockets roll for everyone inside the blast, friends included. A miss lands a few meters off in a random direction. *"There should be a difference with HE and AP"* (in ledger round 12)
+- Deep water: carrying over 15 kg into deep water and you go under; 20 seconds later you drown. Dropping gear takes a Marine down to 12 kg, light enough to swim.
+- The enemy, until the in-game AI steers it: it fights from where it starts, and falls back when it's hurt and pinned, or when half its side is down. Civilians get down when the shooting starts.
+- Still open: how a shot is decided, and getting pinned (ledger round 12).
 
 ## Look
 
@@ -192,10 +201,19 @@ Every mission played in the Field Table prototype is a candidate mission for the
 - When the AI makes a mission, it fills a mission template and code checks the result. *"Yeah it uses the mission start states and fills in pre made adders to make it unique."*
 - Player-built missions and campaigns: players can bring them built all the way or only partly. The AI fills in whatever they leave out, and they share them on Steam Workshop.
 - Cinder Ford: the bridge seizure is one of the 25 start states, played on a freshly generated map each time.
+  - Main objective: seize and hold the bridge.
+  - Enemy: a random 5 to 9 fighters each mission, so "unknown strength" in the brief means something. They set up on the far bank, each picking the best cover with a view of the bridge: the PKM 80 to 220 m back, the riflemen 25 to 90 m, the RPG 40 to 130 m. (Which fighters make up the 5 to 9 is in ledger round 12.)
+  - Civilians: 3 to 5, each in a house in the village by the bridge.
+  - How it ends: you lose with 7 Marines down, or after turn 40. You win with a Marine within 15 m of the bridge and no enemy still fighting within 250 m, at the end of two turns in a row.
+  - Secondary objectives: no civilians hurt and the bridge left standing (both from the commander's intent), and every Marine comes home alive. Nothing can damage the bridge yet, so that one is always met until explosives that can hurt it are built.
+  - Secondary objectives don't change winning or losing. The quick brief shows how you're doing on each during the mission, and the end screen grades each one. *"In order to get the best rating you have to complete the other objectives"* (the rating itself is in ledger round 12)
+  - Marine names: last names drawn from a list of 24 for each mission, including Reyes, Lund, Ortiz, Hale, and Kim.
+- Quick brief: the brief opens on a short version: the main objective, the secondary objectives, how you win and lose, the rules of engagement, and the enemy seen so far, each objective with a check or a cross as the mission goes. A Full brief button shows the whole thing. A new mission opens on the quick brief instead of the net, and the brief doesn't fill the start of the radio traffic; the net starts with the first orders.
 
 - Design lab: The Field Table prototype is free playtesting of the core idea. Note what felt fair, what didn't, and which rulings to veto.
 - Branches: Each played mission's decision points become its branches. Example, Operation Cinder Ford: the PKM, the unarmed pack on the bridge, and the two enemy wounded each lead to different outcomes depending on the player's choices.
 - Radio lines: Written as templates with blanks, like "Lead, [unit]. Set at [location], eyes on [target]." These can be voice-acted, with optional AI flavor on top.
+- Calls on their own: Marines call out without being asked ("Taking fire! Enemy machine gunner at F4.", "I'm hit!", "Man down!", "Alpha: Set at C4.", "I'm black on ammo!"). Each team calls a contact once, and again only if it moves or comes back.
 - Models: Claude writes Blender scripts that build rough base models. Triston finishes them.
 
 ## Mods
@@ -228,6 +246,15 @@ Live AI is allowed in this game. This project is separate from Conduits' no-AI-a
   - It runs the same simulation code the game uses, built for the browser with .NET's WebAssembly tools.
   - Its code lives in the repo, in `Playtest/`.
   - What it has: the figures-page look on a generated bridge-seizure map, the 13-Marine squad, typed orders read by Haiku, and turns that play out.
+  - Figures are drawn 3 to 4 times life size so you can see them, and never smaller than a thumbnail. Buildings, trees, and the ground are true size.
+  - Figures always draw on top of trees, so you never lose a Marine under the canopy. A building with someone inside turns see-through.
+  - Daylight for now; night views next, once the page works on Triston's phone.
+  - Order preview: Send has Haiku read the orders, then shows each Marine's route and any problem before anything happens. Play turn commits them and plays one minute. Orders that can't be done are dropped with a "say again."
+  - Playback at 4 times speed (15 seconds a turn), with 2×, 8×, Pause, and Skip.
+  - Every roll that touches one of your Marines goes in the Dice tab. The big ones (blasts and how bad a hit is) pop up on the table as they happen.
+  - If Haiku isn't available, a simple built-in reader takes orders: who, the verb words, place names, and grid squares.
+  - The page saves to its own database what was typed, how it was read, anything not covered yet, and how each turn ended. Nothing else.
+  - On a phone turned sideways (any screen wider than it is tall), the map goes on the left, and the net, squad, brief, dice, and order box stack on the right.
 - Cloud: Added later only if lots of players can't run the local model. If it comes, it runs through a backend we control, never with a key inside the game.
 - Guardrails: A hard no on sexual, racist, illegal, or similar content in anything the AI writes. The grammar lock keeps parsed orders to real verbs, units, and grids, and a filter covers anything the AI writes freely (orders the code doesn't cover, and the pocket DM).
 - Bug reports: When a player is connected, orders the code doesn't cover get reported quietly. Reports send the order text and the game state, never voice recordings. Players are told in the privacy policy and get an off switch in settings. No popup during play.
@@ -499,9 +526,41 @@ Every call gets ruled before anything is built. Rulings only; overruled ideas ar
 | Where its code lives: `Playtest/` in the repo | Accepted | |
 | Build the playtest page | Accepted | |
 
+### 2026-10-27: ledger round 11
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| How a shot is decided (one d100 per burst) | Asked again in round 12 | *"A d100 for the whole burst? How does that work"* |
+| Getting pinned | Not answered; asked again in round 12 | |
+| Wounded or down | Accepted | |
+| The clock on a casualty | Accepted | *"And then casevac depending on where hit and everything? Because every GSW is different"* |
+| Blasts | Accepted | *"There should be a difference with HE and AP"* |
+| Deep water | Accepted | |
+| The enemy, until the in-game AI steers it | Accepted | |
+| How many enemy | (c): random each mission, 5 to 9 | |
+| Where the enemy sets up | Accepted | |
+| Civilians | Accepted | |
+| How it ends | Accepted | |
+| Marine names | Accepted | |
+| Radio calls on their own | (b): each team calls a contact once, and again only if it moves or comes back | |
+| The first 16 verbs | Accepted | *"When will they come"* |
+| Figure and building size | Accepted | |
+| Figures stay visible | Accepted | |
+| Daylight for now | (a): daylight for now; night views next | |
+| Order preview | Accepted | |
+| Playback speed | Accepted | |
+| Which dice you see | Accepted | |
+| A backup reader | Accepted | |
+| What the page saves | Accepted | |
+| Landscape on your phone | Accepted | |
+| Quick brief | Accepted | |
+| Secondary objectives for the bridge seizure | Accepted | |
+| What secondary objectives count for | Accepted | *"In order to get the best rating you have to complete the other objectives"* |
+| Starting a mission | Accepted | |
+
 ## Open questions
 
-- None right now.
+- [ ] How a shot is decided, and getting pinned (ledger round 12)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 

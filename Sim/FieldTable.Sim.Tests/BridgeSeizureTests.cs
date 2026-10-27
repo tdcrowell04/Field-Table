@@ -109,6 +109,39 @@ namespace FieldTable.Sim.Tests
         }
 
         [Fact]
+        public void TheSecondaryObjectivesComeFromTheIntent()
+        {
+            var m = Make(3);
+            Assert.Equal(new[] { "civilians", "bridge", "marines" }, m.Secondary.Select(o => o.Id));
+            Assert.All(m.Secondary, o => Assert.False(o.IsBroken(m)));
+            Assert.StartsWith("Seize and hold " + m.Objective.Label, m.MainObjective);
+            Assert.Equal("Positive ID before engaging.", m.Roe);
+        }
+
+        [Fact]
+        public void HurtingACivilianBreaksThatObjectiveForGood()
+        {
+            var m = Make(3);
+            var civ = m.Sim.Units.First(u => u.Force == m.Civilians);
+            m.Sim.KnockDownForTest(civ);
+            civ.Condition = Condition.Ok;
+            Assert.True(m.Secondary.First(o => o.Id == "civilians").IsBroken(m));
+            Assert.False(m.Secondary.First(o => o.Id == "marines").IsBroken(m));
+        }
+
+        [Fact]
+        public void AMarineKilledBreaksBringingEveryoneHome()
+        {
+            var m = Make(3);
+            var marine = m.Sim.Units.First(u => u.Force == m.Marines);
+            m.Sim.KnockDownForTest(marine);
+            Assert.False(m.Secondary.First(o => o.Id == "marines").IsBroken(m));
+            marine.Condition = Condition.Dead;
+            Assert.True(m.Secondary.First(o => o.Id == "marines").IsBroken(m));
+            Assert.False(m.Secondary.First(o => o.Id == "bridge").IsBroken(m));
+        }
+
+        [Fact]
         public void TakingTheBridgeWithNoEnemyLeftWins()
         {
             var m = Make(6);

@@ -16,6 +16,9 @@ namespace FieldTable.Playtest
         static GameData data;
         static Mission mission;
 
+        /// <summary>Secondary objectives the Marines have seen broken. Until the mission ends, the page only shows what they know.</summary>
+        static readonly HashSet<string> seenBroken = new HashSet<string>();
+
         static Mission Current => mission ?? throw new InvalidOperationException("Start a mission first.");
         static readonly Dictionary<string, int> terrainIndex = new Dictionary<string, int>();
 
@@ -25,6 +28,7 @@ namespace FieldTable.Playtest
         {
             data = GameData.Combine(GameData.FromJson(terrainJson), GameData.FromJson(unitsJson));
             terrainIndex.Clear();
+            seenBroken.Clear();
             for (int i = 0; i < data.Terrains.Count; i++) terrainIndex[data.Terrains[i].Id] = i;
             mission = BridgeSeizure.Create(data, NamePools.FromJson(namesJson), (ulong)(uint)seed);
             mission.Sim.Light = LightLevel.Day;
@@ -195,6 +199,7 @@ namespace FieldTable.Playtest
                     }
                     if (kind == null) continue;
                     if (kind != "spotted" && kind != "lost" && !SeenAt(about, e.Step)) continue;
+                    if ((kind == "wounded" || kind == "down" || kind == "died") && ReferenceEquals(about.Force, mission.Civilians)) seenBroken.Add("civilians");
                     w.WriteStartObject();
                     w.WriteNumber("s", e.Step);
                     w.WriteString("kind", kind);
@@ -350,6 +355,7 @@ namespace FieldTable.Playtest
             w.WriteNumber("turn", sim.Clock.Turn);
             w.WriteNumber("step", sim.Clock.Step);
             w.WriteNumber("turnLimit", Mission.TurnLimit);
+            WriteObjectives(w);
             if (mission.Outcome != null)
             {
                 w.WriteString("outcome", mission.Outcome);
@@ -395,6 +401,35 @@ namespace FieldTable.Playtest
                         w.WriteEndObject();
                     }
                 }
+                w.WriteEndObject();
+            }
+            w.WriteEndArray();
+            w.WriteEndObject();
+        }
+
+        /// <summary>
+        /// The main objective and the secondary ones, each with where it stands. While the mission runs, a secondary
+        /// objective shows as broken only once the Marines know it (they saw the civilian get hurt); at the end, the truth.
+        /// </summary>
+        static void WriteObjectives(Utf8JsonWriter w)
+        {
+            bool over = mission.Outcome != null;
+            w.WriteStartObject("objectives");
+            w.WriteString("main", mission.MainObjective);
+            w.WriteString("mainStatus", over ? (mission.Outcome == "success" ? "seized" : "failed") : mission.MarineOnObjective ? "onit" : "notyet");
+            w.WriteString("roe", mission.Roe);
+            w.WriteNumber("onObjective", Mission.OnObjective);
+            w.WriteNumber("holdRadius", Mission.HoldRadius);
+            w.WriteNumber("combatIneffective", Mission.CombatIneffective);
+            w.WriteStartArray("secondary");
+            foreach (var o in mission.Secondary)
+            {
+                bool broken = o.IsBroken(mission);
+                bool known = over || o.Id != "civilians" || seenBroken.Contains(o.Id);
+                w.WriteStartObject();
+                w.WriteString("id", o.Id);
+                w.WriteString("text", o.Text);
+                w.WriteString("status", broken && known ? "failed" : over ? "met" : "ok");
                 w.WriteEndObject();
             }
             w.WriteEndArray();

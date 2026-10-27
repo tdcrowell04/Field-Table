@@ -67,8 +67,16 @@ namespace FieldTable.Sim
             mission.Brief.Add("Task: seize and hold " + bridge.Label + " (" + bridgeGrid + ") so the platoon can cross.");
             mission.Brief.Add("Intent: the bridge intact and usable, and nobody in " + village.Label + " hurt.");
             mission.Brief.Add("Enemy: unknown strength. Fighters reported near " + village.Label + " on the far bank of " + water.Label + ".");
-            mission.Brief.Add("Civilians: in " + village.Label + ". Standing ROE: positive ID before engaging.");
+            mission.Roe = "Positive ID before engaging.";
+            mission.Brief.Add("Civilians: in " + village.Label + ". Standing ROE: " + mission.Roe.Substring(0, 1).ToLowerInvariant() + mission.Roe.Substring(1));
             mission.Brief.Add("You: 13 Marines in three fire teams plus Doc, at " + startGrid + " on " + road.Label + ".");
+            mission.MainObjective = "Seize and hold " + bridge.Label + " (" + bridgeGrid + ").";
+
+            // The secondary objectives come from the commander's intent, plus bringing everyone home.
+            mission.Secondary.Add(new SecondaryObjective("civilians", "No civilians hurt", m => m.AnyoneHurt(m.Civilians)));
+            // Nothing can damage the bridge yet, so this one holds until explosives that can are built.
+            mission.Secondary.Add(new SecondaryObjective("bridge", "The bridge left standing", m => false));
+            mission.Secondary.Add(new SecondaryObjective("marines", "Every Marine comes home alive", m => m.Sim.Units.Any(u => ReferenceEquals(u.Force, m.Marines) && u.Condition == Condition.Dead)));
             return mission;
         }
 

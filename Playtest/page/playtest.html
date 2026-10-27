@@ -120,6 +120,20 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 .brief p { margin: 0; color: var(--muted); }
 .brief .says { font: 13px/1.5 var(--mono); color: var(--fg); background: var(--panel-2); border-radius: 6px; padding: 8px 10px; }
 .brief .acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.obj { display: flex; flex-direction: column; gap: 4px; }
+.obj .row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; }
+.obj .mark { font: 600 14px/1 var(--mono); text-align: center; }
+.obj .chip { font: 500 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 3px 6px; border-radius: 3px; border: 1px solid currentColor; color: var(--muted); white-space: nowrap; }
+.obj .ok .mark, .obj .ok .chip { color: var(--muted); }
+.obj .met .mark, .obj .met .chip { color: var(--good); }
+.obj .failed .mark, .obj .failed .chip { color: var(--enemy); }
+.obj .onit .mark, .obj .onit .chip { color: var(--sand); }
+.obj.main .row > span:nth-child(2) { font-weight: 600; }
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 12px; margin: 0; }
+.facts dt { font: 500 11px/1.9 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--sand); }
+.facts dd { margin: 0; }
+.grades { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
+.grades .met { color: var(--good); } .grades .failed { color: var(--enemy); }
 
 .rolls { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .rolls li { display: grid; grid-template-columns: 50px minmax(0, 1fr) 40px; gap: 8px; font: 12px/1.35 var(--mono); padding: 3px 0; align-items: baseline; }
@@ -152,13 +166,20 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 .btn:disabled { opacity: .45; cursor: default; }
 .btn.small { height: 34px; padding: 0 11px; font-size: 14px; }
 
-@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
+@media (min-aspect-ratio: 1/1) {
   .app {
-    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-columns: minmax(0, 1fr) clamp(280px, 42%, 400px);
     grid-template-rows: auto minmax(0, 1fr) auto;
     grid-template-areas: "top top" "table desk" "table orders";
-    padding-block: 14px;
   }
+}
+@media (min-aspect-ratio: 1/1) and (min-height: 600px) { .app { padding-block: 14px; } }
+@media (min-aspect-ratio: 1/1) and (max-height: 520px) {
+  .app { gap: 6px; padding-block: 6px; }
+  .top h1 { font-size: 20px; }
+  .top .eyebrow { display: none; }
+  .tabs button { padding-block: 8px 7px; }
+  .pane { padding-block: 8px; }
 }
 @media (max-width: 420px) { .top .eyebrow { display: none; } }
 @media (prefers-reduced-motion: reduce) { .die, .boot .bar i { animation: none; } }
@@ -207,7 +228,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   </section>
 
   <form class="orders" id="orderForm" autocomplete="off">
-    <textarea id="orderBox" rows="1" placeholder="Orders for the squad" aria-label="Orders to the squad"></textarea>
+    <textarea id="orderBox" rows="1" placeholder="Type orders" aria-label="Orders to the squad"></textarea>
     <button class="btn" id="sendBtn" type="submit" disabled>Send</button>
     <button class="btn primary" id="playBtn" type="button" disabled>Play turn</button>
   </form>
@@ -553,7 +574,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
   const RATE = { m27: 0.16, "m27-ar": 0.09, m4: 0.16, ak: 0.12, pkm: 0.075 };
   const PROJ = { m320: { fl: 1.0, arc: 14 }, grenade: { fl: 1.1, arc: 5 }, rpg: { fl: 0.55, arc: 0, rocket: true } };
 
-  const S = { cam: { x: 400, y: 300, s: 1 }, fitS: 1, roster: [], state: null, log: [], rolls: [], flip: {}, sel: -1, tap: null, pending: null, busy: false, speed: 4, tab: "net", mw: 800, mh: 600, sq: 100 };
+  const S = { cam: { x: 400, y: 300, s: 1 }, fitS: 1, roster: [], state: null, log: [], rolls: [], flip: {}, sel: -1, tap: null, pending: null, busy: false, speed: 4, tab: "net", briefMode: "quick", mw: 800, mh: 600, sq: 100 };
   let P = null;  // the turn being played back
   let raf = 0;
 
@@ -1099,7 +1120,8 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 
   function showOutcome(st) {
     const won = st.outcome === "success", b = $("banner");
-    b.innerHTML = "<h2>" + (won ? "Bridge seized" : "Mission failed") + "</h2><p>" + esc(st.outcomeText) + "</p><button class=\"btn primary small\" type=\"button\" id=\"againBtn\">New map</button>";
+    const grades = st.objectives.secondary.map(x => "<li class=\"" + x.status + "\">" + (x.status === "met" ? "✓ " : "✗ ") + esc(x.text) + "</li>").join("");
+    b.innerHTML = "<h2>" + (won ? "Bridge seized" : "Mission failed") + "</h2><p>" + esc(st.outcomeText) + "</p><ul class=\"grades\">" + grades + "</ul><button class=\"btn primary small\" type=\"button\" id=\"againBtn\">New map</button>";
     b.hidden = false;
     $("againBtn").onclick = () => newMission(randomSeed());
     addLog({ kind: "event" + (won ? "" : " bad"), step: st.step, text: st.outcomeText });
@@ -1131,6 +1153,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     if (!S.m) { pane.innerHTML = "<p class=\"empty\">The squad is getting ready.</p>"; return; }
     if (S.tab === "net") {
       const nearBottom = pane.scrollHeight - pane.scrollTop - pane.clientHeight < 60;
+      if (!S.log.length && !S.pending && !S.reading) { pane.innerHTML = "<p class=\"empty\">Nothing on the net yet. Your orders, the readbacks, and the squad's calls show here.</p>"; return; }
       pane.innerHTML = "<ol class=\"net\">" + S.log.map(e => {
         if (e.kind === "turn") return "<li class=\"turn\">" + esc(e.text) + "</li>";
         return "<li class=\"" + esc(e.kind) + "\"><span class=\"t\">" + fmt(e.step / 10) + "</span><span>" + (e.who ? "<span class=\"who\">" + esc(e.who) + ":</span> " : "") + "<span class=\"x\">" + esc(e.text) + "</span></span></li>";
@@ -1153,14 +1176,11 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       return;
     }
     if (S.tab === "brief") {
-      const m = S.m;
-      pane.innerHTML = "<div class=\"brief\"><h2>" + esc(m.title) + "</h2><ul>" + m.brief.map(b => "<li>" + esc(b) + "</li>").join("") + "</ul>"
-        + "<div><h3 class=\"mini\">How it ends</h3><p>You win with a Marine within 15 meters of " + esc(m.objective.label) + " and no enemy still fighting within 250 meters, held at the end of two turns in a row. You lose with 7 Marines down, or after turn " + S.state.turnLimit + ".</p></div>"
-        + "<div><h3 class=\"mini\">Giving orders</h3><p>Say who, then what, then where. Tap a Marine to name them, or tap the ground to name a spot. Send reads the orders and shows what each Marine will do; Play turn plays one minute.</p></div>"
-        + "<p class=\"says\">Alpha, suppress the PKM gunner.<br>Bravo, run to building 4.<br>Charlie, take cover.<br>Doc, treat Tran.</p>"
-        + "<p>" + esc(readerNote()) + "</p>"
-        + "<div class=\"acts\"><span class=\"empty\">Map " + S.seed + "</span><button class=\"btn small\" type=\"button\" id=\"newMapBtn\">New map</button><span id=\"newMapAsk\"></span></div></div>";
-      $("newMapBtn").onclick = () => {
+      pane.innerHTML = S.briefMode === "full" ? fullBriefHtml() : quickBriefHtml();
+      const toggle = $("briefMode");
+      if (toggle) toggle.onclick = () => { S.briefMode = S.briefMode === "full" ? "quick" : "full"; renderPane(); $("pane").scrollTop = 0; };
+      const nb = $("newMapBtn");
+      if (nb) nb.onclick = () => {
         $("newMapAsk").innerHTML = "Start over on a new map? <button class=\"btn small primary\" type=\"button\" id=\"newMapYes\">Yes, new map</button>";
         $("newMapYes").onclick = () => newMission(randomSeed());
       };
@@ -1173,6 +1193,47 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
         return "<li class=\"" + (r.big ? "big" : "") + "\"><span class=\"t\">" + fmt(r.s / 10) + "</span><span class=\"x\">" + esc(r.who) + " · " + esc(r.why) + " · d" + r.d + "</span><span class=\"r " + cls + "\">" + r.r + "</span></li>";
       }).join("") + "</ul>";
     }
+  }
+
+  const MARKS = { ok: "○", met: "✓", failed: "✗", notyet: "○", onit: "◉", seized: "✓" };
+  const STATUS = { ok: "On track", met: "Met", failed: "Failed", notyet: "Not yet", onit: "Marine on it", seized: "Seized" };
+  function objRow(cls, text, status) {
+    return "<div class=\"row " + cls + "\"><span class=\"mark\">" + MARKS[status] + "</span><span>" + esc(text) + "</span><span class=\"chip\">" + STATUS[status] + "</span></div>";
+  }
+  function winText() {
+    const o = S.state.objectives;
+    return "A Marine within " + o.onObjective + " m of " + S.m.objective.label + " and no enemy still fighting within " + o.holdRadius + " m, at the end of two turns in a row.";
+  }
+  function loseText() { return S.state.objectives.combatIneffective + " Marines down, or past turn " + S.state.turnLimit + "."; }
+  function quickBriefHtml() {
+    const o = S.state.objectives, st = S.state.units;
+    const seen = [], squad = { up: 0, hurt: 0, down: 0, dead: 0 };
+    S.roster.forEach((r, i) => {
+      const u = st[i];
+      if (!u) return;
+      if (r.side === "us") { if (u.condition === "ok") squad.up++; else if (u.condition === "wounded") squad.hurt++; else if (u.condition === "down") squad.down++; else squad.dead++; return; }
+      if (r.side !== "op") return;
+      const age = Math.max(0, Math.round((S.state.step - (u.lastSeen || 0)) / 600));
+      seen.push(esc(r.name) + " at " + esc(u.grid) + (u.seen ? (u.condition && u.condition !== "ok" ? ", " + esc(u.condition) : ", seen now") : ", last seen " + (age < 1 ? "just now" : age + " min ago")));
+    });
+    const squadLine = (squad.up + squad.hurt) + " of 14 can fight" + (squad.hurt ? " · " + squad.hurt + " wounded" : "") + (squad.down ? " · " + squad.down + " down" : "") + (squad.dead ? " · " + squad.dead + " dead" : "");
+    return "<div class=\"brief\"><h2>" + esc(S.m.title) + "</h2>"
+      + "<div class=\"obj main\"><h3 class=\"mini\">Main objective</h3>" + objRow(o.mainStatus, o.main, o.mainStatus) + "</div>"
+      + "<div class=\"obj\"><h3 class=\"mini\">Secondary objectives</h3>" + o.secondary.map(x => objRow(x.status, x.text, x.status)).join("") + "</div>"
+      + "<dl class=\"facts\"><dt>Win</dt><dd>" + esc(winText()) + "</dd><dt>Lose</dt><dd>" + esc(loseText()) + "</dd><dt>ROE</dt><dd>" + esc(o.roe) + "</dd>"
+      + "<dt>Enemy</dt><dd>" + (seen.length ? seen.join("<br>") : "None seen yet. Strength unknown.") + "</dd>"
+      + "<dt>Squad</dt><dd>" + esc(squadLine) + "</dd><dt>Time</dt><dd>Turn " + S.state.turn + " of " + S.state.turnLimit + "</dd></dl>"
+      + "<div class=\"acts\"><button class=\"btn small\" type=\"button\" id=\"briefMode\">Full brief</button></div>"
+      + "<p>Tap a Marine to name them in your orders, or tap the ground to name a spot. Send reads the orders; Play turn plays one minute.</p></div>";
+  }
+  function fullBriefHtml() {
+    const m = S.m;
+    return "<div class=\"brief\"><div class=\"acts\"><button class=\"btn small\" type=\"button\" id=\"briefMode\">Quick brief</button></div><h2>" + esc(m.title) + "</h2><ul>" + m.brief.map(b => "<li>" + esc(b) + "</li>").join("") + "</ul>"
+      + "<div><h3 class=\"mini\">How it ends</h3><p>You win with " + esc(winText().replace(/^A /, "a ").replace(/\.$/, "")) + ". You lose with " + esc(loseText()) + " The secondary objectives don't change winning or losing; the end grades them.</p></div>"
+      + "<div><h3 class=\"mini\">Giving orders</h3><p>Say who, then what, then where. Tap a Marine to name them, or tap the ground to name a spot. Send reads the orders and shows what each Marine will do; Play turn plays one minute.</p></div>"
+      + "<p class=\"says\">Alpha, suppress the PKM gunner.<br>Bravo, run to building 4.<br>Charlie, take cover.<br>Doc, treat Tran.</p>"
+      + "<p>" + esc(readerNote()) + "</p>"
+      + "<div class=\"acts\"><span class=\"empty\">Map " + S.seed + "</span><button class=\"btn small\" type=\"button\" id=\"newMapBtn\">New map</button><span id=\"newMapAsk\"></span></div></div>";
   }
 
   function previewHtml() {
@@ -1337,7 +1398,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
     if (u) lookAt(u.x, u.y, 46);
     renderCard(); renderPane();
   });
-  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; renderPane(); });
+  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; renderPane(); if (S.tab !== "net") $("pane").scrollTop = 0; });
   $("orderForm").addEventListener("submit", e => { e.preventDefault(); send(); });
   $("playBtn").onclick = () => playTurn();
   $("ppause").onclick = () => { if (!P) return; P.playing = !P.playing; $("ppause").textContent = P.playing ? "Pause" : "Play"; last = 0; need(); };
@@ -1571,11 +1632,8 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       buildGround(m.map);
       $("title").textContent = m.title;
       document.title = "Field Table Playtest";
-      addLog({ kind: "turn", text: m.title });
-      m.brief.forEach(b => addLog({ kind: "event", who: "", text: b }));
-      addLog({ kind: "event", text: "Tap a Marine to select them. Type orders below, then Send." });
       $("boot").hidden = true;
-      S.tab = "net";
+      S.tab = "brief"; S.briefMode = "quick";
       frameStart(); clockText(); setButtons(); renderPane(); renderCard();
     } catch (e) {
       bootMsg("The map didn't build: " + e.message, true);
