@@ -54,6 +54,12 @@ namespace FieldTable.Sim
         /// approach: a covered way in to each bridge from both banks, and no big stretch of bare open ground.
         /// </summary>
         public bool OpenGround { get; set; }
+
+        /// <summary>
+        /// True for a crossroads: two roads, one running north to south and one east to west, crossing in the middle
+        /// part of the map, with a village sitting on the crossing.
+        /// </summary>
+        public bool Crossroads { get; set; }
     }
 
     /// <summary>Names for generated places, loaded from data so each setting and mod can bring its own.</summary>
@@ -263,6 +269,7 @@ namespace FieldTable.Sim
                 }
                 if (Has(MapFeatures.Villages) || Has(MapFeatures.Towns)) Add(MapFeatures.Roads);
                 if (Has(MapFeatures.Hedgerows)) Add(MapFeatures.Fields);
+                if (req.Crossroads) { Add(MapFeatures.Roads); Add(MapFeatures.Villages); }
             }
 
             void Add(string f)
@@ -316,6 +323,18 @@ namespace FieldTable.Sim
 
             void MakeRoads(bool riverNorthSouth)
             {
+                if (req.Crossroads)
+                {
+                    // One road each way, both well in from the edges, so they cross in the middle part of the map.
+                    foreach (bool northSouth in new[] { true, false })
+                    {
+                        var pts = Meander(northSouth, 0.3f, 0.7f, 25f);
+                        string label = "Route " + Name(names.Routes, "");
+                        roads.Add((pts, 3f, label));
+                        ways.Add(Line(label, "road", 6f, pts, null, null));
+                    }
+                    return;
+                }
                 int count = rng.Int(1, 2);
                 bool needCrossing = Has(MapFeatures.Bridges) && waterLines.Count > 0;
                 for (int i = 0; i < count; i++)
@@ -417,11 +436,13 @@ namespace FieldTable.Sim
                     float scale = 1f;
                     Vec2 min = default, max = default;
                     bool placed = false;
+                    Vec2? crossing = v == 0 && req.Crossroads ? Crossing() : null;
                     for (int attempt = 0; attempt < 100 && !placed; attempt++, scale = Math.Max(0.4f, scale * 0.95f))
                     {
-                        Vec2 center = attempt < 30
+                        // At a crossroads, the first village sits on the crossing, a little smaller each try until it fits.
+                        Vec2 center = crossing ?? (attempt < 30
                             ? PointAlong(rng.Pick(roads).pts, rng.Range(0.1f, 0.9f))
-                            : new Vec2(rng.Range(0f, w), rng.Range(0f, h));
+                            : new Vec2(rng.Range(0f, w), rng.Range(0f, h)));
                         float hw = rng.Range(70f, 120f) * scale, hd = rng.Range(60f, 100f) * scale;
                         min = new Vec2(Clamp(center.X - hw, 0, Math.Max(0, w - 2 * hw)), Clamp(center.Y - hd, 0, Math.Max(0, h - 2 * hd)));
                         max = min + new Vec2(2 * hw, 2 * hd);
@@ -436,6 +457,18 @@ namespace FieldTable.Sim
                     for (int b = 0; b < houses * 4 && CountIn(min, max) < houses; b++)
                         TryBuilding(new Vec2(rng.Range(min.X, max.X), rng.Range(min.Y, max.Y)), rng.Int(0, 4), min, max);
                 }
+            }
+
+            /// <summary>Where the first two roads cross, if they do.</summary>
+            Vec2? Crossing()
+            {
+                if (roads.Count < 2) return null;
+                var a = roads[0].pts;
+                var b = roads[1].pts;
+                for (int i = 0; i + 1 < a.Count; i++)
+                    for (int j = 0; j + 1 < b.Count; j++)
+                        if (Intersect(a[i], a[i + 1], b[j], b[j + 1], out Vec2 at)) return at;
+                return null;
             }
 
             void MakeTown()

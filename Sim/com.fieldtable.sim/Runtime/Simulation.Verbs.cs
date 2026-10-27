@@ -107,6 +107,7 @@ namespace FieldTable.Sim
         /// <summary>When everyone in a group has finished, the group reports once.</summary>
         void GroupDone(Unit u, Order o, string text, string kind = null, Vec2? at = null)
         {
+            if (!ReferenceEquals(u.Force, PlayerForce)) return;
             if (o.Group == 0) { Radio(u, text, kind, at); return; }
             if (units.Any(x => x.Order != null && x.Order.Group == o.Group)) return;
             if (reported.Add(o.Group)) Radio(u, text, kind, at);

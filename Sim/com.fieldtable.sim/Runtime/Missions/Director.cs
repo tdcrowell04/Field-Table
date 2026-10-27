@@ -39,6 +39,7 @@ namespace FieldTable.Sim
 
         /// <summary>True when the squad is taking a while, which brings reinforcements. Null uses: no Marine on the objective.</summary>
         public Func<bool> Slow;
+        public string SlowWhy = "Fits because the squad is taking a while.";
     }
 
     /// <summary>
@@ -87,7 +88,7 @@ namespace FieldTable.Sim
 
             int enemyLost = enemy.Count(u => !u.CanAct);
             if (!Done(Reinforcements) && turn >= 8 && (at.Slow?.Invoke() ?? !m.MarineOnObjective) && (turn >= 12 || enemyLost >= 2))
-                list.Add(new AddInOption(Reinforcements, "Enemy reinforcements: 2 to 4 more fighters arrive on " + at.FarWord + " and head for " + at.FocusWord + ". Fits because the squad is taking a while."));
+                list.Add(new AddInOption(Reinforcements, "Enemy reinforcements: 2 to 4 more fighters arrive on " + at.FarWord + " and head for " + at.FocusWord + ". " + at.SlowWhy));
 
             var lastTurn = Sim.Log.Events.Where(e => e.Turn == turn - 1).ToList();
             var landed = lastTurn.OfType<ShotFired>().Select(e => e.To).Concat(lastTurn.OfType<BlastAt>().Select(e => e.At)).ToList();

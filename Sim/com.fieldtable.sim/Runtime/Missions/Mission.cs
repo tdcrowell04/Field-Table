@@ -34,6 +34,9 @@ namespace FieldTable.Sim
         public string WinText { get; internal set; }
         public string LoseText { get; internal set; }
 
+        /// <summary>The word for the main objective before it's under way, like "Not yet".</summary>
+        public string NotYetWord { get; internal set; } = "Not yet";
+
         /// <summary>The word for the main objective while it's under way, like "Marine on it".</summary>
         public string OnItWord { get; internal set; } = "Marine on it";
 
