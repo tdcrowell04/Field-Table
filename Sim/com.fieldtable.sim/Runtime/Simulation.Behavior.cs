@@ -321,10 +321,11 @@ namespace FieldTable.Sim
             float factor = here.MoveFactor;
             if (u.Condition == Condition.Wounded) factor *= 0.6f;
             // Carrying a casualty: half speed with a helper, a quarter alone, and no running.
+            // A prisoner who can walk is only led, at a walk.
             if (Carrying(u) is Unit load)
             {
                 speed = u.Def.WalkSpeed;
-                factor *= CarryHelpers(u, load) > 0 ? 0.5f : 0.25f;
+                if (!Walks(load)) factor *= CarryHelpers(u, load) > 0 ? 0.5f : 0.25f;
             }
             factor *= 1f - 0.5f * u.Suppression;
             float budget = Math.Max(0.02f, speed * factor) * dt;
@@ -355,6 +356,9 @@ namespace FieldTable.Sim
                 Arrive(u);
             }
         }
+
+        /// <summary>True for a prisoner on his own two feet: led, not carried.</summary>
+        static bool Walks(Unit u) => u.Detained && u.Condition != Condition.Down && u.Condition != Condition.Dead && !u.LegHit;
 
         void CheckWater(Unit u, float dt)
         {

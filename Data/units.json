@@ -284,6 +284,33 @@
       "load": 14
     },
     {
+      "id": "en-hvt",
+      "name": "Wanted man",
+      "figure": "oprf",
+      "weapon": "ak",
+      "ammo": 60,
+      "load": 10
+    },
+    {
+      "id": "en-porter",
+      "name": "Enemy porter",
+      "figure": "oprf",
+      "weapon": "ak",
+      "ammo": 60,
+      "load": 35,
+      "walkSpeed": 1.2,
+      "runSpeed": 2.5
+    },
+    {
+      "id": "aircrew",
+      "name": "Helicopter crew",
+      "figure": "crew",
+      "weapon": "m4",
+      "ammo": 90,
+      "load": 15,
+      "helmet": true
+    },
+    {
       "id": "civ",
       "name": "Civilian",
       "figure": "civ",

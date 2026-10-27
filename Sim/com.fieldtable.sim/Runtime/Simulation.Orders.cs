@@ -242,10 +242,12 @@ namespace FieldTable.Sim
 
                 case Verbs.Carry:
                     {
+                        // Our own, a friend from another unit (like a downed crew), or a prisoner, who walks with his escort.
                         var cas = order.TargetUnit;
-                        if (cas == null || !ReferenceEquals(cas.Force, unit.Force) || ReferenceEquals(cas, unit) || cas.Def.Flying) return Fail(check, "Say again, carry who?");
+                        bool ally = cas != null && !ReferenceEquals(cas.Force, unit.Force) && !cas.Force.Civilian && !AreHostile(unit.Force, cas.Force);
+                        if (cas == null || !(ReferenceEquals(cas.Force, unit.Force) || ally || cas.Detained) || ReferenceEquals(cas, unit) || cas.Def.Flying || cas.Captured) return Fail(check, "Say again, carry who?");
                         if (cas.Condition == Condition.Dead) return Fail(check, cas.Name + " is gone, Lead.");
-                        if (!(cas.Condition == Condition.Down || cas.LegHit)) return Fail(check, cas.Name + " can walk, Lead.");
+                        if (!(cas.Condition == Condition.Down || cas.LegHit || cas.Detained)) return Fail(check, cas.Name + " can walk, Lead.");
                         if (string.IsNullOrWhiteSpace(order.Where))
                         {
                             if (Evac == null) return Fail(check, "Carry " + cas.Name + " where, Lead?");

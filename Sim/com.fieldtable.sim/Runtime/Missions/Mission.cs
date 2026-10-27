@@ -21,6 +21,9 @@ namespace FieldTable.Sim
         /// <summary>The place the mission is about, like the bridge to seize.</summary>
         public Landmark Objective { get; internal set; }
 
+        /// <summary>Buildings the mission marks, like the ones higher wants cleared.</summary>
+        public List<Landmark> Marked { get; } = new List<Landmark>();
+
         /// <summary>The main objective in a line, like "Seize and hold Fox Creek bridge (E3)."</summary>
         public string MainObjective { get; internal set; }
 
@@ -30,6 +33,9 @@ namespace FieldTable.Sim
         /// <summary>How you win and how you lose, each in a line, for the brief.</summary>
         public string WinText { get; internal set; }
         public string LoseText { get; internal set; }
+
+        /// <summary>The word for the main objective while it's under way, like "Marine on it".</summary>
+        public string OnItWord { get; internal set; } = "Marine on it";
 
         /// <summary>The word for the main objective once it's done, like "Seized".</summary>
         public string DoneWord { get; internal set; } = "Done";
@@ -151,6 +157,13 @@ namespace FieldTable.Sim
             (e is UnitWounded w && ReferenceEquals(w.Unit.Force, force)) ||
             (e is UnitDown d && ReferenceEquals(d.Unit.Force, force)) ||
             (e is UnitDied x && ReferenceEquals(x.Unit.Force, force)));
+
+        /// <summary>True when any of these people has been wounded, downed, or killed so far.</summary>
+        public bool AnyoneHurt(IEnumerable<Unit> people)
+        {
+            var set = new HashSet<Unit>(people);
+            return Sim.Log.Events.Any(e => (e is UnitWounded w && set.Contains(w.Unit)) || (e is UnitDown d && set.Contains(d.Unit)) || (e is UnitDied x && set.Contains(x.Unit)));
+        }
 
         /// <summary>No enemy still fighting within this many meters, and the bridge is held.</summary>
         public const float HoldRadius = 250f;

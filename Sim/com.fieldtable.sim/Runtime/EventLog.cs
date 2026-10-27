@@ -258,6 +258,42 @@ namespace FieldTable.Sim
         public override string Describe() => By.Name + " detains " + Unit.Name + ".";
     }
 
+    /// <summary>A building cleared room by room, with nobody hostile left in it.</summary>
+    public sealed class BuildingCleared : SimEvent
+    {
+        public Landmark Building { get; }
+        public Unit By { get; }
+        public BuildingCleared(Landmark building, Unit by) { Building = building; By = by; }
+        public override string Describe() => By.Name + " clears " + Building.Label + ".";
+    }
+
+    /// <summary>A Marine took what someone was carrying, like a crate of rifles.</summary>
+    public sealed class CargoTaken : SimEvent
+    {
+        public Unit From { get; }
+        public Unit By { get; }
+        public string Cargo { get; }
+        public CargoTaken(Unit from, Unit by, string cargo) { From = from; By = by; Cargo = cargo; }
+        public override string Describe() => By.Name + " takes " + Cargo + " from " + From.Name + ".";
+    }
+
+    /// <summary>Someone walked off the edge of the map and out of the mission.</summary>
+    public sealed class UnitLeftMap : SimEvent
+    {
+        public Unit Unit { get; }
+        public UnitLeftMap(Unit unit) { Unit = unit; }
+        public override string Describe() => Unit.Name + " leaves the area.";
+    }
+
+    /// <summary>The other side took someone prisoner and led them away.</summary>
+    public sealed class UnitCaptured : SimEvent
+    {
+        public Unit Unit { get; }
+        public Unit By { get; }
+        public UnitCaptured(Unit unit, Unit by) { Unit = unit; By = by; }
+        public override string Describe() => By.Name + " captures " + Unit.Name + ".";
+    }
+
     public sealed class UnitEvacuated : SimEvent
     {
         public Unit Unit { get; }

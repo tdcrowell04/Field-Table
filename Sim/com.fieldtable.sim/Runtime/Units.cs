@@ -195,6 +195,18 @@ namespace FieldTable.Sim
         public bool Surrendered { get; internal set; }
         internal int SurrenderCheckedStep = -100000;
 
+        /// <summary>Taken prisoner by the other side and led away.</summary>
+        public bool Captured { get; internal set; }
+
+        /// <summary>Something the squad wants that this person carries, like a crate of rifles. Searching them takes it.</summary>
+        public string Cargo { get; internal set; }
+
+        /// <summary>Leaves on a CASEVAC from the landing zone whether hurt or not, like a downed helicopter's crew.</summary>
+        public bool Passenger { get; internal set; }
+
+        /// <summary>What this person tells a Marine who talks to them, on top of what they've seen. Null for nothing more.</summary>
+        public string Knows { get; internal set; }
+
         /// <summary>Who is carrying this casualty right now, or null.</summary>
         public Unit CarriedBy { get; internal set; }
 

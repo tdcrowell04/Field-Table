@@ -352,6 +352,108 @@ namespace FieldTable.Sim
 
         public static IEnumerable<Landmark> BuildingsIn(MapGrid map, Landmark area) => map.Landmarks.Where(l => l.Kind == "building" && area.Contains(l.Center));
 
+        // ---------- adding to the map ----------
+
+        /// <summary>A named spot, like the pickup point, put on a map that's already in play.</summary>
+        public static Landmark AddPoint(MapData mapData, MapGrid map, string label, Vec2 at, string note, params string[] aliases)
+        {
+            float sq = mapData.SquareSize;
+            mapData.Features.Add(new MapFeature { Kind = "point", Label = label, Note = note, Aliases = aliases.ToList(), Points = new List<float[]> { new[] { at.X / sq, at.Y / sq } } });
+            var mark = new Landmark(label, "point", aliases, note, at, at, at, null);
+            map.AddLandmark(mark);
+            return mark;
+        }
+
+        public static MapFeature LineFeature(MapData mapData, string terrain, float width, IEnumerable<Vec2> pts, string label = null, string note = null) => new MapFeature
+        {
+            Kind = "line", Terrain = terrain, Width = width, Label = label, Note = note, Aliases = new List<string>(),
+            Points = pts.Select(p => new[] { p.X / mapData.SquareSize, p.Y / mapData.SquareSize }).ToList(),
+        };
+
+        public static MapFeature RectFeature(MapData mapData, string terrain, Vec2 min, Vec2 max, string label = null, string note = null, params string[] aliases) => new MapFeature
+        {
+            Kind = "area", Terrain = terrain, Label = label, Note = note, Aliases = aliases.ToList(),
+            Rect = new[] { min.X / mapData.SquareSize, min.Y / mapData.SquareSize, (max.X - min.X) / mapData.SquareSize, (max.Y - min.Y) / mapData.SquareSize },
+        };
+
+        public static MapFeature AreaFeature(MapData mapData, string terrain, IEnumerable<Vec2> pts, string label = null, params string[] aliases) => new MapFeature
+        {
+            Kind = "area", Terrain = terrain, Label = label, Aliases = aliases.ToList(),
+            Points = pts.Select(p => new[] { p.X / mapData.SquareSize, p.Y / mapData.SquareSize }).ToList(),
+        };
+
+        /// <summary>A building of a size, numbered after the map's own buildings.</summary>
+        public static MapFeature BuildingFeature(MapData mapData, Vec2 center, float width, float depth)
+        {
+            int n = mapData.Features.Count(f => f.Kind == "building") + 1;
+            string num = n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return new MapFeature
+            {
+                Kind = "building", Terrain = "building", Label = "building " + num, Aliases = new List<string> { "bldg " + num, num },
+                Center = new[] { center.X / mapData.SquareSize, center.Y / mapData.SquareSize }, Size = new[] { width, depth },
+            };
+        }
+
+        /// <summary>
+        /// The middle of a stretch of open, dry ground this big (plus 6 m around it), away from water, roads, buildings,
+        /// and villages, at least this far in from every edge. Null if 200 tries find none.
+        /// </summary>
+        public static Vec2? OpenSite(MapGrid map, Dice rng, float halfWidth, float halfDepth, float margin, float fromSettlements = 120f)
+        {
+            var settlements = map.Landmarks.Where(l => l.Kind == "area" && (l.Note == "village" || l.Note == "town")).ToList();
+            for (int k = 0; k < 200; k++)
+            {
+                var c = new Vec2(margin + (map.WidthMeters - 2 * margin) * Next(rng), margin + (map.HeightMeters - 2 * margin) * Next(rng));
+                if (settlements.Any(s => Inside(s, c, fromSettlements))) continue;
+                bool ok = true;
+                for (float y = c.Y - halfDepth - 6f; y <= c.Y + halfDepth + 6f && ok; y += 2f)
+                    for (float x = c.X - halfWidth - 6f; x <= c.X + halfWidth + 6f && ok; x += 2f)
+                    {
+                        var p = new Vec2(x, y);
+                        ok = map.InBounds(p) && OpenGround.Contains(map.TerrainAt(p).Id);
+                    }
+                if (ok) return c;
+            }
+            return null;
+        }
+
+        static readonly HashSet<string> OpenGround = new HashSet<string> { "grass", "stubble", "plowed", "scrub", "corn", "orchard" };
+
+        static bool Inside(Landmark area, Vec2 p, float margin) =>
+            p.X >= area.Min.X - margin && p.X <= area.Max.X + margin && p.Y >= area.Min.Y - margin && p.Y <= area.Max.Y + margin;
+
+        /// <summary>True within this many meters of the map's edge.</summary>
+        public static bool AtEdge(MapGrid map, Vec2 p, float within) =>
+            p.X <= within || p.Y <= within || p.X >= map.WidthMeters - within || p.Y >= map.HeightMeters - within;
+
+        /// <summary>The spot on the map's edge straight out from a point in a direction.</summary>
+        public static Vec2 EdgeToward(MapGrid map, Vec2 from, Vec2 dir)
+        {
+            dir = Unit(dir);
+            float t = float.MaxValue;
+            if (dir.X > 0.001f) t = Math.Min(t, (map.WidthMeters - 4f - from.X) / dir.X);
+            if (dir.X < -0.001f) t = Math.Min(t, (4f - from.X) / dir.X);
+            if (dir.Y > 0.001f) t = Math.Min(t, (map.HeightMeters - 4f - from.Y) / dir.Y);
+            if (dir.Y < -0.001f) t = Math.Min(t, (4f - from.Y) / dir.Y);
+            return Inside(map, from + dir * Math.Max(0f, t));
+        }
+
+        /// <summary>Sends someone on a route to a spot at a speed. False when there's no way there.</summary>
+        public static bool Go(Simulation sim, Unit u, Vec2 to, string verb = Verbs.Move, MoveSpeed speed = MoveSpeed.Walk)
+        {
+            var path = sim.Paths.Find(u.Position, to, false);
+            if (path == null) return false;
+            u.Order = new Order { Verb = verb, Speed = speed == MoveSpeed.Run ? "run" : "walk", Point = to };
+            u.Path = path;
+            u.PathIndex = 0;
+            u.Speed = speed;
+            return true;
+        }
+
+        /// <summary>The usual enemy lines a prisoner says, and how the end puts a lie about them, for a set of goals.</summary>
+        public static Dictionary<string, (string said, string truth)> Words(params (string goal, string said, string truth)[] list) =>
+            list.ToDictionary(x => x.goal, x => (x.said, x.truth));
+
         // ---------- helpers ----------
 
         public static float Next(Dice d) => (d.NextUInt() >> 8) * (1f / 16777216f);

@@ -53,7 +53,11 @@ namespace FieldTable.Sim
             }
             if (!Work(u, dt, TalkSeconds)) return;
             if (AreHostile(u.Force, p.Force)) Question(u, p);
-            else ShareWhatTheySaw(u, p);
+            else
+            {
+                ShareWhatTheySaw(u, p);
+                if (p.Knows != null) Radio(u, u.Name + ": " + p.Name + (SameLanguage(u.Force, p.Force) ? "" : ", through the interpreter,") + " says " + p.Knows, "info", p.Position, p.Name);
+            }
             Finish(u, null);
         }
 

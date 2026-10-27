@@ -195,6 +195,33 @@ namespace FieldTable.Sim
             IedTick();
             RadioTick();
             LieTick();
+            OnSecond?.Invoke();
+        }
+
+        /// <summary>A start state's own once-a-second thinking, like a downed crew calling on their survival radio.</summary>
+        internal event Action OnSecond;
+
+        /// <summary>Someone walks off the edge of the map and out of the mission.</summary>
+        internal void LeaveMap(Unit u)
+        {
+            if (u.Gone) return;
+            foreach (var x in units.Where(x => ReferenceEquals(x.CarriedBy, u))) x.CarriedBy = null;
+            u.CarriedBy = null;
+            u.Gone = true;
+            u.Order = null;
+            u.Path = null;
+            u.IsMoving = false;
+            Record(new UnitLeftMap(u));
+        }
+
+        /// <summary>The other side takes someone prisoner and leads them away.</summary>
+        internal void Capture(Unit u, Unit by)
+        {
+            if (u.Captured) return;
+            u.Captured = true;
+            u.Detained = true;
+            Record(new UnitCaptured(u, by));
+            LeaveMap(u);
         }
 
         // ---------- clear a building ----------
@@ -217,6 +244,7 @@ namespace FieldTable.Sim
             float area = (b.Max.X - b.Min.X) * (b.Max.Y - b.Min.Y);
             if (u.TaskSeconds < RoomSeconds * Math.Max(1f, (float)Math.Round(area / 25f))) return;
             Finish(u, null);
+            Record(new BuildingCleared(b, u));
             GroupDone(u, o, Callsign(u) + ": " + Capital(b.Label) + " clear.", "set", b.Center);
         }
 
@@ -394,14 +422,18 @@ namespace FieldTable.Sim
             if (p != null)
             {
                 if (!Reach(u, o, p, 2f) || !Work(u, dt, SearchSeconds)) return;
+                string cargo = TakeCargo(u, p);
                 if (AreHostile(u.Force, p.Force))
                 {
                     var gun = Weapon(p.Def.Weapon);
                     bool had = p.Ammo > 0 || p.LauncherAmmo > 0 || p.LauncherAp > 0 || p.Grenades > 0;
                     p.Ammo = 0; p.LauncherAmmo = 0; p.LauncherAp = 0; p.Grenades = 0;
-                    Radio(u, u.Name + ": Searched " + p.Name + "." + (had ? " Took their " + (gun?.Name ?? "weapon") + " and ammo." : " Nothing on them."), "info", p.Position);
+                    var took = new List<string>();
+                    if (had) took.Add("their " + (gun?.Name ?? "weapon") + " and ammo");
+                    if (cargo != null) took.Add(cargo);
+                    Radio(u, u.Name + ": Searched " + p.Name + "." + (took.Count > 0 ? " Took " + JoinAnd(took) + "." : " Nothing on them."), "info", p.Position);
                 }
-                else Radio(u, u.Name + ": Searched " + p.Name + ". Nothing on them.", "info", p.Position);
+                else Radio(u, u.Name + ": Searched " + p.Name + "." + (cargo != null ? " Took " + cargo + "." : " Nothing on them."), "info", p.Position);
                 Finish(u, null);
                 return;
             }
@@ -417,8 +449,28 @@ namespace FieldTable.Sim
                 Fog.Spot(this, u.Force, x, u);
                 found.Add(Article(x.Def.Name ?? "someone") + " at " + Map.SquareOf(x.Position));
             }
-            Radio(u, u.Name + ": Search done. " + (found.Count == 0 ? "Nothing here." : "Found " + JoinAnd(found) + "."), "info");
+            // Anyone close by who can't stop them, the dead included, gets whatever they were carrying taken off them.
+            var taken = new List<string>();
+            foreach (var x in units)
+            {
+                if (ReferenceEquals(x.Force, u.Force) || x.Gone || x.CanAct || x.Cargo == null || Vec2.Distance(u.Position, x.Position) > SearchReach) continue;
+                taken.Add(TakeCargo(u, x) + " from " + x.Name);
+            }
+            Radio(u, u.Name + ": Search done. " + (found.Count == 0 ? "Nothing here." : "Found " + JoinAnd(found) + ".") + (taken.Count > 0 ? " Took " + JoinAnd(taken) + "." : ""), "info");
             Finish(u, null);
+        }
+
+        /// <summary>A search of a spot takes what's carried by anyone down, dead, or held within this many meters of it.</summary>
+        public const float SearchReach = 10f;
+
+        /// <summary>Takes what someone was carrying, if anything. Returns what it was, or null.</summary>
+        string TakeCargo(Unit by, Unit from)
+        {
+            string cargo = from.Cargo;
+            if (cargo == null) return null;
+            from.Cargo = null;
+            Record(new CargoTaken(from, by, cargo));
+            return cargo;
         }
 
         // ---------- carry a casualty ----------
@@ -464,7 +516,7 @@ namespace FieldTable.Sim
             if (c == null || !ReferenceEquals(c.CarriedBy, u)) return;
             c.CarriedBy = null;
             foreach (var x in units.Where(x => x.Order != null && x.Order.Verb == Verbs.Carry && ReferenceEquals(x.Order.TargetUnit, c)).ToList()) Finish(x, null);
-            Radio(u, Callsign(u) + ": " + c.Name + " is at " + (o.Where ?? Map.SquareOf(u.Position).ToString()) + ".", "casualty", c.Position);
+            Radio(u, Callsign(u) + ": " + c.Name + " is at " + (o.Where ?? Map.SquareOf(u.Position).ToString()) + ".", c.Detained ? "info" : "casualty", c.Position);
         }
 
         // ---------- share ammo ----------
@@ -556,8 +608,9 @@ namespace FieldTable.Sim
             // Load every casualty who can't walk out, within reach of the landing zone.
             foreach (var x in units)
             {
-                if (!ReferenceEquals(x.Force, PlayerForce) || x.Gone || x.Def.Flying || x.Condition == Condition.Dead) continue;
-                if (!(x.Condition == Condition.Down || x.LegHit) || Vec2.Distance(x.Position, e.Lz) > CasevacLoadRadius) continue;
+                bool passenger = x.Passenger && !AreHostile(x.Force, PlayerForce);
+                if (!(ReferenceEquals(x.Force, PlayerForce) || passenger) || x.Gone || x.Def.Flying || x.Condition == Condition.Dead) continue;
+                if (!(x.Condition == Condition.Down || x.LegHit || passenger) || Vec2.Distance(x.Position, e.Lz) > CasevacLoadRadius) continue;
                 x.CarriedBy = null;
                 x.Gone = true;
                 x.Evacuated = true;

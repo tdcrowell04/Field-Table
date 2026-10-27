@@ -94,7 +94,7 @@ namespace FieldTable.Sim
     /// "area" (a rect or polygon of terrain), "hill" (a rounded hill in a rect),
     /// "ridge" (raised ground along points), "gully" (sunken ground along points),
     /// "line" (a road, creek, wall, or hedge along points), "building" (a center and a size in meters),
-    /// and "control" (a phase line or boundary with no terrain of its own).
+    /// "control" (a phase line or boundary with no terrain of its own), and "point" (a named spot, like a pickup point).
     /// </summary>
     public sealed class MapFeature
     {
@@ -188,6 +188,13 @@ namespace FieldTable.Sim
                     }
                     break;
 
+                case "point":
+                    {
+                        var pts = PointsMeters(square, 1);
+                        Mark(map, "point", pts[0], pts[0], pts[0], null);
+                    }
+                    break;
+
                 case "control":
                     {
                         var pts = PointsMeters(square, 2);
@@ -197,7 +204,7 @@ namespace FieldTable.Sim
                     break;
 
                 default:
-                    throw new ArgumentException("Unknown kind: " + Kind + ". Use area, hill, ridge, gully, line, building, or control.");
+                    throw new ArgumentException("Unknown kind: " + Kind + ". Use area, hill, ridge, gully, line, building, control, or point.");
             }
         }
 

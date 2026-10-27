@@ -23,11 +23,12 @@ namespace FieldTable.Sim
     /// </summary>
     public static class StartStates
     {
-        public const string Bridge = "bridge", Random = "random";
+        public const string Bridge = "bridge", Raid = "raid", Crossroads = "crossroads", Crew = "crew", Clear = "clear", SupplyAmbush = "ambush", Random = "random";
 
         public static readonly IReadOnlyList<StartState> All = new[]
         {
             new StartState(Bridge, "Bridge seizure", BridgeSeizure.Create),
+            new StartState(Raid, "Compound raid", CompoundRaid.Create),
         };
 
         public static StartState Find(string id) => All.FirstOrDefault(s => string.Equals(s.Id, id, StringComparison.OrdinalIgnoreCase));
