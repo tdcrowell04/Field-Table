@@ -87,7 +87,7 @@ namespace FieldTable.Sim
         internal Vec2? Watch;
         internal Landmark Building;
         internal int Half;
-        internal bool Arrived, LegDone, Fired;
+        internal bool Arrived, LegDone, Fired, Announced;
         internal float LegMeters;
         internal Vec2 LastPos;
         internal List<Vec2> SavedPath;

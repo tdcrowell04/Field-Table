@@ -396,6 +396,8 @@ namespace FieldTable.Sim
 
             Vec2 aim = target?.Position ?? area.Value;
             float range = Vec2.Distance(u.Position, aim);
+            bool ordered = o != null && (o.Verb == Verbs.Fire || o.Verb == Verbs.Suppress);
+            string at = target?.Name ?? o?.Target ?? Map.SquareOf(aim).ToString();
             var launcher = Weapon(u.Def.Launcher);
             if (launcher != null && range >= 30f && range <= launcher.Range && !(o != null && o.Fired))
             {
@@ -413,6 +415,7 @@ namespace FieldTable.Sim
                     if (ap ? u.LauncherAp > 0 : u.LauncherAmmo > 0)
                     {
                         if (ap) u.LauncherAp--; else u.LauncherAmmo--;
+                        if (ordered) FirePosition(u, o, (o.Verb == Verbs.Suppress ? "Suppressing " : "Engaging ") + at + ".");
                         if (wantAp || wantHe) o.Fired = true;
                         u.FireCooldown = launcher.Cycle;
                         Blast(u, launcher, aim, ap);
@@ -429,6 +432,7 @@ namespace FieldTable.Sim
                 return;
             }
             u.Ammo -= gun.Burst;
+            if (ordered) FirePosition(u, o, (o.Verb == Verbs.Suppress ? "Suppressing " : "Engaging ") + at + ".");
             u.FireCooldown = gun.Cycle;
             u.FiredAtStep = Clock.Step;
             Fog.Reveal(this, u, gun);
@@ -581,7 +585,7 @@ namespace FieldTable.Sim
         /// A hit, by where it lands (a d20): 1–2 head, 3–9 chest, 10–12 belly, 13–16 arm, 17–20 leg.
         /// A helmet now and then stops a head hit, and plates stop half the chest hits.
         /// </summary>
-        void Wound(Unit v, WeaponDef w, Unit by)
+        internal void Wound(Unit v, WeaponDef w, Unit by)
         {
             if (v.Condition == Condition.Dead || v.Gone) return;
             if (by != null && ReferenceEquals(by.Force, v.Force))

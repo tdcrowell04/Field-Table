@@ -53,6 +53,8 @@ namespace FieldTable.Sim
                 case Verbs.Overwatch:
                     if (u.Path != null) break;
                     if (o.Watch != null) u.Facing = Bearing(u.Position, o.Watch.Value);
+                    o.Arrived = true;
+                    FirePosition(u, o, "Set. Overwatch on " + (o.Target ?? o.Where ?? "our sector") + ".");
                     break;
                 case Verbs.ThrowSmoke: ThrowSmoke(u, o); break;
                 case Verbs.Clear: ThinkClear(u, o, dt); break;
@@ -113,6 +115,22 @@ namespace FieldTable.Sim
         }
 
         string Callsign(Unit u) => string.IsNullOrEmpty(u.Team) ? u.Name : u.Team;
+
+        /// <summary>
+        /// A fire position: the first time a group set on overwatch is all in place, or opens fire on an order, it calls it,
+        /// and the call marks where they're firing from.
+        /// </summary>
+        void FirePosition(Unit u, Order o, string text)
+        {
+            if (!ReferenceEquals(u.Force, PlayerForce) || o.Announced) return;
+            if (o.Group == 0) { o.Announced = true; Radio(u, u.Name + ": " + text, "fire", u.Position); return; }
+            var group = units.Where(x => x.CanAct && x.Order != null && x.Order.Group == o.Group).ToList();
+            if (o.Verb == Verbs.Overwatch && group.Any(x => !x.Order.Arrived)) return;
+            foreach (var x in group) x.Order.Announced = true;
+            o.Announced = true;
+            var at = new Vec2(group.Average(x => x.Position.X), group.Average(x => x.Position.Y));
+            Radio(u, Callsign(u) + ": " + text, "fire", at);
+        }
 
         // ---------- bound: one half rushes while the other covers ----------
 

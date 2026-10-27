@@ -1024,13 +1024,14 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 
   // ------------------------------------------------------------------ radio markers
   // Everything important said on the radio leaves a pin where it happened. Tap a pin (or hover it) to read the call.
+  // Enemy contacts don't get one: their see-through figure already marks where they were last seen.
   const MARK_KIND = {
-    contact: { col: "#e2675c", glyph: "!", name: "Contact" },
     casualty: { col: "#e0a24f", glyph: "+", name: "Casualty" },
     set: { col: "#78aee0", glyph: "✓", name: "Set" },
+    fire: { col: "#ffd166", glyph: "", name: "Fire position" },
     smoke: { col: "#b9b6ab", glyph: "≈", name: "Smoke" },
     lz: { col: "#7fbf7a", glyph: "H", name: "Landing zone" },
-    info: { col: "#d4b46a", glyph: "i", name: "Report" }
+    info: { col: "#b8a6d9", glyph: "i", name: "Report" }
   };
   const MARK_FADE = 600, MARK_LAST = 1200;   // seconds: a pin fades over ten minutes and is gone after twenty
   const nowStep = () => P ? P.T.startStep + Math.min(P.t, P.dur) * 10 : S.state ? S.state.step : 0;
@@ -1055,7 +1056,13 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(f.x, top + rr); ctx.stroke();
       ctx.beginPath(); ctx.arc(f.x, top, rr, 0, 7); ctx.fillStyle = "rgba(25,27,22,0.92)"; ctx.fill(); ctx.lineWidth = 2 * DPR; ctx.stroke();
       ctx.fillStyle = K.col; ctx.font = "700 " + Math.round(10 * DPR * (1 + pop * 0.6)) + "px " + FM; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(K.glyph, f.x, top + 0.5 * DPR);
+      if (K.glyph) ctx.fillText(K.glyph, f.x, top + 0.5 * DPR);
+      else {
+        // A fire position: crosshairs.
+        const q = rr * 0.55;
+        ctx.lineWidth = 1.5 * DPR;
+        ctx.beginPath(); ctx.arc(f.x, top, q * 0.6, 0, 7); ctx.moveTo(f.x - q, top); ctx.lineTo(f.x + q, top); ctx.moveTo(f.x, top - q); ctx.lineTo(f.x, top + q); ctx.stroke();
+      }
       m.sx = f.x; m.sy = top;
     }
     ctx.globalAlpha = 1;
@@ -1247,7 +1254,7 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
       if (r.u >= 0) pulses.push({ t: t0(r.s), u: r.u });
       const k = r.text.indexOf(": ");
       queue.push({ t: t0(r.s), e: { kind: /Man down|going under|I'm hit|Check fire/.test(r.text) ? "radio bad" : "radio", step: r.s, who: k > 0 ? r.text.slice(0, k) : "", text: k > 0 ? r.text.slice(k + 2) : r.text },
-        mark: r.x != null ? { x: r.x, y: r.y, k: r.k, step: r.s, text: r.text } : null });
+        mark: r.x != null && MARK_KIND[r.k] ? { x: r.x, y: r.y, k: r.k, step: r.s, text: r.text } : null });
     }
     const spotted = new Set();
     for (const e of T.events) {

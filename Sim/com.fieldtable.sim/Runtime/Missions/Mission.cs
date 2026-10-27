@@ -42,11 +42,12 @@ namespace FieldTable.Sim
 
         /// <summary>
         /// The grade at the end. A win is S+ with every secondary objective met, then S, A, and B as fewer are met,
-        /// and C with Marines killed; each friendly fire hit on a Marine drops it a grade, down to C. A loss is F.
+        /// and C with Marines killed; each friendly fire hit on a Marine drops it a grade, all the way to F. A loss is F.
         /// </summary>
         public string Rating { get; private set; }
 
-        static readonly string[] Grades = { "S+", "S", "A", "B", "C" };
+        static readonly string[] Grades = { "S+", "S", "A", "B", "C", "F" };
+        const int KilledGrade = 4;
 
         /// <summary>How many times Marines have been hit by their own side's fire.</summary>
         public int FriendlyFireHits => Sim.Log.Events.OfType<FriendlyFire>().Count(e => ReferenceEquals(e.Victim.Force, Marines));
@@ -89,7 +90,7 @@ namespace FieldTable.Sim
         string Rate()
         {
             if (Outcome != "success") return "F";
-            int grade = Squad.Any(u => u.Condition == Condition.Dead) ? Grades.Length - 1 : Math.Min(Grades.Length - 2, Secondary.Count(o => o.IsBroken(this)));
+            int grade = Squad.Any(u => u.Condition == Condition.Dead) ? KilledGrade : Math.Min(KilledGrade - 1, Secondary.Count(o => o.IsBroken(this)));
             return Grades[Math.Min(Grades.Length - 1, grade + FriendlyFireHits)];
         }
 

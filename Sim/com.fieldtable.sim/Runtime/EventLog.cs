@@ -221,7 +221,7 @@ namespace FieldTable.Sim
         /// <summary>Where the call is about, for a marker on the map, or null for calls that don't need one.</summary>
         public Vec2? At { get; }
 
-        /// <summary>What kind of news it is: contact, casualty, set, smoke, lz, or info. Null with no marker.</summary>
+        /// <summary>What kind of news it is: contact, casualty, set, fire (a fire position), smoke, lz, or info. Null with no marker.</summary>
         public string Kind { get; }
 
         public RadioCall(Unit from, string text, string kind = null, Vec2? at = null) { From = from; Text = text; Kind = kind; At = at; }

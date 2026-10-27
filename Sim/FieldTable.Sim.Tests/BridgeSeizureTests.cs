@@ -211,7 +211,20 @@ namespace FieldTable.Sim.Tests
             });
             Assert.Equal(1, m.FriendlyFireHits);
             Assert.Contains(m.Sim.Log.Events.OfType<RadioCall>(), r => r.Text.Contains("Check fire! Check fire!"));
-            Assert.Equal(m.Sim.Units.First(u => u.Id == "alpha-rf").Condition == Condition.Dead ? "C" : "S", m.Rating);
+            Assert.Equal(m.Sim.Units.First(u => u.Id == "alpha-rf").Condition == Condition.Dead ? "F" : "S", m.Rating);
+        }
+
+        [Fact]
+        public void EnoughFriendlyFireTakesAWinAllTheWayToF()
+        {
+            var m = Won(6, x =>
+            {
+                var tl = x.Sim.Units.First(u => u.Id == "alpha-tl");
+                foreach (var id in new[] { "bravo-rf", "bravo-ar", "charlie-ar", "charlie-aar", "bravo-aar", "alpha-ar" })
+                    x.Sim.Wound(x.Sim.Units.First(u => u.Id == id), Scene.Data.FindWeapon("m27"), tl);
+            });
+            Assert.Equal(6, m.FriendlyFireHits);
+            Assert.Equal("F", m.Rating);
         }
 
         [Fact]
