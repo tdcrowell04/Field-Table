@@ -565,6 +565,7 @@ namespace FieldTable.Playtest
                         w.WriteString("verb", u.Order.Verb);
                         if (u.Order.Where != null) w.WriteString("where", u.Order.Where);
                         if (u.Order.Target != null) w.WriteString("target", u.Order.Target);
+                        if (u.Order.Facing != null) w.WriteString("facing", u.Order.Facing);
                         w.WriteEndObject();
                     }
                 }
@@ -669,6 +670,7 @@ namespace FieldTable.Playtest
                     Target = Str(o, "target"),
                     Speed = Str(o, "speed"),
                     Posture = Str(o, "posture"),
+                    Facing = Str(o, "facing"),
                     Kind = Str(o, "kind"),
                     Swim = o.TryGetProperty("swim", out var s) && s.ValueKind == JsonValueKind.True,
                 };

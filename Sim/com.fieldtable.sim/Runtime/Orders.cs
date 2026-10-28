@@ -34,19 +34,20 @@ namespace FieldTable.Sim
         public const string Detain = "detain";
         public const string ShareAmmo = "share ammo";
         public const string Request = "request";
+        public const string Ambush = "ambush";
 
         public static readonly IReadOnlyList<string> Built = new[]
         {
             Move, Hold, Fire, Suppress, TakeCover, ChangePosture, Assault, Withdraw, Follow,
             Observe, Report, TreatCasualty, ThrowGrenade, Hide, Drop, Emote,
-            Bound, Overwatch, ThrowSmoke, Clear, Breach, FlyDrone, Talk, Search, Carry, Detain, ShareAmmo, Request,
+            Bound, Overwatch, ThrowSmoke, Clear, Breach, FlyDrone, Talk, Search, Carry, Detain, ShareAmmo, Request, Ambush,
         };
 
         /// <summary>Verbs that need the unit to walk somewhere. A Marine hit in the leg can't do these.</summary>
         internal static bool NeedsLegs(string verb) =>
             verb == Move || verb == Assault || verb == Withdraw || verb == Follow || verb == TakeCover || verb == Hide ||
             verb == TreatCasualty || verb == Bound || verb == Clear || verb == Breach || verb == Talk || verb == Search ||
-            verb == Carry || verb == Detain;
+            verb == Carry || verb == Detain || verb == Ambush;
     }
 
     /// <summary>
@@ -69,6 +70,9 @@ namespace FieldTable.Sim
         /// <summary>How: "stand", "kneel", or "prone".</summary>
         public string Posture { get; set; }
 
+        /// <summary>How: which way to face or watch, in compass words ("east", "north and east", "southwest").</summary>
+        public string Facing { get; set; }
+
         /// <summary>How: true lets the route go through deep water.</summary>
         public bool Swim { get; set; }
 
@@ -90,11 +94,67 @@ namespace FieldTable.Sim
         internal bool Arrived, LegDone, Fired, Announced;
         internal float LegMeters;
         internal Vec2 LastPos;
+        internal float? FaceBearing;
+        internal float FaceHalf;
+        internal bool Sprung;
         internal List<Vec2> SavedPath;
         internal int SavedIndex;
         internal int Phase;
 
-        public Order Copy() => new Order { Verb = Verb, Where = Where, Target = Target, Speed = Speed, Posture = Posture, Swim = Swim, Kind = Kind };
+        public Order Copy() => new Order { Verb = Verb, Where = Where, Target = Target, Speed = Speed, Posture = Posture, Facing = Facing, Swim = Swim, Kind = Kind };
+    }
+
+    /// <summary>Compass words for which way to face: one direction, or several taken together as one arc.</summary>
+    public static class Directions
+    {
+        static readonly Dictionary<string, float> Words = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "north", 0f }, { "n", 0f }, { "northeast", 45f }, { "ne", 45f }, { "east", 90f }, { "e", 90f },
+            { "southeast", 135f }, { "se", 135f }, { "south", 180f }, { "s", 180f }, { "southwest", 225f }, { "sw", 225f },
+            { "west", 270f }, { "w", 270f }, { "northwest", 315f }, { "nw", 315f },
+        };
+
+        /// <summary>
+        /// The arc the words cover: each direction is 45 degrees either side of it, and several directions
+        /// make one arc from the first to the last ("north and east" is northwest round to southeast).
+        /// "All around" is the whole circle. Bearings are degrees clockwise from north.
+        /// </summary>
+        public static bool TryParse(string text, out float center, out float half)
+        {
+            center = 0f; half = 0f;
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            string t = text.Trim().ToLowerInvariant().Replace("north east", "northeast").Replace("north west", "northwest")
+                .Replace("south east", "southeast").Replace("south west", "southwest").Replace("-", "");
+            if (t == "all around" || t == "all round" || t == "360") { half = 180f; return true; }
+            var bearings = new List<float>();
+            foreach (var w in t.Split(new[] { ' ', ',', '/', '&', '+' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (w == "and" || w == "the" || w == "to" || w == "toward" || w == "towards" || w == "facing" || w == "oriented") continue;
+                if (!Words.TryGetValue(w, out float b)) return false;
+                if (!bearings.Contains(b)) bearings.Add(b);
+            }
+            if (bearings.Count == 0) return false;
+            bearings.Sort();
+            // The smallest arc holding them all: leave out the biggest gap between neighbors.
+            int after = 0;
+            float gap = -1f;
+            for (int i = 0; i < bearings.Count; i++)
+            {
+                float next = i + 1 < bearings.Count ? bearings[i + 1] : bearings[0] + 360f;
+                if (next - bearings[i] > gap) { gap = next - bearings[i]; after = (i + 1) % bearings.Count; }
+            }
+            float arc = bearings.Count == 1 ? 0f : 360f - gap;
+            center = (bearings[after] + arc / 2f) % 360f;
+            half = Math.Min(180f, arc / 2f + 45f);
+            return true;
+        }
+
+        /// <summary>True when a bearing lies inside the arc.</summary>
+        public static bool Inside(float bearing, float center, float half)
+        {
+            float d = Math.Abs(((bearing - center) % 360f + 540f) % 360f - 180f);
+            return d <= half;
+        }
     }
 
     /// <summary>What the simulation thinks of an order before it's carried out.</summary>

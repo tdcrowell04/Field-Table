@@ -117,12 +117,21 @@ namespace FieldTable.Sim
                 }
             }
 
+            // Which way to face, for any verb that ends with them in place.
+            if (!string.IsNullOrWhiteSpace(order.Facing))
+            {
+                if (!Directions.TryParse(order.Facing, out float fc, out float fh)) return Fail(check, "Say again, face which way?");
+                order.FaceBearing = fc;
+                order.FaceHalf = fh;
+            }
+
             switch (verb)
             {
                 case Verbs.Move:
                 case Verbs.Assault:
                 case Verbs.Observe:
                     if (order.Point == null && order.TargetUnit != null) order.Point = Clamp(order.TargetUnit.Position + offset);
+                    if (order.Point == null && verb == Verbs.Observe && order.FaceBearing != null) break;
                     if (order.Point == null) return Fail(check, "Say again, " + verb + " where?");
                     if (verb != Verbs.Observe && !Route(check, unit, order)) return check;
                     break;
@@ -162,9 +171,21 @@ namespace FieldTable.Sim
 
                 case Verbs.TakeCover:
                 case Verbs.Hide:
-                    order.Point = BestSpotNear(unit, verb == Verbs.Hide);
+                    // Near the place named, or near where they are.
+                    order.Point = BestSpotNear(string.IsNullOrWhiteSpace(order.Where) ? unit.Position : order.Point.Value, verb == Verbs.Hide);
                     if (!Route(check, unit, order)) return check;
                     break;
+
+                case Verbs.Ambush:
+                    {
+                        // Where is the place to lie up (a hidden spot near it, or near where they are); target is the kill zone.
+                        Vec2? zone = order.TargetUnit?.Position;
+                        if (zone == null && !string.IsNullOrWhiteSpace(order.Target) && TryPlace(unit, order.Target, out Vec2 zp)) zone = zp;
+                        order.Watch = zone;
+                        order.Point = BestSpotNear(string.IsNullOrWhiteSpace(order.Where) ? unit.Position : order.Point.Value, true);
+                        if (!Route(check, unit, order)) return check;
+                        break;
+                    }
 
                 case Verbs.ChangePosture:
                     if (ParsePosture(order.Posture) == null) return Fail(check, "Say again, stand, kneel, or get down?");
@@ -444,15 +465,15 @@ namespace FieldTable.Sim
                  .OrderBy(u => Vec2.Distance(u.Position, unit.Position)).FirstOrDefault();
 
         /// <summary>The best place within 30 meters to take cover (or to hide), by the ground itself.</summary>
-        Vec2 BestSpotNear(Unit unit, bool hide)
+        Vec2 BestSpotNear(Vec2 from, bool hide)
         {
-            Vec2 best = unit.Position;
-            float bestScore = Score(unit.Position) + 0.05f;
+            Vec2 best = from;
+            float bestScore = Score(from) + 0.05f;
             for (int r = 4; r <= 30; r += 4)
                 for (int a = 0; a < 16; a++)
                 {
                     double ang = a * Math.PI / 8;
-                    var p = new Vec2(unit.Position.X + (float)Math.Cos(ang) * r, unit.Position.Y + (float)Math.Sin(ang) * r);
+                    var p = new Vec2(from.X + (float)Math.Cos(ang) * r, from.Y + (float)Math.Sin(ang) * r);
                     if (!Map.InBounds(p)) continue;
                     var t = Map.TerrainAt(p);
                     if (t.Deep || !t.Passable) continue;

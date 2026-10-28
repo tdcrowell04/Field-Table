@@ -96,6 +96,7 @@ namespace FieldTable.Sim
             {
                 case Verbs.Hold:
                     u.Path = null;
+                    if (o.FaceBearing is float hf) u.Facing = hf;
                     Finish(u, null);
                     break;
 
@@ -108,6 +109,7 @@ namespace FieldTable.Sim
                 case Verbs.Observe:
                     u.Path = null;
                     if (o.Point != null) u.Facing = Bearing(u.Position, o.Point.Value);
+                    else if (o.FaceBearing is float of) u.Facing = of;
                     break;
 
                 case Verbs.Follow:
@@ -202,6 +204,7 @@ namespace FieldTable.Sim
         {
             var o = u.Order;
             if (o == null) return;
+            if (o.FaceBearing is float face) u.Facing = face;
             switch (o.Verb)
             {
                 case Verbs.Move:
@@ -235,6 +238,9 @@ namespace FieldTable.Sim
                     break;
                 case Verbs.Overwatch:
                     u.Posture = Posture.Kneeling;
+                    break;
+                case Verbs.Ambush:
+                    u.Posture = Posture.Prone;
                     break;
                 case Verbs.Carry:
                     SetDown(u, o);
@@ -386,6 +392,8 @@ namespace FieldTable.Sim
             if (u.IsMoving && u.Speed == MoveSpeed.Run) return;
             if (Map.TerrainAt(u.Position).Deep) return;
             if (u.Order != null && (u.Order.Verb == Verbs.TreatCasualty || u.Order.Verb == Verbs.Hide || u.Order.Verb == Verbs.FlyDrone || u.Order.Verb == Verbs.Carry)) return;
+            // Our ambush holds its fire until it's sprung.
+            if (u.Order != null && u.Order.Verb == Verbs.Ambush && !u.Order.Sprung) return;
             // An ambush holds its fire until it's sprung, and the engineer doesn't stop setting his charges to shoot.
             var plan = u.Force.Plan;
             if (plan != null && (plan.HoldingFire || plan.HoldFire?.Invoke(u) == true || (ReferenceEquals(u, plan.Engineer) && !plan.ChargesSet))) return;
@@ -482,8 +490,10 @@ namespace FieldTable.Sim
             var gun = Weapon(u.Def.Weapon);
             float reach = Math.Max(gun?.Range ?? 0f, Weapon(u.Def.Launcher)?.Range ?? 0f);
             var knowledge = Fog.For(u.Force);
-            // On overwatch, anything in the watched area comes first.
-            Vec2? watch = u.Order != null && u.Order.Verb == Verbs.Overwatch ? u.Order.Watch : null;
+            // On overwatch or in an ambush, anything in the watched area, or the arc they were told to face, comes first.
+            bool watching = u.Order != null && (u.Order.Verb == Verbs.Overwatch || u.Order.Verb == Verbs.Ambush);
+            Vec2? watch = watching ? u.Order.Watch : null;
+            float? arc = watching && watch == null ? u.Order.FaceBearing : null;
             Unit best = null;
             float bestD = float.MaxValue;
             foreach (var t in units)
@@ -493,7 +503,9 @@ namespace FieldTable.Sim
                 if (c == null || !c.Visible) continue;
                 float d = Vec2.Distance(u.Position, t.Position);
                 if (d > reach) continue;
-                float score = watch != null && Vec2.Distance(t.Position, watch.Value) <= OverwatchArea ? d - 10000f : d;
+                bool first = watch != null ? Vec2.Distance(t.Position, watch.Value) <= OverwatchArea
+                    : arc != null && Directions.Inside(Bearing(u.Position, t.Position), arc.Value, u.Order.FaceHalf);
+                float score = first ? d - 10000f : d;
                 if (score >= bestD) continue;
                 if (!Sight.Between(Map, u, t).SeenBy(u)) continue;
                 best = t;

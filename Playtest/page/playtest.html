@@ -610,7 +610,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
   const RATE = { m27: 0.16, "m27-ar": 0.09, m4: 0.16, ak: 0.12, pkm: 0.075 };
   const PROJ = { m320: { fl: 1.0, arc: 14 }, "m320-ap": { fl: 1.0, arc: 14 }, grenade: { fl: 1.1, arc: 5 }, rpg: { fl: 0.55, arc: 0, rocket: true }, "rpg-ap": { fl: 0.55, arc: 0, rocket: true } };
 
-  const S = { cam: { x: 400, y: 300, s: 1 }, fitS: 1, roster: [], state: null, log: [], rolls: [], flip: {}, sel: -1, tap: null, marks: [], hover: null, picks: [], lastPick: null, pending: null, busy: false, speed: 4, tab: "net", briefMode: "quick", mw: 800, mh: 600, sq: 100 };
+  const S = { cam: { x: 400, y: 300, s: 1 }, fitS: 1, roster: [], state: null, log: [], rolls: [], flip: {}, sel: -1, tap: null, marks: [], hover: null, picks: [], lastPick: null, pending: null, turnMsgs: [], busy: false, speed: 4, tab: "net", briefMode: "quick", mw: 800, mh: 600, sq: 100 };
   let P = null;  // the turn being played back
   let raf = 0;
 
@@ -1457,7 +1457,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     if (u.order) parts.push(orderText(u.order)); else if (u.condition === "ok") parts.push("No orders");
     return parts;
   }
-  function orderText(o) { return o ? [o.verb, o.where, o.target].filter(Boolean).join(" · ") : ""; }
+  function orderText(o) { return o ? [o.verb, o.where, o.target, o.facing ? "facing " + o.facing : null].filter(Boolean).join(" · ") : ""; }
 
   function renderPane(keepBottom) {
     const pane = $("pane");
@@ -1561,7 +1561,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     r.orders.forEach((o, i) => {
       const checks = pd.checks.filter(c => c.order === i);
       const rb = r.readbacks.find(x => x.who && x.who.toLowerCase() === o.who.toLowerCase());
-      const blanks = [o.where, o.target, o.speed, o.posture, o.kind, o.swim ? "swim" : null].filter(Boolean).join(" · ");
+      const blanks = [o.where, o.target, o.facing ? "facing " + o.facing : null, o.speed, o.posture, o.kind, o.swim ? "swim" : null].filter(Boolean).join(" · ");
       out.push("<div class=\"ocard\"><span class=\"h\">" + esc(o.who) + " · " + esc(o.verb) + (blanks ? "<small>" + esc(blanks) + "</small>" : "") + "</span>"
         + (rb ? "<span class=\"rb\">" + esc(rb.text) + "</span>" : "")
         + "<ul>" + checks.map(c => {
@@ -1575,7 +1575,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     if (!out.length) out.push("<div class=\"ocard say\"><span class=\"rb\">Lead, say again? No orders came through.</span></div>");
     const ok = pd.checks.some(c => c.ok);
     return "<div class=\"preview\" style=\"margin-top:10px\"><h3 class=\"mini\">Orders ready" + (pd.reader === "simple" ? " · read by the simple reader" : " · read by Haiku") + "</h3>" + out.join("")
-      + "<span class=\"empty\">" + (ok ? "Play turn sends the ✓ orders and plays one minute. Type new orders to replace these." : "Nothing here can be carried out. Type new orders, or play the turn as things stand.") + "</span></div>";
+      + "<span class=\"empty\">" + (ok ? "Play turn sends the ✓ orders and plays one minute. Type more to add to these or change them." : "Nothing here can be carried out yet. Type more to add to these or change them, or play the turn as things stand.") + "</span></div>";
   }
 
   function renderCard() {
@@ -1798,37 +1798,38 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
   }
 
   const VERB_HELP = [
-    "- move: go to a place. where (required). speed: \"walk\", \"run\", or \"crawl\" if said. swim: true only if told to swim.",
+    "- move: go to a place. where (required). speed: \"walk\", \"run\", or \"crawl\" if said. swim: true only if told to swim. \"Take up position in\" or \"set up in\" a place means go there.",
     "- assault: attack and move through a place or contact. where or target.",
     "- hold: stay put and fight from there.",
     "- fire: shoot at a contact or a place. target (a contact name) or where. kind \"HE\" or \"AP\" when they name the grenade launcher round.",
     "- suppress: keep fire on a contact or a place to pin it down. target or where.",
-    "- take cover: get into the best cover nearby.",
-    "- hide: get low and out of sight nearby.",
+    "- take cover: get into the best cover. where: a place to take cover at, if given; without it, nearby.",
+    "- hide: get low and out of sight. where: a place to hide at, if given; without it, nearby. \"Stay out of sight\" means hide.",
     "- change posture: posture \"stand\", \"kneel\", or \"prone\" (get down means prone).",
     "- withdraw: fall back. where if given; without it they fall back the way they came.",
     "- follow: follow another Marine or team. target is who to follow.",
-    "- observe: watch a place or contact. where or target.",
+    "- observe: watch a place or contact. where or target, or only facing.",
     "- report: report what they see.",
     "- treat casualty: give first aid. target is the casualty's name, if given.",
     "- throw grenade: a hand grenade, 35 meters at most. where or target.",
     "- drop: drop heavy gear, needed before swimming deep water.",
     "- emote: kind, like \"dance\", \"salute\", or \"wave\".",
     "- bound: move by rushes, half the team covering while the other half runs. where (required).",
-    "- overwatch: cover an area and shoot whatever shows up there. target: the area or contact to watch. where: a spot to watch from, only if they give one.",
+    "- overwatch: cover an area and shoot whatever shows up there. target: the area or contact to watch, if they name one. where: a spot to watch from, only if they give one. facing: which way to watch, when they give a direction instead of a place, like \"overwatch north and east\". \"Watch for enemies coming from\" a direction is overwatch with facing.",
+    "- ambush: lie hidden and hold fire until the enemy comes within 35 meters or into the kill zone, then everyone opens fire at once. where: where to lie up, if given. target: the kill zone, a place or contact, if given. facing, if given. \"Stay out of sight and set up an ambush\" is one ambush order.",
     "- throw smoke: a smoke grenade to screen, 35 meters at most. where, if given.",
     "- clear: go through a building room by room. where: the building.",
     "- breach: open a gap in a wall, hedge, or building. where.",
     "- fly drone: only for the drone operator. where: where to send the drone. Leave where out to bring it back and pack it up.",
-    "- talk: talk to a civilian, or question an enemy who is down, detained, or gave up. target: who. The villagers and fighters don't speak English, so the interpreter has to be there too.",
+    "- talk: talk to a civilian, or question an enemy who is down, detained, or gave up. target: who. The villagers and enemy soldiers don't speak English, so the interpreter has to be there too.",
     "- search: search a place, or a person who is down, detained, or a civilian. target (a person) or where.",
     "- carry: carry a casualty (a Marine, or a hurt friend like a downed pilot), or walk a detained prisoner somewhere. target: who. where: where to take them.",
     "- detain: take someone prisoner: a civilian, or an enemy who is down or gave up. target: who.",
     "- share ammo: spread the ammo out evenly across a team.",
     "- request: call for CASEVAC. kind \"CASEVAC\". where: the landing zone."
   ].join("\n");
-  const SHAPE = '{"orders": [{"who": "Alpha", "verb": "move", "where": "building 4", "target": null, "speed": "run", "posture": null, "swim": false, "kind": null}],\n "readbacks": [{"who": "Alpha", "text": "Alpha, moving to building 4."}],\n "sayAgain": ["Bravo: Say again, which building?"],\n "notCovered": [{"who": "Charlie", "text": "fly the drone over the village"}]}';
-  function buildPrompt(text) {
+  const SHAPE = '{"orders": [{"who": "Alpha", "verb": "overwatch", "where": "building 4", "target": null, "facing": "north and east", "speed": "run", "posture": null, "swim": false, "kind": null}],\n "readbacks": [{"who": "Alpha", "text": "Alpha, moving to building 4, overwatch north and east."}],\n "sayAgain": ["Bravo: Say again, which building?"],\n "notCovered": [{"who": "Charlie", "text": "fly the drone over the village"}]}';
+  function buildPrompt(msgs) {
     const L = [], st = S.state.units;
     L.push("You read radio orders for Field Table, a squad tactics game. The player is the squad leader (\"Lead\") of a Marine rifle squad. Turn what the player said into orders the game can run.");
     L.push("", "Reply with only JSON, in this shape:", SHAPE);
@@ -1862,11 +1863,20 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       "- A Marine or team and a place with no verb, like \"Charlie, C3\", means move there.",
       "- When they name ground and a square, like \"the woods at C3\", use that as where, and check the square really has it.",
       "- Six-digit coordinates, like \"452 287\" or \"452287\", are a where: write them as \"452 287\".",
+      "- facing is compass words only: north, northeast, east, southeast, south, southwest, west, or northwest, or several joined with \"and\", like \"north and east\". Any verb can have one. Put a direction in facing, never in where or target, and don't ask for a place when they gave a direction.",
+      "- One order per Marine or team. When they're told to go somewhere and do something there (overwatch, hide, take cover, ambush), give that one order with where set to the place. When they're told to go somewhere and hold or face a way there, give one move with facing.",
       "- Leave out blanks the player didn't give. Don't make up places, Marines, or contacts. If a place or name isn't in the lists, add a short line to sayAgain in a Marine's voice instead, like \"Bravo: Say again, which building?\"",
       "- If the player asks for something none of the verbs cover, add it to notCovered with who and a plain summary, and leave it out of orders.",
       "- readbacks: one short line per order in a Marine's radio voice, from whoever got it.",
       "- Keep the player's meaning. Don't add orders the player didn't give.");
-    L.push("", "THE ORDERS, as the player gave them:", "\"\"\"" + text + "\"\"\"");
+    if (msgs.length === 1) L.push("", "THE ORDERS, as the player gave them:", "\"\"\"" + msgs[0].text + "\"\"\"");
+    else {
+      L.push("", "THE ORDERS: the player's messages this turn, oldest first, with what the squad asked back after each. Later messages add to or change earlier ones; one that answers a say again fills in what was missing. Reply with the whole set of orders for all of them together, and put in sayAgain only what's still not answered.");
+      msgs.forEach((m, i) => {
+        L.push("Message " + (i + 1) + ": \"\"\"" + m.text + "\"\"\"");
+        (m.sayAgain || []).forEach(x => L.push("  The squad asked: " + x));
+      });
+    }
     return L.join("\n");
   }
   function cleanRead(r) {
@@ -1876,7 +1886,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     (Array.isArray(r.orders) ? r.orders : []).forEach(o => {
       if (!o || !str(o.who) || !str(o.verb)) return;
       const c = { who: str(o.who), verb: str(o.verb).toLowerCase() };
-      for (const k of ["where", "target", "speed", "posture", "kind"]) if (str(o[k])) c[k] = str(o[k]);
+      for (const k of ["where", "target", "facing", "speed", "posture", "kind"]) if (str(o[k])) c[k] = str(o[k]);
       if (o.swim === true) c.swim = true;
       out.orders.push(c);
     });
@@ -1888,12 +1898,13 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
 
   // The simple reader: who, a verb by its everyday words, then a place, a grid square, or a contact.
   const WORDS = [
+    ["ambush", /\bambush/],
     ["request", /\b(casevac|medevac|dustoff|9.?line)\b/], ["fly drone", /\b(drone|quadcopter|quad)\b/], ["throw smoke", /\bsmoke\b/],
     ["share ammo", /\b(share|redistribute|spread)\b.*\bammo\b/], ["throw grenade", /\b(grenade|frag)\b/], ["carry", /\b(carry|drag|haul)\b/],
     ["treat casualty", /\b(treat|patch|first aid|aid)\b/], ["overwatch", /\b(overwatch|provide cover|cover (us|me|them))\b/], ["take cover", /\b(take cover|get to cover|cover)\b/],
     ["detain", /\b(detain|zip.?tie|cuff|take .* prisoner)\b/], ["talk", /\b(talk|ask|question|interview)\b/], ["search", /\b(search|look for|sweep)\b/],
     ["breach", /\b(breach|blow (a|the) hole)\b/], ["clear", /\bclear\b/], ["bound", /\b(bound|bounding|leapfrog)\b/],
-    ["hide", /\bhide\b/], ["withdraw", /\b(withdraw|fall back|pull back|retreat)\b/], ["suppress", /\bsuppress/], ["assault", /\b(assault|attack|storm)\b/],
+    ["hide", /\b(hide|out of sight|stay hidden|lie low)\b/], ["withdraw", /\b(withdraw|fall back|pull back|retreat)\b/], ["suppress", /\bsuppress/], ["assault", /\b(assault|attack|storm)\b/],
     ["fire", /\b(fire|engage|shoot|light up)\b/], ["follow", /\bfollow\b/], ["observe", /\b(observe|watch|eyes on)\b/], ["report", /\breport\b/],
     ["drop", /\b(drop|ditch)\b.*\b(gear|kit|packs?)\b/], ["emote", /\b(dance|salute|wave)\b/], ["change posture", /\b(get down|go prone|prone|kneel|stand up)\b/],
     ["hold", /\b(hold|stay|halt|stop|freeze)\b/], ["move", /\b(move|go|run|rush|sprint|crawl|head|push|get to|cross)\b/]
@@ -1906,8 +1917,15 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     names.sort((a, b) => b[0].length - a[0].length);
     const places = S.map.places.map(p => p.label).concat(S.map.buildings.map(b => b.label)).sort((a, b) => b.length - a.length);
     const contacts = S.roster.filter((r, i) => r.side !== "us" && S.state.units[i]).map(r => r.name).sort((a, b) => b.length - a.length);
+    // A new Marine or team named after a comma starts a new order: "Alpha, go to C4, Bravo, hold".
+    // Lead's own names stay out of it: "Alpha, Lead, go to C4" is Lead talking to Alpha.
+    const lead = (S.roster.find(r => r.figure === "sl") || {}).name;
+    const callNames = names.filter(([n, m]) => m !== lead && !/^(all|everyone|squad)$/i.test(n)).map(([n]) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const split = new RegExp(",\\s*(?=(?:" + callNames.join("|") + ")\\b)", "i");
+    const DIR = "(?:north|south)(?:\\s?(?:east|west))?|east|west";
+    const facingRe = new RegExp("\\b((?:" + DIR + ")(?:\\s*(?:,|and|&)\\s*(?:the\\s+)?(?:" + DIR + "))*)\\b", "i");
     let who = null;
-    for (const raw of text.split(/[.;\n!?]+/)) {
+    for (const raw of [].concat(...text.split(/[.;\n!?]+/).map(x => callNames.length ? x.split(split) : [x]))) {
       const s = raw.trim(), lo = s.toLowerCase();
       if (!s) continue;
       const w = names.find(([n]) => new RegExp("(^|\\W)" + n.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(\\W|$)").test(lo));
@@ -1937,15 +1955,63 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       if (verb === "carry") { const c = names.find(([n]) => n.toLowerCase() !== who.toLowerCase() && lo.includes(n.toLowerCase())); if (c) o.target = c[1]; }
       if (verb === "fly drone" && /\b(back|home|land|pack)\b/.test(lo)) delete o.where;
       if (/\bswim\b/.test(lo)) o.swim = true;
+      const dir = facingRe.exec(s);
+      if (dir) o.facing = dir[1].toLowerCase().replace(/\s+/g, " ");
+      // Watching a direction, not a place, is overwatch: "watch north and east".
+      if (o.verb === "observe" && o.facing && !o.where && !o.target) o.verb = "overwatch";
       out.orders.push(o);
-      out.readbacks.push({ who, text: who + ", " + verb + (o.where ? ", " + o.where : o.target ? ", " + o.target : "") + ", wilco." });
+      out.readbacks.push({ who, text: who + ", " + o.verb + (o.where ? ", " + o.where : o.target ? ", " + o.target : "") + (o.facing ? ", facing " + o.facing : "") + ", wilco." });
     }
     return out;
+  }
+
+  // The sim carries one order at a time, so orders that go together for one Marine or team become one:
+  // "go to building 3" then "overwatch" is an overwatch from building 3, and "go there and hold, facing east" is one move.
+  const AT_PLACE = ["overwatch", "hide", "take cover", "ambush"];
+  function combine(orders) {
+    const out = [];
+    for (const o of orders) {
+      const k = out.findIndex(p => p.who.toLowerCase() === o.who.toLowerCase() && p.verb === "move" && p.where);
+      if (k >= 0 && AT_PLACE.includes(o.verb) && (!o.where || o.where === out[k].where)) {
+        out[k] = Object.assign({}, o, { where: out[k].where, speed: o.speed || out[k].speed });
+        if (!out[k].speed) delete out[k].speed;
+        continue;
+      }
+      if (k >= 0 && (o.verb === "hold" || o.verb === "change posture") && !o.where && !o.target) {
+        if (o.facing) out[k].facing = o.facing;
+        if (o.posture) out[k].posture = o.posture;
+        continue;
+      }
+      out.push(o);
+    }
+    return out;
+  }
+  // The simple reader reads only the newest message: its orders replace that Marine's or team's earlier ones, and the rest stand.
+  // A new order with no place, contact, or direction where one's needed keeps the earlier order instead, and one that only
+  // gives a direction keeps the earlier order's place.
+  const NEEDS_PLACE = ["move", "assault", "observe", "bound", "clear", "breach", "fire", "suppress", "throw grenade", "talk", "search", "carry", "detain", "follow"];
+  function mergeReads(prev, next) {
+    const before = who => prev.orders.filter(o => o.who.toLowerCase() === who.toLowerCase()).pop();
+    next = Object.assign({}, next, { orders: next.orders.filter(o => !(before(o.who) && NEEDS_PLACE.includes(o.verb) && !o.where && !o.target && !o.facing)).map(o => {
+      const p = before(o.who);
+      return p && p.where && !o.where && AT_PLACE.includes(o.verb) && (p.verb === "move" || AT_PLACE.includes(p.verb)) ? Object.assign({}, o, { where: p.where }) : o;
+    }) });
+    const whos = new Set(next.orders.map(o => o.who.toLowerCase()));
+    const mine = x => whos.has((x || "").split(/[,:]/)[0].trim().toLowerCase());
+    return {
+      orders: prev.orders.filter(o => !whos.has(o.who.toLowerCase())).concat(next.orders),
+      readbacks: prev.readbacks.filter(r => !whos.has((r.who || "").toLowerCase())).concat(next.readbacks.filter(r => whos.has((r.who || "").toLowerCase()))),
+      sayAgain: prev.sayAgain.filter(x => !mine(x)).concat(next.sayAgain),
+      notCovered: prev.notCovered.concat(next.notCovered)
+    };
   }
 
   async function send() {
     const text = box.value.trim();
     if (!text || S.busy || P || !S.m || S.state.outcome) return;
+    // Every message this turn is read together, so a new one adds to the orders waiting or changes them, and answers a say again.
+    const prev = S.pending;
+    S.turnMsgs.push({ text });
     S.busy = true; S.reading = true; S.pending = null; setButtons();
     S.tab = "net";
     addLog({ kind: "you", who: "Lead", text });
@@ -1953,7 +2019,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     renderPane();
     let read = null, reader = "simple", note = null;
     if (caps.sample) {
-      try { read = await caps.sample.json(buildPrompt(text), { model: "claude-haiku-5-5", modelTier: "quick" }); reader = "haiku"; }
+      try { read = await caps.sample.json(buildPrompt(S.turnMsgs), { model: "claude-haiku-5-5", modelTier: "quick" }); reader = "haiku"; }
       catch (e) {
         const code = e && e.code;
         if (code === "not_granted" || code === "sampling_disabled" || code === "not_declared" || code === "capability_disabled" || code === "capability_removed") { caps.sample = null; caps.reader = "off"; note = "Haiku isn't allowed here, so the simple reader took these orders."; }
@@ -1961,15 +2027,19 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
         else note = "Haiku couldn't read that (" + (code || "error") + "), so the simple reader took it.";
       }
     }
-    if (!read) read = localRead(text);
+    const simple = !read;
+    if (simple) read = localRead(text);
     read = cleanRead(read);
+    if (simple && prev) read = mergeReads(prev.read, read);
+    read.orders = combine(read.orders);
+    S.turnMsgs[S.turnMsgs.length - 1].sayAgain = read.sayAgain;
     if (note) addLog({ kind: "event warn", text: note });
     let checks = [];
     try { if (read.orders.length) checks = (await call("CheckOrders", JSON.stringify(read.orders))).checks; }
     catch (e) { addLog({ kind: "event bad", text: "The simulation couldn't check those orders: " + e.message }); }
-    S.pending = { text, read, checks, reader };
+    S.pending = { text: S.turnMsgs.map(m => m.text).join("\n"), read, checks, reader };
     S.reading = false; S.busy = false;
-    logDb("orders", { turn: S.state.turn, text, reader, orders: read.orders, sayAgain: read.sayAgain, notCovered: read.notCovered, problems: checks.filter(c => !c.ok).map(c => c.problem) });
+    logDb("orders", { turn: S.state.turn, text, earlier: S.turnMsgs.length - 1, reader, orders: read.orders, sayAgain: read.sayAgain, notCovered: read.notCovered, problems: checks.filter(c => !c.ok).map(c => c.problem) });
     setButtons(); renderPane(); need();
   }
 
@@ -2067,6 +2137,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
         });
         pd.read.sayAgain.forEach(s => addLog({ kind: "radio warn", who: "", text: s }));
         S.pending = null;
+        S.turnMsgs = [];
       }
       const pick = await directorPick();
       const T = await call("RunTurn", pick);
@@ -2107,7 +2178,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       const m = await call("NewMission", S.data.t, S.data.u, S.data.n, seed, kind);
       S.m = m; S.seed = seed; S.missions = m.missions; S.map = m.map; S.roster = m.roster; S.state = m.state;
       S.mw = m.map.w * m.map.cell; S.mh = m.map.h * m.map.cell; S.sq = m.map.square;
-      S.log = []; S.rolls = []; S.flip = {}; S.sel = -1; S.tap = null; S.marks = []; S.hover = null; S.pending = null; S.busy = false; S.picks = []; S.lastPick = null;
+      S.log = []; S.rolls = []; S.flip = {}; S.sel = -1; S.tap = null; S.marks = []; S.hover = null; S.pending = null; S.turnMsgs = []; S.busy = false; S.picks = []; S.lastPick = null;
       buildGround(m.map);
       S.breaches = 0; S.painted = 0;
       squareGround(m.map);

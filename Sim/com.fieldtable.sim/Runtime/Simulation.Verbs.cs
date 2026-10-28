@@ -53,9 +53,11 @@ namespace FieldTable.Sim
                 case Verbs.Overwatch:
                     if (u.Path != null) break;
                     if (o.Watch != null) u.Facing = Bearing(u.Position, o.Watch.Value);
+                    else if (o.FaceBearing is float face) u.Facing = face;
                     o.Arrived = true;
-                    FirePosition(u, o, "Set. Overwatch on " + (o.Target ?? o.Where ?? "our sector") + ".");
+                    FirePosition(u, o, "Set. Overwatch " + (o.Target != null ? "on " + o.Target : o.FaceBearing != null ? o.Facing.Trim() : "on our sector") + ".");
                     break;
+                case Verbs.Ambush: ThinkAmbush(u, o); break;
                 case Verbs.ThrowSmoke: ThrowSmoke(u, o); break;
                 case Verbs.Clear: ThinkClear(u, o, dt); break;
                 case Verbs.Breach: ThinkBreach(u, o, dt); break;
@@ -129,6 +131,63 @@ namespace FieldTable.Sim
             o.Announced = true;
             var at = new Vec2(group.Average(x => x.Position.X), group.Average(x => x.Position.Y));
             Radio(u, Callsign(u) + ": " + text, "fire", at);
+        }
+
+        // ---------- ambush: lie hidden and hold fire until they come close ----------
+
+        /// <summary>How close an enemy has to come to a Marine in an ambush, or to its kill zone, before it's sprung.</summary>
+        public const float AmbushSprings = 35f;
+
+        void ThinkAmbush(Unit u, Order o)
+        {
+            if (o.Sprung) return;
+            var group = o.Group == 0 ? new List<Unit> { u } : units.Where(x => x.CanAct && x.Order != null && x.Order.Group == o.Group).ToList();
+            // Hit or found on the way there, they stop and fight from where they are.
+            if (u.Path != null)
+            {
+                if (!AmbushSprung(u, o, group)) return;
+                foreach (var x in group) { x.Order.Sprung = true; x.Path = null; }
+                Radio(u, Callsign(u) + ": We're spotted before we're set. Opening fire.", "fire", u.Position);
+                return;
+            }
+            o.Arrived = true;
+            u.Posture = Posture.Prone;
+            // Face the kill zone, the way they were told, or else the nearest enemy anyone on the net has reported.
+            if (o.Watch != null) u.Facing = Bearing(u.Position, o.Watch.Value);
+            else if (o.FaceBearing is float face) u.Facing = face;
+            else
+            {
+                var heard = Fog.For(u.Force).Contacts.Where(c => AreHostile(u.Force, c.Unit.Force) && c.Unit.CanAct && !c.Unit.Def.Flying)
+                    .OrderBy(c => Vec2.Distance(u.Position, c.LastKnownPosition)).FirstOrDefault();
+                if (heard != null) u.Facing = Bearing(u.Position, heard.LastKnownPosition);
+            }
+            if (group.All(x => x.Order.Arrived) && !o.Announced)
+            {
+                foreach (var x in group) x.Order.Announced = true;
+                Radio(u, Callsign(u) + ": Set. Ambush in place, holding fire.", "fire", u.Position);
+            }
+            if (!AmbushSprung(u, o, group)) return;
+            foreach (var x in group) x.Order.Sprung = true;
+            Radio(u, Callsign(u) + ": Ambush! Opening fire.", "fire", u.Position);
+        }
+
+        /// <summary>
+        /// Sprung when an enemy we know about comes within reach of one of the ambush or into the kill zone,
+        /// or when one of them is hit or under fire.
+        /// </summary>
+        bool AmbushSprung(Unit u, Order o, List<Unit> group)
+        {
+            if (group.Any(x => x.Wounds > 0 || x.Suppression >= 0.3f)) return true;
+            var known = Fog.For(u.Force);
+            foreach (var t in units)
+            {
+                if (!t.CanAct || t.Def.Flying || !AreHostile(u.Force, t.Force)) continue;
+                var c = known.About(t.Id);
+                if (c == null || !c.Visible) continue;
+                if (o.Watch != null && Vec2.Distance(t.Position, o.Watch.Value) <= AmbushSprings) return true;
+                if (group.Any(x => Vec2.Distance(x.Position, t.Position) <= AmbushSprings)) return true;
+            }
+            return false;
         }
 
         // ---------- bound: one half rushes while the other covers ----------
