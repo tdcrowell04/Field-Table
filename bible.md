@@ -722,6 +722,8 @@ In chat: *"Where are you getting Valdria from btw, I don't want to risk that it'
 
 In chat: *"Kansia is a name I just thought of, make sure that's not from anything"* Claude checked: no game, book, or made-up country uses it. It is a village in India, a stream in South Africa, and a Finnish word. Two more uses couldn't be confirmed: an old word for a Kaw person and an old Latin form of Kansas. It goes to ledger round 18.
 
+In chat, with a screenshot of the net where Alpha and Bravo kept asking which grid square to watch and nothing could be carried out: *"I don't feel I need to say any more"* His first message had read fine, apart from the directions, which orders had nowhere to hold. Each follow-up then replaced the orders before it. Claude's fixes (a turn's messages read together, a facing direction on any order, and the ambush verb) go to ledger round 18.
+
 ## Open questions
 
 - [ ] The enemy country's name: Kansia, Triston's (ledger round 18)
@@ -729,6 +731,7 @@ In chat: *"Kansia is a name I just thought of, make sure that's not from anythin
 - [ ] Which missions each side plays (ledger round 18)
 - [ ] Claude's calls from building the enemy army and the three new missions (ledger round 18)
 - [ ] The crossroads and the delay are won with no orders given; how much harder to make them (ledger round 18)
+- [ ] Claude's fixes to the orders from Triston's screenshot: several messages read together, facing a direction, and the ambush (ledger round 18)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 
