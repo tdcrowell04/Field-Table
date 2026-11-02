@@ -27,13 +27,22 @@ namespace FieldTable.Playtest
         /// map and the start, and the list of missions to pick from next time.
         /// </summary>
         [JSInvokable]
-        public static string NewMission(string terrainJson, string unitsJson, string namesJson, int seed, string kind)
+        public static string NewMission(string terrainJson, string unitsJson, string namesJson, int seed, string kind, string side, string optionsJson)
         {
             data = GameData.Combine(GameData.FromJson(terrainJson), GameData.FromJson(unitsJson));
             terrainIndex.Clear();
             seenBroken.Clear();
             for (int i = 0; i < data.Terrains.Count; i++) terrainIndex[data.Terrains[i].Id] = i;
-            mission = StartStates.Create(kind, data, NamePools.FromJson(namesJson), (ulong)(uint)seed);
+            // Custom numbers (ledger round 18, item 6): any left out keeps the mission's own.
+            MissionOptions options = null;
+            if (!string.IsNullOrWhiteSpace(optionsJson))
+            {
+                using var doc = JsonDocument.Parse(optionsJson);
+                int? Num(string name) => doc.RootElement.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : (int?)null;
+                options = new MissionOptions { Enemy = Num("enemy"), TurnLimit = Num("turnLimit"), LoseAt = Num("loseAt"), ArrivalTurn = Num("arrivalTurn") };
+                if (!options.Any) options = null;
+            }
+            mission = StartStates.Create(kind, data, NamePools.FromJson(namesJson), (ulong)(uint)seed, null, side, options);
             mission.Sim.Light = LightLevel.Day;
 
             return Json(w =>
@@ -42,15 +51,9 @@ namespace FieldTable.Playtest
                 w.WriteNumber("seed", seed);
                 w.WriteString("kind", mission.Kind);
                 w.WriteString("kindName", StartStates.Find(mission.Kind)?.Name ?? mission.Kind);
-                w.WriteStartArray("missions");
-                foreach (var st in StartStates.All)
-                {
-                    w.WriteStartObject();
-                    w.WriteString("id", st.Id);
-                    w.WriteString("name", st.Name);
-                    w.WriteEndObject();
-                }
-                w.WriteEndArray();
+                WriteSide(w, mission.Side);
+                w.WriteBoolean("custom", mission.Options != null);
+                WriteMissions(w);
                 w.WriteStartArray("brief");
                 foreach (var line in mission.Brief) w.WriteStringValue(line);
                 w.WriteEndArray();
@@ -92,9 +95,11 @@ namespace FieldTable.Playtest
             });
         }
 
-        /// <summary>The missions to pick from: their ids and names.</summary>
+        /// <summary>The sides and missions to pick from: their ids and names, and which missions fit each side.</summary>
         [JSInvokable]
-        public static string Missions() => Json(w =>
+        public static string Missions() => Json(WriteMissions);
+
+        static void WriteMissions(Utf8JsonWriter w)
         {
             w.WriteStartArray("missions");
             foreach (var st in StartStates.All)
@@ -102,10 +107,42 @@ namespace FieldTable.Playtest
                 w.WriteStartObject();
                 w.WriteString("id", st.Id);
                 w.WriteString("name", st.Name);
+                // The missions whose arrival turn a custom game can set.
+                w.WriteBoolean("arrival", st.Id == StartStates.Crossroads || st.Id == StartStates.ObservationPost || st.Id == StartStates.SupplyAmbush);
                 w.WriteEndObject();
             }
             w.WriteEndArray();
-        });
+            w.WriteStartArray("sides");
+            foreach (var side in Sides.All)
+            {
+                w.WriteStartObject();
+                WriteSideFields(w, side);
+                w.WriteStartArray("missions");
+                foreach (var id in side.Missions) w.WriteStringValue(id);
+                w.WriteEndArray();
+                w.WriteEndObject();
+            }
+            w.WriteEndArray();
+        }
+
+        static void WriteSide(Utf8JsonWriter w, Side side)
+        {
+            w.WriteStartObject("side");
+            WriteSideFields(w, side);
+            w.WriteEndObject();
+        }
+
+        static void WriteSideFields(Utf8JsonWriter w, Side side)
+        {
+            w.WriteString("id", side.Id);
+            w.WriteString("name", side.Name);
+            w.WriteString("member", side.Member);
+            w.WriteString("members", side.Members);
+            w.WriteString("group", side.Group);
+            w.WriteString("line", side.Line);
+            w.WriteNumber("size", side.Size);
+            w.WriteNumber("loseAt", side.LoseAt);
+        }
 
         /// <summary>Where things stand between turns, as the Marines know it.</summary>
         [JSInvokable]
@@ -468,6 +505,16 @@ namespace FieldTable.Playtest
                     w.WriteStartArray("calls");
                     foreach (var c in u.Callsigns) w.WriteStringValue(c);
                     w.WriteEndArray();
+                    // What they are and carry, so the page needn't know each side's figures.
+                    if (u.Id == "lead") w.WriteBoolean("lead", true);
+                    if (u.Def.Medic) w.WriteBoolean("medic", true);
+                    if (u.Def.MedicSkill >= 2) w.WriteBoolean("paramedic", true);
+                    if (u.Def.Breacher) w.WriteBoolean("breacher", true);
+                    if (u.Def.Radio) w.WriteBoolean("radio", true);
+                    if (u.Def.Interpreter) w.WriteBoolean("interpreter", true);
+                    if (u.Def.Drone != null) w.WriteString("drone", data.FindUnit(u.Def.Drone)?.Name ?? "drone");
+                    if (u.Def.Weapon != null) w.WriteString("weapon", data.FindWeapon(u.Def.Weapon)?.Name ?? u.Def.Weapon);
+                    if (u.Def.Launcher != null) w.WriteString("launcher", data.FindWeapon(u.Def.Launcher)?.Name ?? u.Def.Launcher);
                 }
                 w.WriteEndObject();
             }
@@ -634,7 +681,7 @@ namespace FieldTable.Playtest
             w.WriteString("roe", mission.Roe);
             w.WriteNumber("onObjective", Mission.OnObjective);
             w.WriteNumber("holdRadius", Mission.HoldRadius);
-            w.WriteNumber("combatIneffective", Mission.CombatIneffective);
+            w.WriteNumber("combatIneffective", mission.LoseAt);
             w.WriteStartArray("secondary");
             foreach (var o in mission.Secondary)
             {

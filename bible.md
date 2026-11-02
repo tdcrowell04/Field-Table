@@ -1,6 +1,6 @@
 # Field Table: game bible
 
-*Started Oct 16, 2026 · @Triston. Updated Oct 27, 2026 to match every ruling so far. Overruled ideas have been taken out.*
+*Started Oct 16, 2026 · @Triston. Updated Nov 2, 2026 to match every ruling so far. Overruled ideas have been taken out.*
 
 ## Overview
 
@@ -29,7 +29,12 @@ In sci-fi and fantasy, each setting follows its own rules just as strictly: cons
 ## Settings, modes, and group play
 
 - **Settings:** Marines (today), sci-fi, and fantasy, all at launch.
-- **Your side's factions** (ledger round 17): *"I also want to be able to pick from Marines, Army, Navy SEALS, and Air Force Pararescue as the factions for BLUFOR. I know it's more work, but I don't want to just put out one prompt AI slop that isn't thought through and cared about. I want their compositions to be realistic, and for them to have different specialties like IRL"* Claude researches each one and brings drafts to the ledger before building them (round 18).
+- **Your side** (ledger round 17): *"I also want to be able to pick from Marines, Army, Navy SEALS, and Air Force Pararescue as the factions for BLUFOR. I know it's more work, but I don't want to just put out one prompt AI slop that isn't thought through and cared about. I want their compositions to be realistic, and for them to have different specialties like IRL"* Claude researched each one; the four drafts were accepted in ledger round 18 and are built. You pick your side first, then a mission.
+  - **Marines:** the 13-Marine squad the Corps settled on in April 2025: a sergeant squad leader and three fire teams of four (team leader, automatic rifleman, assistant automatic rifleman, rifleman), plus the platoon's Navy corpsman and the interpreter. Each team's rifleman has a specialty: Alpha's is the marksman with the M38, Bravo's carries the Carl Gustaf, and Charlie's flies the drone. M27 rifles, M320 grenade launchers with the team leaders, night vision for all, thermal sights for the team leaders. The biggest of the four: built for a straight fight, taking ground and holding it. Lose with 7 down. Not sure: whether the squad also has a corporal assistant squad leader (left out), and whether every squad has its Carl Gustaf yet. Left out: attack drones that dive onto a target.
+  - **Army:** a 9-soldier squad, a staff sergeant squad leader and two fire teams of four (team leader, automatic rifleman with the M249, grenadier with the M320, rifleman), with what the platoon sends along: its combat medic and a two-soldier M240 machine gun team ("Guns"). 12 in all, plus the interpreter. Alpha's rifleman flies the Black Hornet, a drone that fits in a hand. M4A1 carbines, night vision for all. Firepower for their size: the M240 reaches farther and hits harder than any rifle, and each team has its own grenadier. Lose with 6 down. Not sure: the weapons squad's exact makeup, whether the marksman rifle is one per squad, and how many squads have the Black Hornet and the blended night-and-thermal goggles today. Left out unless asked: the M7 and M250 (the Army moved production to the XM8 carbine in 2026), the M110A1 marksman rifle, and Javelin teams.
+  - **Navy SEALs:** a squad of 8, half a platoon of about 16: the officer in charge (Lead), a point man, a communicator, a breacher, a sniper, a medic, a machine gunner, and a JTAC, plus the interpreter. Every weapon suppressed (Mk 18 carbines, an Mk 48 machine gun, an Mk 13 sniper rifle), thermal and night vision for all. Raids, ambushes, and watching from close in; they hit and get out, since 8 can't trade fire with a platoon for long. The breacher gets through a door in half the time; the medic is a paramedic. The JTAC is a shooter with a radio until the game has aircraft. Lose with 4 down. Not sure: the Navy doesn't publish its platoon chart, and in 2021 it made platoons fewer and bigger, so today's is likely more than 16.
+  - **Air Force Pararescue:** a Combat Rescue Officer (Lead) and 4 PJs in two pairs, plus the interpreter, brought in by their own rescue helicopters, which wait nearby, so a CASEVAC comes in 5 to 10 minutes instead of 15 to 30. Every PJ is a paramedic: treats in two thirds the time, and someone down under a PJ's hands stops bleeding out. M4A1 carbines, night vision, trauma kits. A rescue force, not an assault force. Lose with 3 down. Not sure: how often the officer goes in on the ground rather than a senior PJ; "up to 3 PJs a helicopter" comes from an older article.
+  - **Which missions each side plays** (ledger round 18, (a)): the ones that fit what it does for real. Marines and Army: all nine. SEALs: the compound raid, the observation post, the supply ambush, and the downed crew. Pararescue: the downed crew, with more rescue missions to draft. Triston's words: *"With the option to adjust anything about the mission numbers wise to make it play custom"* So the picker has a Custom option: any mission for any side, with the mission's numbers yours to change (how many enemy soldiers, the turn limit, how many down to lose, and the turn relief, the reaction force, or the supply party arrives). Anything left blank keeps the mission's own number.
 - **Tactical mode:** WEGO turns, as described below.
 - **Pocket DM mode:** tabletop RPG sessions. The game uses its own generic tabletop RPG and tabletop strategy rules, written for Field Table. Code covers as much of a typical campaign as possible, and the AI decides anything the code doesn't cover yet (see Simulation).
 - **Solo, co-op, and versus.**
@@ -224,7 +229,7 @@ Every mission played in the Field Table prototype is a candidate mission for the
 - The director starts now, in the playtest (ledger round 14). It watches the mission and switches in add-ins when they fit: reinforcements if you're slow, civilians running if the shooting gets close, a sniper or IED on the obvious route, the enemy pulling back if you flank them, a radio dropping out. The in-game AI picks which, inside limits the code sets, and voices it. Its limits: nothing before turn 3, at most 3 add-ins a mission, each kind once, at least 2 turns apart; without the in-game AI, a die picks one about one time in three; the end screen says what was switched in, and when. Reinforcements: from turn 8 if the objective isn't held and the enemy has lost 2, or from turn 12 anyway; 2 to 4 soldiers, and Raider 6 warns you. Civilians: 1 or 2 run when shooting lands within 120 m of them. A sniper: once the squad moves, 250 to 450 m out on the far side, no warning. An IED: by the road 70 to 150 m short of the objective, no warning; it goes off within 3 m, and a Marine walking within 15 m has a 5% chance each second to spot it. Pulling back: when Marines are on the enemy's side. A dead radio: one team for 3 turns; orders only by shouting from within 50 m, and its calls aren't heard.
 - More missions in the slice now (ledger round 15, (a)): *"So I'm still answering the ledger but it seems like we're building this game that I said I wanted dynamic and to have different objectives and stuff each time to only have 1 mission"* Triston kept five of Claude's drafts (ledger round 16) and three more (ledger round 17), built alongside the bridge seizure: nine missions in all. Claude's calls on the first five's details were accepted in round 17 and are written in below.
 - Picking the mission (ledger round 16, (a)): New map gives a choice: pick a mission by name, or Random.
-- Who the enemy is (ledger round 17, (a)): a uniformed army from a made-up country, to fit the made-up place names: squads with team leaders, machine guns, RPGs, and radios. Every mission uses it. Its country's name is open: Triston offered Kansia (ledger round 18). Until then the game calls them enemy soldiers.
+- Who the enemy is (ledger round 17, (a)): a uniformed army from a made-up country, to fit the made-up place names: squads with team leaders, machine guns, RPGs, and radios. Every mission uses it. The country is Kansia, Triston's name (ledger round 18): the Kansian Army, Kansian soldiers. Checked: no game, book, or made-up country uses it.
 - Compound raid (ledger round 16): raid a walled farm and detain a wanted man by name. Win: he's detained and walked to the pickup point. Lose: he gets off the map, 7 Marines down, or out of time. Extras: take him alive, his family unhurt, every Marine home. Enemy goal: guard him and fight, slip him out the back with a few guards, or he isn't there (bad intel; the family can say where he went, through the interpreter).
   - Details (ledger round 17): he goes by a code name (Anvil, Sawtooth). The farm walls are chest high; lookouts stand to see over. You start on the gate side, 300 m out, and the pickup point is back where you start. You walk him out with a carry order; a prisoner who can walk keeps a walking pace. If he's killed, it still wins once a Marine reaches his body, but misses taken alive. Guard: 4 to 6 guards, maybe a machine gun at the gate. Slip: once a Marine is within 150 m, or they see one or get shot at, he and 2 guards walk out the back for the far edge. Gone: he's in a house 300 m or more away with 1 or 2 guards, and his family can say which.
 - Hold the crossroads (ledger round 16): hold a crossroads in a small village until relieved. Relief comes on a turn a die picks, 15 to 25, and you don't know which. Win: still holding when relief arrives. Lose: the enemy holds the crossroads two turns in a row, or 7 down. Extras: villagers unhurt, the crossroads never lost, every Marine home. Enemy goal: probe, then push; come from two sides at once; or pin you with a machine gun while others work around.
@@ -311,7 +316,7 @@ Live AI is allowed in this game. This project is separate from Conduits' no-AI-a
 
 Each step is a complete, playable game on its own. Don't start a step until the one before it is fun.
 
-1. Squad slice: One generated map, one squad, nine missions (the bridge seizure, the compound raid, hold the crossroads, the downed helicopter crew, clear the village, the supply-party ambush, take the hill, delay the advance, and raid the observation post), WEGO turns, typed orders, verbs and blanks. If this isn't fun, nothing above it will be.
+1. Squad slice: One generated map, one of four sides (Marines, Army, Navy SEALs, Air Force Pararescue), nine missions (the bridge seizure, the compound raid, hold the crossroads, the downed helicopter crew, clear the village, the supply-party ambush, take the hill, delay the advance, and raid the observation post), WEGO turns, typed orders, verbs and blanks. If this isn't fun, nothing above it will be.
 2. Voice: Push-to-talk on top of the typed path, with readback.
 3. Co-op and versus at squad level.
 4. Platoon: Three squads plus attachments; the radio net and platoon sergeant problems.
@@ -724,14 +729,24 @@ In chat: *"Kansia is a name I just thought of, make sure that's not from anythin
 
 In chat, with a screenshot of the net where Alpha and Bravo kept asking which grid square to watch and nothing could be carried out: *"I don't feel I need to say any more"* His first message had read fine, apart from the directions, which orders had nowhere to hold. Each follow-up then replaced the orders before it. Claude's fixes (a turn's messages read together, a facing direction on any order, and the ambush verb) go to ledger round 18.
 
+### 2026-11-02: ledger round 18 (the first six; the rest stay open)
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| Kansia | Accepted | |
+| Marines | Accepted | |
+| Army | Accepted | |
+| Navy SEALs | Accepted | |
+| Air Force Pararescue | Accepted | |
+| Which missions each side plays | (a): the ones that fit, plus a custom option | *"With the option to adjust anything about the mission numbers wise to make it play custom"* |
+
 ## Open questions
 
-- [ ] The enemy country's name: Kansia, Triston's (ledger round 18)
-- [ ] The four factions for your side: Claude's researched drafts of the Marines, Army, Navy SEALs, and Air Force Pararescue (ledger round 18)
-- [ ] Which missions each side plays (ledger round 18)
-- [ ] Claude's calls from building the enemy army and the three new missions (ledger round 18)
-- [ ] The crossroads and the delay are won with no orders given; how much harder to make them (ledger round 18)
-- [ ] Claude's fixes to the orders from Triston's screenshot: several messages read together, facing a direction, and the ambush (ledger round 18)
+- [ ] Claude's calls from building the enemy army and the three new missions (round 18, items 7 to 11, carried into ledger round 19)
+- [ ] The crossroads and the delay are won with no orders given; how much harder to make them (round 18, item 12, carried into ledger round 19)
+- [ ] Claude's fixes to the orders from Triston's screenshot: several messages read together, facing a direction, and the ambush (round 18, items 13 to 15, carried into ledger round 19)
+- [ ] Claude's calls from building the four sides and the custom numbers (ledger round 19)
+- [ ] Three rescue mission drafts for Pararescue (ledger round 19)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 

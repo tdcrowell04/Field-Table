@@ -20,7 +20,7 @@ namespace FieldTable.Sim
             (FallBack, "they'll fall back over the top to a second position", "fall back to a second position"),
             (Counter, "they'll let you have the top and hit you from the woods", "let you take it and counterattack"));
 
-        /// <summary>The fall back goes once a Marine is this close to the top, or two of them are down.</summary>
+        /// <summary>The fall back goes once " + One(mission) + " is this close to the top, or two of them are down.</summary>
         public const float FallBackWithin = 150f;
 
         /// <summary>Holding to the last: they only pull back once this much of them is down.</summary>
@@ -190,9 +190,9 @@ namespace FieldTable.Sim
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: " + (village != null ? "in " + village.Label + ". " : "none known nearby. ") + RoeLine(mission.Roe));
             int back = (int)Math.Round(Vec2.Distance(lead, top) / 50f) * 50;
-            mission.Brief.Add(SquadLine("at " + map.SquareOf(lead) + ", about " + back + " m from the top"));
+            mission.Brief.Add(SquadLine(mission, "at " + map.SquareOf(lead) + ", about " + back + " m from the top"));
             mission.MainObjective = "Take " + hill.Label + " (" + grid + ") and hold it.";
-            mission.WinText = "A Marine within " + Mission.OnObjective + " m of the top of " + hill.Label + " and no enemy still fighting within " + Mission.HoldRadius + " m, at the end of two turns in a row.";
+            mission.WinText = One(mission, true) + " within " + Mission.OnObjective + " m of the top of " + hill.Label + " and no enemy still fighting within " + Mission.HoldRadius + " m, at the end of two turns in a row.";
             mission.LoseText = LoseLine(mission);
             mission.OutOfTimeText = "Out of time. The battalion couldn't wait any longer for the road.";
 
@@ -207,7 +207,7 @@ namespace FieldTable.Sim
                 NearWord = "the road side of the hill",
                 Road = road?.Points,
             });
-            mission.Secondary.Add(EveryMarineHome());
+            mission.Secondary.Add(EveryoneHome(mission));
             return mission;
         }
 

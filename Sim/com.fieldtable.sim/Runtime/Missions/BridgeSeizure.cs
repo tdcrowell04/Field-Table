@@ -61,10 +61,10 @@ namespace FieldTable.Sim
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: in " + village.Label + ". " + RoeLine(mission.Roe));
             int back = (int)Math.Round(Vec2.Distance(formation[0].pos, b0) / 50f) * 50;
-            mission.Brief.Add(SquadLine("at " + startGrid + ", about " + back + " m from the bridge"));
+            mission.Brief.Add(SquadLine(mission, "at " + startGrid + ", about " + back + " m from the bridge"));
             mission.MainObjective = "Seize and hold " + bridge.Label + " (" + bridgeGrid + ").";
             mission.DoneWord = "Seized";
-            mission.WinText = "A Marine within " + Mission.OnObjective + " m of " + bridge.Label + " and no enemy still fighting within " + Mission.HoldRadius + " m, at the end of two turns in a row.";
+            mission.WinText = One(mission, true) + " within " + Mission.OnObjective + " m of " + bridge.Label + " and no enemy still fighting within " + Mission.HoldRadius + " m, at the end of two turns in a row.";
             mission.LoseText = LoseLine(mission);
             mission.OutOfTimeText = "Out of time. The platoon couldn't wait any longer for the bridge.";
             mission.Judge = Mission.HoldTwoTurns(bridge.Label + " is seized and held.");
@@ -85,7 +85,7 @@ namespace FieldTable.Sim
                 NearWord = "the near bank",
                 Road = road?.Points,
             });
-            mission.Secondary.Add(EveryMarineHome());
+            mission.Secondary.Add(EveryoneHome(mission));
             return mission;
         }
 

@@ -20,10 +20,10 @@ namespace FieldTable.Sim
             (RiggedDoor, "most of them left, and a door is rigged to blow", "leave a few behind and rig a door"),
             (SlipOut, "they'll slip out the back when you come", "slip out the back"));
 
-        /// <summary>They slip out once a Marine is this close to the village's middle, or they see one or get shot at.</summary>
+        /// <summary>They slip out once " + One(mission) + " is this close to the village's middle, or they see one or get shot at.</summary>
         public const float SlipWhenWithin = 150f;
 
-        /// <summary>A fighter falls back to another house once a Marine is in his or this close to it, and he's on his own.</summary>
+        /// <summary>A fighter falls back to another house once " + One(mission) + " is in his or this close to it, and he's on his own.</summary>
         public const float PressedWithin = 10f;
 
         /// <summary>The squad starts about this far from the village's middle, and never nearer than the least.</summary>
@@ -131,7 +131,7 @@ namespace FieldTable.Sim
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: families live in some of the marked buildings. " + RoeLine(mission.Roe));
             int back = (int)Math.Round(Vec2.Distance(lead, v) / 50f) * 50;
-            mission.Brief.Add(SquadLine("at " + map.SquareOf(lead) + ", about " + back + " m from " + village.Label));
+            mission.Brief.Add(SquadLine(mission, "at " + map.SquareOf(lead) + ", about " + back + " m from " + village.Label));
             mission.MainObjective = "Clear the marked buildings in " + village.Label + ": " + list + ".";
             mission.WinText = "Every marked building cleared (a Clear order finished inside it), with nobody hostile still in any of them.";
             mission.LoseText = LoseLine(mission);
@@ -153,7 +153,7 @@ namespace FieldTable.Sim
                 Road = road?.Points,
                 Slow = () => !mission.Sim.Log.Events.OfType<BuildingCleared>().Any(e => marked.Contains(e.Building)),
             });
-            mission.Secondary.Add(EveryMarineHome());
+            mission.Secondary.Add(EveryoneHome(mission));
             return mission;
         }
 
@@ -191,7 +191,7 @@ namespace FieldTable.Sim
             p.X >= area.Min.X - margin && p.X <= area.Max.X + margin && p.Y >= area.Min.Y - margin && p.Y <= area.Max.Y + margin;
 
         /// <summary>
-        /// House to house: a fighter left on his own in a house a Marine is in, or right outside, runs for another house
+        /// House to house: a fighter left on his own in a house " + One(mission) + " is in, or right outside, runs for another house
         /// his side still holds, the one farthest from the Marines.
         /// </summary>
         static void FallBack(Mission mission, List<Landmark> held, List<Unit> side)
@@ -209,7 +209,7 @@ namespace FieldTable.Sim
         }
 
         /// <summary>
-        /// Slip out: once a Marine comes close to the village, or they see one or get shot at, they all make for the edge
+        /// Slip out: once " + One(mission) + " comes close to the village, or they see one or get shot at, they all make for the edge
         /// of the map on the far side from the nearest Marine. Anyone who reaches it is gone.
         /// </summary>
         static Action<List<Unit>> Slip(Mission mission, Vec2 v)

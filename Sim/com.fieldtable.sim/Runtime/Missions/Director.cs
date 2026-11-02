@@ -104,7 +104,7 @@ namespace FieldTable.Sim
 
             var plan = m.Enemy.Plan;
             if (!Done(PullBack) && (plan == null || plan.Goal != EnemyPlan.Delay) && marines.Any(u => OnEnemySide(u.Position)) && enemy.Any(u => u.CanAct))
-                list.Add(new AddInOption(PullBack, "The enemy sees Marines on " + at.FarWord + ", feels flanked, and pulls back from " + at.FocusWord + "."));
+                list.Add(new AddInOption(PullBack, "The enemy sees " + m.Side.Members + " on " + at.FarWord + ", feels flanked, and pulls back from " + at.FocusWord + "."));
 
             if (!Done(RadioDown) && Teams().Any())
                 list.Add(new AddInOption(RadioDown, "One fire team's radio goes dead for 3 turns: it only gets orders Lead can shout from within 50 m."));
@@ -176,7 +176,7 @@ namespace FieldTable.Sim
                 var to = FarSideSpot(50f, 120f, (p, t) => t.Cover + (Sight.Trace(map, p, 1.1f, Focus, 1f).Clear ? 1f : 0f)) ?? Focus;
                 if (!Sim.Give(u, new Order { Verb = Verbs.Move, Where = Sim.Coordinates(to), Speed = "run" }).Ok) Send(u, Verbs.Move, Focus - at, 200f);
             }
-            Sim.Radio(null, "Raider 6: Drone feed shows a truck dropping off " + count + " soldiers at " + map.SquareOf(drop) + " on " + at.FarWord + ".", "info", drop, "Raider 6");
+            Sim.Radio(null, m.Side.Higher + ": Drone feed shows a truck dropping off " + count + " soldiers at " + map.SquareOf(drop) + " on " + at.FarWord + ".", "info", drop, m.Side.Higher);
         }
 
         void CiviliansPanic()

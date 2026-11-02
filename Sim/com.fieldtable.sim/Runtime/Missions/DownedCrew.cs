@@ -20,10 +20,10 @@ namespace FieldTable.Sim
             (Bait, "they're waiting for you at the wreck", "wait for you at the wreck"),
             (Search, "they're searching the farms for the crew", "search the farms for the crew"));
 
-        /// <summary>The crew's survival radio picks up a Marine this close, and the crew go with the squad once one is this close.</summary>
+        /// <summary>The crew's survival radio picks up " + One(mission) + " this close, and the crew go with the squad once one is this close.</summary>
         public const float RadioReach = 150f, LinkUp = 10f;
 
-        /// <summary>A fighter this close to a crew member, with no Marine within the second distance, takes him prisoner.</summary>
+        /// <summary>A fighter this close to a crew member, with no " + mission.Side.Member + " within the second distance, takes him prisoner.</summary>
         public const float CaptureReach = 4f, MarinesStopIt = 30f;
 
         /// <summary>The pilot is down and bleeding: this many minutes before he dies untreated.</summary>
@@ -128,7 +128,7 @@ namespace FieldTable.Sim
             AddSquad(sim, mission.Marines, data, names, rng, formation);
             foreach (var u in enemy) sim.AddUnit(u);
 
-            // The crew's names, from those no Marine has.
+            // The crew's names, from those no " + mission.Side.Member + " has.
             var free = Shuffle(names.People.Where(n => !sim.Units.Any(u => u.Name == n)).DefaultIfEmpty("Hale").ToList(), rng);
             var pilot = new Unit("pilot", "Lt " + free[0], data.FindUnit("aircrew"), crewForce, hide) { Posture = Posture.Prone, Passenger = true };
             pilot.Callsigns.AddRange(new[] { "pilot", "the pilot", "crew", "Dagger" });
@@ -169,7 +169,7 @@ namespace FieldTable.Sim
                 foreach (var u in crew)
                 {
                     if (u.Gone || u.Condition == Condition.Dead) continue;
-                    // Taken prisoner: a soldier right on him, and no Marine close enough to stop it.
+                    // Taken prisoner: a soldier right on him, and no " + mission.Side.Member + " close enough to stop it.
                     var taker = sim.Units.FirstOrDefault(e => ReferenceEquals(e.Force, mission.Enemy) && e.CanAct && Vec2.Distance(e.Position, u.Position) <= CaptureReach);
                     if (taker != null && !marines.Any(m => Vec2.Distance(m.Position, u.Position) <= MarinesStopIt))
                     {
@@ -227,7 +227,7 @@ namespace FieldTable.Sim
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: " + (village != null ? "in " + village.Label + ". " : "on the farms nearby. ") + RoeLine(mission.Roe));
             int back = (int)Math.Round(Vec2.Distance(lead, w) / 50f) * 50;
-            mission.Brief.Add(SquadLine("at " + map.SquareOf(lead) + ", about " + back + " m from the wreck"));
+            mission.Brief.Add(SquadLine(mission, "at " + map.SquareOf(lead) + ", about " + back + " m from the wreck"));
             mission.MainObjective = "Find the crew and get them out on a CASEVAC.";
             mission.WinText = "Every crew member still alive and free taken out on a CASEVAC. Request one to a landing zone you pick; anyone within " + Simulation.CasevacLoadRadius + " m of it when it lands gets on.";
             mission.LoseText = LoseLine(mission, "both crew captured or killed.");
@@ -247,7 +247,7 @@ namespace FieldTable.Sim
                 Road = road?.Points,
                 Slow = () => !linked,
             });
-            mission.Secondary.Add(EveryMarineHome());
+            mission.Secondary.Add(EveryoneHome(mission));
             return mission;
         }
 

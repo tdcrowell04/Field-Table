@@ -70,7 +70,7 @@ namespace FieldTable.Sim
             bool intelRight = Next(rng) < 0.6f;
             var path = fromA ? trail : Enumerable.Reverse(trail).ToList();
             Vec2 expectedFrom = intelRight ? path[0] : path[path.Count - 1];
-            int arrive = Between(rng, EarliestTurn, LatestTurn);
+            int arrive = ArrivalTurn(mission, rng, EarliestTurn, LatestTurn);
 
             float goalRoll = Next(rng);
             goal ??= Goals[Math.Min(Goals.Count - 1, (int)(goalRoll * Goals.Count))];
@@ -236,7 +236,7 @@ namespace FieldTable.Sim
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: shepherds use the trail" + (village != null ? ", and there are villagers in " + village.Label : "") + ". " + RoeLine(mission.Roe));
             int back = (int)Math.Round(DistanceTo(lead, trail) / 50f) * 50;
-            mission.Brief.Add(SquadLine("at " + map.SquareOf(lead) + ", about " + back + " m from the trail"));
+            mission.Brief.Add(SquadLine(mission, "at " + map.SquareOf(lead) + ", about " + back + " m from the trail"));
             mission.MainObjective = "Stop the party and take the weapons.";
             mission.WinText = "Every crate the party carries taken: search the porters, or search where they fell.";
             mission.LoseText = LoseLine(mission, "a crate gets off the map.");
@@ -253,7 +253,7 @@ namespace FieldTable.Sim
                 FarWord = "the far side of the trail",
                 AddIns = new[] { Director.CiviliansRun, Director.RadioDown },
             });
-            mission.Secondary.Add(EveryMarineHome());
+            mission.Secondary.Add(EveryoneHome(mission));
             return mission;
         }
 

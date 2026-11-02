@@ -234,7 +234,8 @@ namespace FieldTable.Sim
                 bool through = enemy.Any(u => (u.CanAct && Past(u.Position, 2)) || left.Contains(u));
                 if (m.Sim.Clock.Turn <= EarliestLineLost - 1 && enemy.Any(u => u.CanAct && Past(u.Position, 0))) earlyLoss = true;
                 if (through) return ("failure", "They crossed Phase Line 3.");
-                if (m.Sim.Clock.Turn > HoldUntil) return ("success", "Turn " + HoldUntil + ", and they never crossed Phase Line 3. The battalion is in place.");
+                // The turn limit is the turn you win here; a custom game can move it.
+                if (m.Sim.Clock.Turn > m.TurnLimit) return ("success", "Turn " + m.TurnLimit + ", and they never crossed Phase Line 3. The battalion is in place.");
                 return null;
             };
             mission.Status = m =>
@@ -253,10 +254,10 @@ namespace FieldTable.Sim
             mission.Brief.Add("Enemy: a platoon, about 30, with machine guns and RPGs. " + Hints[goal]);
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: " + (village != null ? "in " + village.Label + ". " : "none known nearby. ") + RoeLine(mission.Roe));
-            mission.Brief.Add(SquadLine("at Phase Line 1 by " + road.Label + ", " + Grid(0)));
+            mission.Brief.Add(SquadLine(mission, "at Phase Line 1 by " + road.Label + ", " + Grid(0)));
             mission.MainObjective = "Keep them short of Phase Line 3 until turn " + HoldUntil + ".";
             mission.WinText = "The end of turn " + HoldUntil + " with no enemy soldier who can fight past Phase Line 3.";
-            mission.LoseText = Mission.CombatIneffective + " Marines down, or an enemy soldier past Phase Line 3 at the end of a turn.";
+            mission.LoseText = mission.LoseAt + " " + mission.Side.Members + " down, or a Kansian soldier past Phase Line 3 at the end of a turn.";
 
             mission.Secondary.Add(new SecondaryObjective("lines", "No line given up before turn " + EarliestLineLost, m => earlyLoss));
             mission.Director = new Director(mission, data, new Dice(seed, 13), new DirectorSetup
@@ -271,7 +272,7 @@ namespace FieldTable.Sim
                 Slow = () => true,
                 SlowWhy = "Fits because the advance has stalled.",
             });
-            mission.Secondary.Add(EveryMarineHome());
+            mission.Secondary.Add(EveryoneHome(mission));
             return mission;
         }
 

@@ -14,7 +14,7 @@ namespace FieldTable.Sim.Tests
             s.Sim.CallContact(m, e, true, false, 0);
             s.Sim.CallContact(m, e, true, true, 0);
             s.Sim.CallContact(m, e, false, true, 0);
-            Assert.Equal("Alpha: Taking fire! Enemy rifleman at E4.", Assert.Single(s.Events<RadioCall>()).Text);
+            Assert.Equal("Alpha: Taking fire! Kansian rifleman at E4.", Assert.Single(s.Events<RadioCall>()).Text);
         }
 
         [Fact]
@@ -26,7 +26,7 @@ namespace FieldTable.Sim.Tests
             s.Sim.CallContact(m, e, false, false, 0);
             e.Position = new Vec2(550, 350);
             s.Sim.CallContact(m, e, true, true, 0);
-            Assert.Equal(new[] { "Alpha: Contact, enemy rifleman at E4.", "Alpha: Taking fire! Enemy rifleman at F4." }, s.Events<RadioCall>().Select(c => c.Text));
+            Assert.Equal(new[] { "Alpha: Contact, Kansian rifleman at E4.", "Alpha: Taking fire! Kansian rifleman at F4." }, s.Events<RadioCall>().Select(c => c.Text));
         }
 
         [Fact]

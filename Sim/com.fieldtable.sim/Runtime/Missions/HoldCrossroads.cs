@@ -136,8 +136,8 @@ namespace FieldTable.Sim
             AddCivilians(sim, mission.Civilians, data, rng, homes, Between(rng, 3, 5));
 
             // Relief, on a turn nobody is told.
-            int relief = Between(rng, ReliefFirst, ReliefLast);
-            mission.TurnLimit = ReliefLast;
+            int relief = ArrivalTurn(mission, rng, ReliefFirst, ReliefLast);
+            mission.TurnLimit = Math.Max(ReliefLast, relief);
             bool heldBefore = false, everLost = false;
             mission.Judge = m =>
             {
@@ -164,10 +164,10 @@ namespace FieldTable.Sim
             mission.Brief.Add("Enemy: expected from the " + Compass(main) + ". Strength unknown. " + Hint(goal, second));
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: in " + villageName + ". " + RoeLine(mission.Roe));
-            mission.Brief.Add(SquadLine("at the crossroads, having come in from the " + Compass(home)) + " Relief comes up the same road, some time between turn " + ReliefFirst + " and turn " + ReliefLast + ".");
+            mission.Brief.Add(SquadLine(mission, "at the crossroads, having come in from the " + Compass(home)) + " Relief comes up the same road, some time between turn " + ReliefFirst + " and turn " + ReliefLast + ".");
             mission.MainObjective = "Hold the crossroads (" + grid + ") until relief arrives.";
-            mission.WinText = "Still holding the crossroads when relief arrives, at the end of a turn between " + ReliefFirst + " and " + ReliefLast + " that nobody tells you. Holding it means a Marine who can fight within " + HoldWithin + " m of the crossing.";
-            mission.LoseText = Mission.CombatIneffective + " Marines down, or the enemy holding the crossroads (a soldier within " + HoldWithin + " m and no Marine) at the end of two turns in a row.";
+            mission.WinText = "Still holding the crossroads when relief arrives, at the end of a turn between " + ReliefFirst + " and " + ReliefLast + " that nobody tells you. Holding it means " + One(mission) + " who can fight within " + HoldWithin + " m of the crossing.";
+            mission.LoseText = mission.LoseAt + " " + mission.Side.Members + " down, or the enemy holding the crossroads (one of theirs within " + HoldWithin + " m and none of ours) at the end of two turns in a row.";
 
             mission.Secondary.Add(new SecondaryObjective("civilians", "No villagers hurt", m => m.AnyoneHurt(m.Civilians)));
             mission.Secondary.Add(new SecondaryObjective("never-lost", "The crossroads never lost", m => everLost));
@@ -183,7 +183,7 @@ namespace FieldTable.Sim
                 Slow = () => true,
                 SlowWhy = "Fits because the first attack has been beaten off.",
             });
-            mission.Secondary.Add(EveryMarineHome());
+            mission.Secondary.Add(EveryoneHome(mission));
             return mission;
         }
 

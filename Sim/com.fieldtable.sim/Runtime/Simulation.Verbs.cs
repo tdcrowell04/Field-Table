@@ -321,7 +321,7 @@ namespace FieldTable.Sim
                 if (u.Path == null) { u.Path = Paths.Find(u.Position, at, false); u.PathIndex = 0; }
                 return;
             }
-            if (!Work(u, dt, BreachSeconds)) return;
+            if (!Work(u, dt, u.Def.Breacher ? BreachSeconds / 2f : BreachSeconds)) return;
             const float r = 1.5f;
             Map.CellOf(at, out int cx, out int cy);
             int span = (int)Math.Ceiling(r / Map.CellSize);
@@ -466,7 +466,7 @@ namespace FieldTable.Sim
 
         static string Article(string kind)
         {
-            string k = kind.StartsWith("Enemy ", StringComparison.Ordinal) ? kind.Substring(6) : kind;
+            string k = kind.StartsWith("Enemy ", StringComparison.Ordinal) ? kind.Substring(6) : kind.StartsWith("Kansian ", StringComparison.Ordinal) ? kind.Substring(8) : kind;
             k = k.ToLowerInvariant();
             return ("aeiou".IndexOf(k[0]) >= 0 ? "an " : "a ") + k;
         }
@@ -628,8 +628,10 @@ namespace FieldTable.Sim
             if (Evac != null || o.Point == null) return;
             Vec2 lz = Clamp(o.Point.Value);
             var doc = units.FirstOrDefault(x => ReferenceEquals(x.Force, u.Force) && x.CanAct && x.Def.Medic) ?? u;
-            Radio(doc, (doc.Def.Medic ? "Doc" : doc.Name) + ": " + NineLine(u.Force, lz), "lz", lz);
-            int minutes = CasevacMinMinutes - 1 + Roll(CasevacMaxMinutes - CasevacMinMinutes + 1, "Dustoff", "minutes until CASEVAC arrives");
+            Radio(doc, MedicName(doc) + ": " + NineLine(u.Force, lz), "lz", lz);
+            // A side with its own helicopters waiting nearby, like Pararescue, gets them sooner.
+            int lo = u.Force.CasevacMinMinutes ?? CasevacMinMinutes, hi = Math.Max(lo, u.Force.CasevacMaxMinutes ?? CasevacMaxMinutes);
+            int minutes = lo - 1 + Roll(hi - lo + 1, "Dustoff", "minutes until CASEVAC arrives");
             bool road = Map.TerrainAt(lz).Id == "road" || Map.TerrainAt(lz).Id == "trail";
             Evac = new Casevac { Lz = lz, Helicopter = !road, ArriveStep = Clock.Step + minutes * 60 * SimClock.StepsPerSecond };
             Radio(null, "Dustoff: Copy your 9-line. " + (road ? "Ambulance" : "Bird") + " is " + minutes + " minutes out to LZ " + Map.SquareOf(lz) + ".", "lz", lz);

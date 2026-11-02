@@ -23,7 +23,7 @@ namespace FieldTable.Sim
         /// <summary>The squad starts about this far from the farm, and never nearer than the least.</summary>
         const float StartDistance = 300f, StartNearest = 150f;
 
-        /// <summary>He slips out once a Marine is this close to the farm, or the guards see one or get shot at.</summary>
+        /// <summary>He slips out once " + One(mission) + " is this close to the farm, or the guards see one or get shot at.</summary>
         public const float SlipWhenWithin = 150f;
 
         /// <summary>A Marine this close to his body identifies him, and a prisoner this close to the pickup point is there.</summary>
@@ -182,9 +182,9 @@ namespace FieldTable.Sim
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: his family lives at the farm" + (village != null ? ", and there are villagers in " + village.Label : "") + ". " + RoeLine(mission.Roe));
             int back = (int)Math.Round(Vec2.Distance(lead, c) / 50f) * 50;
-            mission.Brief.Add(SquadLine("at " + map.SquareOf(lead) + ", about " + back + " m from the farm"));
+            mission.Brief.Add(SquadLine(mission, "at " + map.SquareOf(lead) + ", about " + back + " m from the farm"));
             mission.MainObjective = "Detain " + codeName + " and bring him to the pickup point (" + pickupGrid + ").";
-            mission.WinText = codeName + " detained and brought within " + OnPickup + " m of the pickup point. If he's killed, a Marine has to reach his body to identify him.";
+            mission.WinText = codeName + " detained and brought within " + OnPickup + " m of the pickup point. If he's killed, " + One(mission) + " has to reach his body to identify him.";
             mission.LoseText = LoseLine(mission, codeName + " gets off the map.");
             mission.OutOfTimeText = "Out of time. " + codeName + " is still out there.";
 
@@ -202,7 +202,7 @@ namespace FieldTable.Sim
                 Road = road?.Points,
                 Slow = () => !hvt.Detained && hvt.Condition != Condition.Dead,
             });
-            mission.Secondary.Add(EveryMarineHome());
+            mission.Secondary.Add(EveryoneHome(mission));
             return mission;
         }
 
@@ -214,7 +214,7 @@ namespace FieldTable.Sim
         };
 
         /// <summary>
-        /// Slip: once a Marine comes close, or the guards see one or get shot at, he and the two guards nearest him walk
+        /// Slip: once " + One(mission) + " comes close, or the guards see one or get shot at, he and the two guards nearest him walk
         /// out through the gap in the back wall and make for the far edge of the map. Anyone who reaches it is gone.
         /// </summary>
         static Action<List<Unit>> SlipOut(Mission mission, EnemyPlan plan, Unit hvt, Vec2 farm, Vec2 exit)

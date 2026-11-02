@@ -72,6 +72,8 @@ namespace FieldTable.Sim.Tests
             var party = Party(m);
             foreach (var u in party) u.Condition = Condition.Dead;
             var porters = party.Where(u => u.Cargo != null).ToList();
+            // They fell near each other, close enough for one search to reach both.
+            porters[1].Position = porters[0].Position + new Vec2(4f, 0f);
             Vec2 between = (porters[0].Position + porters[1].Position) * 0.5f;
             var marine = m.Squad.First(u => u.Id == "bravo-tl");
             marine.Position = between + new Vec2(1f, 0f);

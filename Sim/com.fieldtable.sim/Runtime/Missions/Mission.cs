@@ -13,6 +13,13 @@ namespace FieldTable.Sim
         public string Title { get; internal set; }
         public Simulation Sim { get; internal set; }
         public MapData MapData { get; internal set; }
+        /// <summary>The player's side: the Marines, the Army, the SEALs, or Pararescue (ledger round 18).</summary>
+        public Side Side { get; internal set; }
+
+        /// <summary>Custom numbers the player asked for, or none.</summary>
+        public MissionOptions Options { get; internal set; }
+
+        /// <summary>The player's force, whichever side it is. (It kept the name from when it was always the Marines.)</summary>
         public Force Marines { get; internal set; }
         public Force Enemy { get; internal set; }
         public Force Civilians { get; internal set; }
@@ -38,7 +45,7 @@ namespace FieldTable.Sim
         public string NotYetWord { get; internal set; } = "Not yet";
 
         /// <summary>The word for the main objective while it's under way, like "Marine on it".</summary>
-        public string OnItWord { get; internal set; } = "Marine on it";
+        public string OnItWord { get; internal set; }
 
         /// <summary>The word for the main objective once it's done, like "Seized".</summary>
         public string DoneWord { get; internal set; } = "Done";
@@ -103,8 +110,11 @@ namespace FieldTable.Sim
         /// <summary>How many times Marines have been hit by their own side's fire.</summary>
         public int FriendlyFireHits => Sim.Log.Events.OfType<FriendlyFire>().Count(e => ReferenceEquals(e.Victim.Force, Marines));
 
-        /// <summary>Marines down or dead before the squad can't fight on.</summary>
+        /// <summary>Marines down or dead before the squad can't fight on: the Marines' number. Each side has its own (see LoseAt).</summary>
         public const int CombatIneffective = 7;
+
+        /// <summary>Down or dead before this group can't fight on: about half of it.</summary>
+        public int LoseAt { get; internal set; } = CombatIneffective;
 
         /// <summary>Turns before time runs out, unless a start state sets its own.</summary>
         public const int DefaultTurnLimit = 40;
@@ -116,10 +126,10 @@ namespace FieldTable.Sim
             if (Outcome != null) return;
             int lost = Squad.Count(u => !u.CanAct);
             var judged = Judge?.Invoke(this);
-            if (lost >= CombatIneffective)
+            if (lost >= LoseAt)
             {
                 Outcome = "failure";
-                OutcomeText = "The squad is combat ineffective, with " + lost + " Marines down.";
+                OutcomeText = "The " + Side.Group + " is combat ineffective, with " + lost + " " + Side.Members + " down.";
             }
             else if (judged != null)
             {

@@ -39,14 +39,19 @@ namespace FieldTable.Sim
             return (mapData, map);
         }
 
-        /// <summary>The simulation and its three sides: the Marines, the enemy, and the civilians.</summary>
+        /// <summary>The side and custom numbers the mission being made is for, set by StartStates.Create while it runs.</summary>
+        [ThreadStatic] internal static (Side side, MissionOptions options)? Pending;
+
+        /// <summary>The simulation and its three sides: ours, the enemy, and the civilians.</summary>
         public static Mission NewMission(string kind, GameData data, MapData mapData, MapGrid map, ulong seed)
         {
             var sim = new Simulation(map, seed);
             sim.AddWeapons(data.Weapons);
-            var mission = new Mission { Kind = kind, Sim = sim, MapData = mapData };
-            mission.Marines = sim.AddForce(new Force { Id = "marines", Name = "Raider 2", Faction = "marines" });
-            mission.Enemy = sim.AddForce(new Force { Id = "enemy", Name = EnemyName, Faction = "enemy-army" });
+            var side = Pending?.side ?? Sides.All[0];
+            var mission = new Mission { Kind = kind, Sim = sim, MapData = mapData, Side = side, Options = Pending?.options, LoseAt = side.LoseAt };
+            mission.OnItWord = side.Member + " on it";
+            mission.Marines = sim.AddForce(new Force { Id = "marines", Name = side.Callsign, Faction = side.Id, CasevacMinMinutes = side.CasevacMin, CasevacMaxMinutes = side.CasevacMax });
+            mission.Enemy = sim.AddForce(new Force { Id = "enemy", Name = EnemyName, Faction = "kansia" });
             // The villagers and the enemy soldiers don't speak English, so talking to them takes the interpreter.
             mission.Enemy.Language = "local";
             mission.Civilians = sim.AddForce(new Force { Id = "civilians", Name = "Civilians", Faction = "civilians", Civilian = true, Language = "local" });
@@ -55,11 +60,12 @@ namespace FieldTable.Sim
             return mission;
         }
 
-        /// <summary>
-        /// The enemy (ledger round 17, (a)): the uniformed army of a made-up country. Its name waits on Triston, so for
-        /// now it's only the enemy.
-        /// </summary>
-        public const string EnemyName = "Enemy";
+        /// <summary>The enemy (ledger rounds 17 and 18): the uniformed army of Kansia, a made-up country. Triston's name.</summary>
+        public const string EnemyName = "Kansian Army";
+        public const string EnemySoldiers = "Kansian soldiers";
+
+        /// <summary>The turn something arrives: the custom number if one was asked for, else a die's pick between the two.</summary>
+        public static int ArrivalTurn(Mission m, Dice rng, int lo, int hi) => m.Options?.ArrivalTurn is int t && t > 0 ? t : Between(rng, lo, hi);
 
         /// <summary>
         /// Organizes a side's soldiers the way an army does: in each squad of up to 9, in the order they were made, the
@@ -92,48 +98,36 @@ namespace FieldTable.Sim
         }
 
         /// <summary>The usual last secondary objective, and the rules of engagement most missions start with.</summary>
-        public static SecondaryObjective EveryMarineHome() => new SecondaryObjective("marines", "Every Marine comes home alive", m => m.Squad.Any(u => u.Condition == Condition.Dead));
+        public static SecondaryObjective EveryoneHome(Mission m) => new SecondaryObjective("marines", "Every " + m.Side.Member + " comes home alive", x => x.Squad.Any(u => u.Condition == Condition.Dead));
         public const string StandingRoe = "Positive ID before engaging.";
 
-        /// <summary>How the mission is lost, for the brief: too many Marines down, or out of time, and anything the start state adds.</summary>
+        /// <summary>How the mission is lost, for the brief: too many down, or out of time, and anything the start state adds.</summary>
         public static string LoseLine(Mission m, string more = null) =>
-            Mission.CombatIneffective + " Marines down, " + (more == null ? "or " : "") + "past turn " + m.TurnLimit + (more == null ? "." : ", or " + more);
+            m.LoseAt + " " + m.Side.Members + " down, " + (more == null ? "or " : "") + "past turn " + m.TurnLimit + (more == null ? "." : ", or " + more);
+
+        /// <summary>"A Marine", "a soldier": one of ours, for the brief.</summary>
+        public static string One(Mission m, bool capital = false) => (capital ? "A " : "a ") + m.Side.Member;
 
         public static string RoeLine(string roe) => "Standing ROE: " + roe.Substring(0, 1).ToLowerInvariant() + roe.Substring(1);
 
         // ---------- the squad ----------
 
-        /// <summary>The squad's line in a brief, where it starts.</summary>
-        public static string SquadLine(string where) => "You: 13 Marines in three fire teams plus Doc and an interpreter, " + where + ". The villagers and the enemy soldiers don't speak English.";
+        /// <summary>The group's line in a brief: who comes, and where they start.</summary>
+        public static string SquadLine(Mission m, string where) => "You: " + m.Side.Line + ", " + where + ". The villagers and the " + EnemySoldiers + " don't speak English.";
 
         public static void AddSquad(Simulation sim, Force force, GameData data, NamePools names, Dice rng, List<(Vec2 pos, float facing)> formation)
         {
-            var people = Shuffle(names.People.Count > 0 ? names.People : new List<string> { "Marine" }, rng);
+            var side = Sides.Of(force);
+            var people = Shuffle(names.People.Count > 0 ? names.People : new List<string> { side.Member }, rng);
             int next = 0;
-            string Name() => next < people.Count ? people[next++] : "Marine " + (next++ + 1);
+            string Name() => next < people.Count ? people[next++] : side.Member + " " + (next++ + 1);
 
-            var slots = new List<(string id, string def, string team, string[] calls)>
+            // The side's column, in the order it walks: the interpreter goes with the leader, unarmed and not counted.
+            for (int i = 0; i < side.Column.Length; i++)
             {
-                ("lead", "sl", "", new[] { "Lead", "SL", "squad leader" }),
-                ("doc", "doc", "", new[] { "Doc", "corpsman" }),
-            };
-            foreach (var team in new[] { "Alpha", "Bravo", "Charlie" })
-            {
-                slots.Add((team.ToLowerInvariant() + "-tl", "tl", team, new[] { team + " TL", team + " team leader", team + " lead" }));
-                slots.Add((team.ToLowerInvariant() + "-ar", "ar", team, new[] { team + " AR", team + " automatic rifleman", team + " gunner" }));
-                slots.Add((team.ToLowerInvariant() + "-aar", "aar", team, new[] { team + " AAR", team + " assistant gunner" }));
-                bool drone = team == "Charlie";
-                slots.Add((team.ToLowerInvariant() + "-rf", drone ? "dr" : "rf", team, drone ? new[] { team + " rifleman", "drone operator" } : new[] { team + " rifleman" }));
-            }
-            // The interpreter goes with the squad leader. He isn't a Marine, and he carries no weapon.
-            int terp = slots.Count;
-            slots.Add(("terp", "terp", "", new[] { "Interpreter", "terp" }));
-            // Column order: Alpha leads, then the squad leader, Doc, and the interpreter, then Bravo and Charlie.
-            var order = new[] { 2, 3, 4, 5, 0, 1, terp, 6, 7, 8, 9, 10, 11, 12, 13 };
-            for (int i = 0; i < order.Length; i++)
-            {
-                var s = slots[order[i]];
-                var u = new Unit(s.id, Name(), data.FindUnit(s.def), force, formation[i].pos) { Team = s.team };
+                var s = side.Column[i];
+                var def = data.FindUnit(s.def) ?? throw new InvalidOperationException("No unit kind called " + s.def + " in the data.");
+                var u = new Unit(s.id, Name(), def, force, formation[i].pos) { Team = s.team };
                 u.Callsigns.AddRange(s.calls);
                 u.Facing = formation[i].facing;
                 sim.AddUnit(u);
@@ -147,17 +141,8 @@ namespace FieldTable.Sim
             }
         }
 
-        // Where each Marine stands, in the order AddSquad fills them: meters back from the lead and to the right of the way ahead.
-        static readonly (float back, float side)[] Slots =
-        {
-            (0f, 0f), (7f, -7f), (14f, -9f), (7f, 7f),       // Alpha in a wedge: TL, AR, AAR, rifleman
-            (25f, 0f), (30f, 5f), (30f, -5f),                 // the squad leader, Doc, and the interpreter
-            (45f, 0f), (52f, -7f), (59f, -9f), (52f, 7f),     // Bravo
-            (70f, 0f), (77f, -7f), (84f, -9f), (77f, 7f),     // Charlie
-        };
-
-        /// <summary>How deep the column is, from Alpha's point man back to Charlie's last Marine.</summary>
-        const float ColumnDepth = 90f;
+        /// <summary>The side a simulation's player force is, for the shape of its column.</summary>
+        static Side SideOf(Simulation sim) => Sides.Of(sim.PlayerForce);
 
         /// <summary>How far a Marine who'd start in the enemy's sight can shift to a hidden spot, and what that costs a start.</summary>
         const float TuckRange = 30f, TuckCost = 25f;
@@ -173,6 +158,7 @@ namespace FieldTable.Sim
         {
             var map = sim.Map;
             leadAllowed ??= allowed;
+            var side = SideOf(sim);
             var hidden = new HiddenSpots(map, enemy, c => allowed(c) && Vec2.Distance(c, target) >= nearest);
 
             // Every spot the lead could start on, nearest the wanted distance first.
@@ -181,7 +167,7 @@ namespace FieldTable.Sim
                 for (float x = 20f; x < map.WidthMeters - 20f; x += 40f)
                 {
                     var lead = new Vec2(x, y);
-                    if (!Fits(map, lead, target) || !leadAllowed(lead)) continue;
+                    if (!Fits(map, lead, target, side) || !leadAllowed(lead)) continue;
                     float d = Vec2.Distance(lead, target);
                     var t = map.TerrainAt(lead);
                     if (d < nearest || t.Deep || !t.Passable) continue;
@@ -194,7 +180,7 @@ namespace FieldTable.Sim
             float Score(Vec2 lead, float near)
             {
                 float score = near;
-                foreach (var (spot, _) in Toward(map, lead, target))
+                foreach (var (spot, _) in Toward(map, lead, target, side))
                 {
                     // Nobody starts in deep water.
                     if (map.TerrainAt(spot).Deep) return float.MaxValue / 2f;
@@ -216,15 +202,16 @@ namespace FieldTable.Sim
                 if (scored.Count == 0) break;
                 var top = scored.OrderBy(o => o.score).First();
                 scored.Remove(top);
-                if (sim.Paths.Find(top.lead, target, false) != null) return Tuck(map, Toward(map, top.lead, target), enemy, hidden);
+                if (sim.Paths.Find(top.lead, target, false) != null) return Tuck(map, Toward(map, top.lead, target, side), enemy, hidden);
             }
-            return Toward(map, Inside(map, fallback), target);
+            return Toward(map, Inside(map, fallback), target, side);
         }
 
         /// <summary>True when the whole column, from the lead back, fits on the map instead of getting squashed against an edge.</summary>
-        public static bool Fits(MapGrid map, Vec2 lead, Vec2 target)
+        public static bool Fits(MapGrid map, Vec2 lead, Vec2 target, Side side = null)
         {
-            Vec2 tail = lead - (target - lead) * (ColumnDepth / Math.Max(1f, Vec2.Distance(target, lead)));
+            float depth = (side ?? Sides.All[0]).ColumnDepth;
+            Vec2 tail = lead - (target - lead) * (depth / Math.Max(1f, Vec2.Distance(target, lead)));
             return lead.X >= 12f && lead.Y >= 12f && lead.X <= map.WidthMeters - 12f && lead.Y <= map.HeightMeters - 12f
                 && tail.X >= 12f && tail.Y >= 12f && tail.X <= map.WidthMeters - 12f && tail.Y <= map.HeightMeters - 12f;
         }
@@ -295,7 +282,7 @@ namespace FieldTable.Sim
         }
 
         /// <summary>The squad in its column of wedges, lead at a spot, facing a target.</summary>
-        public static List<(Vec2, float)> Toward(MapGrid map, Vec2 lead, Vec2 target)
+        public static List<(Vec2, float)> Toward(MapGrid map, Vec2 lead, Vec2 target, Side side = null)
         {
             Vec2 f = target - lead;
             float len = f.Length;
@@ -303,8 +290,8 @@ namespace FieldTable.Sim
             var right = new Vec2(-f.Y, f.X);
             float facing = Bearing(lead, target);
             var spots = new List<(Vec2, float)>();
-            foreach (var (back, side) in Slots)
-                spots.Add((Standable(map, Inside(map, lead - f * back + right * side), spots.Select(x => x.Item1)), facing));
+            foreach (var c in (side ?? Sides.All[0]).Column)
+                spots.Add((Standable(map, Inside(map, lead - f * c.back + right * c.side), spots.Select(x => x.Item1)), facing));
             return spots;
         }
 

@@ -45,16 +45,26 @@ namespace FieldTable.Sim
         /// Makes a mission of the kind asked for, or one picked by the seed for Random (or nothing). A goal can be asked
         /// for too; otherwise a die picks what the enemy is out to do.
         /// </summary>
-        public static Mission Create(string id, GameData data, NamePools names, ulong seed, string goal = null)
+        public static Mission Create(string id, GameData data, NamePools names, ulong seed, string goal = null, string side = null, MissionOptions options = null)
         {
+            var who = Sides.Find(side) ?? Sides.All[0];
             StartState state;
             if (string.IsNullOrEmpty(id) || string.Equals(id, Random, StringComparison.OrdinalIgnoreCase))
             {
+                // Random picks among the missions that fit the side.
+                var fits = All.Where(s => who.Missions.Contains(s.Id)).ToList();
                 var d = new Dice(seed, 17);
-                state = All[(int)(MissionKit.Next(d) * All.Count) % All.Count];
+                state = fits[(int)(MissionKit.Next(d) * fits.Count) % fits.Count];
             }
             else state = Find(id) ?? throw new ArgumentException("Unknown mission: " + id + ".", nameof(id));
-            return state.Make(data, names, seed, goal);
+            MissionKit.Pending = (who, options);
+            try
+            {
+                var mission = state.Make(data, names, seed, goal);
+                options?.ApplyAfter(mission, data);
+                return mission;
+            }
+            finally { MissionKit.Pending = null; }
         }
     }
 }

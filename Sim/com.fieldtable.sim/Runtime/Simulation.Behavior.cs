@@ -138,14 +138,16 @@ namespace FieldTable.Sim
                         u.Path = null;
                         u.Posture = Posture.Kneeling;
                         u.TaskSeconds += dt;
-                        if (u.TaskSeconds >= (u.Def.Medic ? MedicSeconds : BuddySeconds))
+                        // A paramedic (a PJ, a SEAL medic) works faster, and someone down under their hands stops bleeding out.
+                        if (u.Def.MedicSkill >= 2 && patient.Condition == Condition.Down && !patient.Stabilized) patient.DownSince += (int)Math.Round(dt * SimClock.StepsPerSecond);
+                        if (u.TaskSeconds >= (u.Def.MedicSkill >= 2 ? MedicSeconds * 2f / 3f : u.Def.Medic ? MedicSeconds : BuddySeconds))
                         {
                             if (patient.Condition == Condition.Down) patient.Stabilized = true;
                             else { patient.Wounds = 0; patient.Condition = Condition.Ok; }
                             Record(new UnitTreated(u, patient));
                             // Patching up doesn't fix a bad arm or leg: it still shoots at half, or still can't walk.
                             string state = patient.Condition == Condition.Down ? "stable." : patient.LegHit ? "patched up, but can't walk." : patient.ArmHit ? "patched up. Arm's still bad." : "patched up and good to go.";
-                            Radio(u, (u.Def.Medic ? "Doc" : u.Name) + ": " + patient.Name + " is " + state, "info", patient.Position);
+                            Radio(u, MedicName(u) + ": " + patient.Name + " is " + state, "info", patient.Position);
                             Finish(u, null);
                         }
                     }
@@ -721,6 +723,17 @@ namespace FieldTable.Sim
         internal void KnockDownForTest(Unit u) => Down(u, "a test");
         internal void RemoveUnitForTest(Unit u) => units.Remove(u);
 
+        /// <summary>Takes someone out of the fight for good, as if they'd never come: dead to anything still holding them, and gone from the table.</summary>
+        internal void RemoveFromTheFight(Unit u)
+        {
+            u.Condition = Condition.Dead;
+            u.Gone = true;
+            units.Remove(u);
+        }
+
+        /// <summary>"Doc" for the one the group calls that, or its only medic; otherwise the name, so a team of paramedics isn't all Doc.</summary>
+        string MedicName(Unit u) => u.Callsigns.Contains("Doc") || (u.Def.Medic && units.Count(x => ReferenceEquals(x.Force, u.Force) && x.Def.Medic) == 1) ? "Doc" : u.Name;
+
         /// <summary>A call on the net. Important ones carry a kind and a place, so the map can mark them.</summary>
         internal void Radio(Unit from, string text, string kind = null, Vec2? at = null, string speaker = null)
         {
@@ -754,8 +767,9 @@ namespace FieldTable.Sim
             bool cameBack = wasKnown && Clock.Step - lastSeenStep >= SecondsGoneToCallAgain * SimClock.StepsPerSecond;
             if (called.TryGetValue(key, out GridRef last) && last.Equals(square) && !cameBack) return;
             called[key] = square;
-            string kind = target.Def.Name ?? "Enemy";
-            string lower = char.ToLowerInvariant(kind[0]) + kind.Substring(1);
+            string kind = target.Def.Name ?? "Kansian soldier";
+            // "Contact, Kansian rifleman": the country's name keeps its capital; a plain kind doesn't.
+            string lower = kind.StartsWith("Kansian ", StringComparison.Ordinal) ? kind : char.ToLowerInvariant(kind[0]) + kind.Substring(1);
             Radio(caller, who + (takingFire ? ": Taking fire! " + kind : drone ? ": Contact on the drone, " + lower : ": Contact, " + lower) + " at " + square + ".", "contact", target.Position);
         }
 

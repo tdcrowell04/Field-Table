@@ -89,6 +89,15 @@ namespace FieldTable.Sim
         /// <summary>Trained to treat casualties quickly, like a corpsman.</summary>
         public bool Medic { get; set; }
 
+        /// <summary>
+        /// How far the medical training goes: 0 for buddy aid, 1 for a corpsman or combat medic, 2 for a paramedic like a
+        /// PJ or a SEAL medic, who works faster and keeps someone who's down from bleeding out while under their hands.
+        /// </summary>
+        public int MedicSkill { get; set; }
+
+        /// <summary>Trained and equipped to breach: gets through a door or wall in half the time.</summary>
+        public bool Breacher { get; set; }
+
         /// <summary>Which drawn figure shows this unit on the table.</summary>
         public string Figure { get; set; }
 
@@ -137,6 +146,10 @@ namespace FieldTable.Sim
 
         /// <summary>The language this side speaks. Null is English.</summary>
         public string Language { get; set; }
+
+        /// <summary>How long this side's CASEVAC takes to come, in minutes, when it has its own; null uses the usual 15 to 30.</summary>
+        public int? CasevacMinMinutes { get; set; }
+        public int? CasevacMaxMinutes { get; set; }
     }
 
     /// <summary>One figure on the table: a single Marine, enemy, or civilian.</summary>

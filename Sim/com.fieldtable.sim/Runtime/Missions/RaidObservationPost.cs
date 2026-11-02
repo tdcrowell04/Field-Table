@@ -24,7 +24,7 @@ namespace FieldTable.Sim
         /// <summary>Their quick reaction force arrives at the end of a turn between these, picked by a die and never told.</summary>
         public const int QrfFirst = 8, QrfLast = 14;
 
-        /// <summary>Sleepers wake when a Marine gets this close, shots land near them, or someone awake at the post sees a Marine.</summary>
+        /// <summary>Sleepers wake when " + One(mission) + " gets this close, shots land near them, or someone awake at the post sees a Marine.</summary>
         public const float WakeWithin = 25f;
 
         /// <summary>The squad starts about this far from the post, and never nearer than the least; the patrol walks this far out.</summary>
@@ -100,7 +100,7 @@ namespace FieldTable.Sim
                 }
             }
             // Their quick reaction force: a squad that comes in from the far side when its turn comes.
-            int qrfTurn = Between(rng, QrfFirst, QrfLast);
+            int qrfTurn = ArrivalTurn(mission, rng, QrfFirst, QrfLast);
             Vec2 qrfFrom = EdgeToward(map, post, from * -1f);
             var qrf = new List<Unit>();
             foreach (var def in new[] { "en-rf", "en-rf", "en-pkm", "en-rf", "en-rpg", "en-rf", "en-rf", "en-rf" })
@@ -182,7 +182,7 @@ namespace FieldTable.Sim
                 {
                     qrfCame = true;
                     for (int i = 0; i < qrf.Count; i++) { qrf[i].Gone = false; qrf[i].Position = Standable(sim.Map, qrfFrom + new Vec2((i % 3) * 4f, (i / 3) * 4f), Array.Empty<Vec2>()); }
-                    sim.Radio(null, "Raider 6: Drone feed shows " + qrf.Count + " soldiers getting out of trucks at " + sim.Map.SquareOf(qrfFrom) + ". That'll be their reaction force.", "info", qrfFrom, "Raider 6");
+                    sim.Radio(null, mission.Side.Higher + ": Drone feed shows " + qrf.Count + " soldiers getting out of trucks at " + sim.Map.SquareOf(qrfFrom) + ". That'll be their reaction force.", "info", qrfFrom, mission.Side.Higher);
                     TeamOrder(sim, qrf, "reaction force", post, Verbs.Move);
                 }
                 if (qrfCame)
@@ -217,9 +217,9 @@ namespace FieldTable.Sim
             mission.Roe = StandingRoe;
             mission.Brief.Add("Civilians: " + (village != null ? "in " + village.Label + ". " : "none known nearby. ") + RoeLine(mission.Roe));
             int back = (int)Math.Round(Vec2.Distance(lead, post) / 50f) * 50;
-            mission.Brief.Add(SquadLine("at " + map.SquareOf(lead) + ", about " + back + " m from the post, just behind the start line"));
+            mission.Brief.Add(SquadLine(mission, "at " + map.SquareOf(lead) + ", about " + back + " m from the post, just behind the start line"));
             mission.MainObjective = "Wreck the post's radio and scopes, then get back past the start line.";
-            mission.WinText = "The post's radio and scopes wrecked (a Marine searches within " + Simulation.SearchReach + " m of them), and every Marine still alive back past the start line at the end of a turn.";
+            mission.WinText = "The post's radio and scopes wrecked (" + One(mission) + " searches within " + Simulation.SearchReach + " m of them), and every " + mission.Side.Member + " still alive back past the start line at the end of a turn.";
             mission.LoseText = LoseLine(mission);
             mission.OutOfTimeText = "Out of time. Their artillery can still see.";
 
@@ -236,7 +236,7 @@ namespace FieldTable.Sim
                 Road = road?.Points,
                 AddIns = new[] { Director.CiviliansRun, Director.Sniper, Director.Ied, Director.PullBack, Director.RadioDown },
             });
-            mission.Secondary.Add(EveryMarineHome());
+            mission.Secondary.Add(EveryoneHome(mission));
             return mission;
         }
 
