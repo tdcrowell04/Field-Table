@@ -109,7 +109,7 @@ namespace FieldTable.Sim
 
             // The squad starts at the first line, by the road, facing the way they'll come.
             Vec2 first = lines[0].at;
-            var formation = Toward(map, Standable(map, first + lines[0].ahead * 15f, Array.Empty<Vec2>()), first - lines[0].ahead * 100f);
+            var formation = Toward(map, Standable(map, first + lines[0].ahead * 15f, Array.Empty<Vec2>()), first - lines[0].ahead * 100f, SideOf(sim));
             AddSquad(sim, mission.Marines, data, names, rng, formation);
             foreach (var u in made) sim.AddUnit(u);
             var village = Settlement(map, lines[1].at);

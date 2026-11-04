@@ -13,6 +13,7 @@ namespace FieldTable.Sim
         public List<TerrainDef> Terrains { get; set; } = new List<TerrainDef>();
         public List<UnitDef> Units { get; set; } = new List<UnitDef>();
         public List<WeaponDef> Weapons { get; set; } = new List<WeaponDef>();
+        public List<Side> Sides { get; set; } = new List<Side>();
 
         /// <summary>Puts several data files together, like terrain.json and units.json. Ids must stay unique.</summary>
         public static GameData Combine(params GameData[] parts)
@@ -23,10 +24,14 @@ namespace FieldTable.Sim
                 all.Terrains.AddRange(p.Terrains);
                 all.Units.AddRange(p.Units);
                 all.Weapons.AddRange(p.Weapons);
+                all.Sides.AddRange(p.Sides);
             }
             all.Check();
             return all;
         }
+
+        /// <summary>A side by its id, or null.</summary>
+        public Side FindSide(string id) => Sides.Find(s => string.Equals(s.Id, id, StringComparison.OrdinalIgnoreCase));
 
         public WeaponDef FindWeapon(string id)
         {

@@ -9,7 +9,7 @@ namespace FieldTable.Sim.Tests
     sealed class Scene
     {
         static readonly Lazy<GameData> data = new Lazy<GameData>(() =>
-            GameData.Combine(GameData.FromJson(Read("terrain.json")), GameData.FromJson(Read("units.json"))));
+            GameData.Combine(GameData.FromJson(Read("terrain.json")), GameData.FromJson(Read("units.json")), GameData.FromJson(Read("sides.json"))));
 
         public static GameData Data => data.Value;
 

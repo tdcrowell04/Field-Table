@@ -112,10 +112,12 @@ namespace FieldTable.Sim.Tests
         [Fact]
         public void EachSidePlaysTheMissionsThatFitIt()
         {
-            Assert.Equal(9, Sides.Find(Sides.Marines).Missions.Count);
-            Assert.Equal(9, Sides.Find(Sides.Army).Missions.Count);
-            Assert.Equal(new[] { StartStates.Raid, StartStates.ObservationPost, StartStates.SupplyAmbush, StartStates.Crew }, Sides.Find(Sides.Seals).Missions);
-            Assert.Equal(new[] { StartStates.Crew }, Sides.Find(Sides.Pararescue).Missions);
+            var data = Scene.Data;
+            Assert.Equal(4, data.Sides.Count);
+            Assert.Equal(9, data.FindSide(Sides.Marines).Missions.Count);
+            Assert.Equal(9, data.FindSide(Sides.Army).Missions.Count);
+            Assert.Equal(new[] { StartStates.Raid, StartStates.ObservationPost, StartStates.SupplyAmbush, StartStates.Crew }, data.FindSide(Sides.Seals).Missions);
+            Assert.Equal(new[] { StartStates.Crew }, data.FindSide(Sides.Pararescue).Missions);
             for (ulong seed = 1; seed <= 5; seed++) Assert.Equal(StartStates.Crew, Make(StartStates.Random, Sides.Pararescue, seed).Kind);
         }
 

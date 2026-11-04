@@ -10,6 +10,6 @@ mkdir -p "$out"
 # The artifact host won't serve paths that start with "_", so _framework becomes framework.
 cp -r "$here/bin/publish/wwwroot/_framework" "$out/framework"
 find "$out/framework" \( -name '*.br' -o -name '*.gz' -o -name '*.pdb' \) -delete
-cp "$here/../Data/terrain.json" "$here/../Data/units.json" "$here/../Data/names.json" "$out/"
+cp "$here/../Data/terrain.json" "$here/../Data/units.json" "$here/../Data/sides.json" "$here/../Data/names.json" "$out/"
 cp "$here/page/playtest.html" "$out/playtest.html"
 du -sh "$out"

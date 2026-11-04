@@ -348,11 +348,11 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     pj:    { name: "Pararescueman", line: "M4A1 and a full trauma kit; a paramedic for a whole career", weapon: "m4", skin: "#c99a73", medbag: true, pack: true }
   };
   // Each side's uniform: the Marines' camo follows the ground; the others wear OCP or multicam whatever the ground.
+  // Each look is named in the side's data (sides.json), so a custom faction picks one.
   const LOOK = {
-    marines: () => ({ camo: CAMO[ground], shirt: CAMO_AVG[ground], pants: CAMO_AVG[ground], headC: CAMO_AVG[ground], vest: "#7a6a4d", boots: "#93795a" }),
-    army: () => ({ camo: CAMO.ocp, shirt: CAMO_AVG.ocp, pants: CAMO_AVG.ocp, headC: CAMO_AVG.ocp, vest: "#6f6a52", boots: "#8a7355" }),
-    seals: () => ({ camo: CAMO.multi, shirt: CAMO_AVG.multi, pants: CAMO_AVG.multi, headC: CAMO_AVG.multi, vest: "#5e5a48", boots: "#6e5f48" }),
-    pjs: () => ({ camo: CAMO.ocp, shirt: CAMO_AVG.ocp, pants: CAMO_AVG.ocp, headC: CAMO_AVG.ocp, vest: "#6f6a52", boots: "#8a7355" })
+    ground: () => ({ camo: CAMO[ground], shirt: CAMO_AVG[ground], pants: CAMO_AVG[ground], headC: CAMO_AVG[ground], vest: "#7a6a4d", boots: "#93795a" }),
+    ocp: () => ({ camo: CAMO.ocp, shirt: CAMO_AVG.ocp, pants: CAMO_AVG.ocp, headC: CAMO_AVG.ocp, vest: "#6f6a52", boots: "#8a7355" }),
+    multicam: () => ({ camo: CAMO.multi, shirt: CAMO_AVG.multi, pants: CAMO_AVG.multi, headC: CAMO_AVG.multi, vest: "#5e5a48", boots: "#6e5f48" })
   };
   const OTHERS = {
     oprf: { name: "Kansian rifleman", line: "Assault rifle, helmet, and a plate carrier", side: "op", weapon: "ak", head: "steel", skin: "#c99a78", shirt: "#59604f", pants: "#59604f", vest: "#33352d", headC: "#454b3c", boots: "#2b2722" },
@@ -363,10 +363,12 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     civ:  { name: "Civilian", line: "Unarmed", side: "civ", weapon: "none", head: "hair", skin: "#c08c66", shirt: "#cfc6b0", pants: "#4b5568", headC: "#2b2420", boots: "#4a3b2e" }
   };
   const SPECS = {};
-  let ground = "green";
+  let ground = "green", sideLook = "ground";
   function buildSpecs() {
-    for (const [look, table] of [["marines", MARINES], ["army", ARMY], ["seals", SEALS], ["pjs", PJS]])
-      Object.keys(table).forEach(id => { SPECS[id] = Object.assign({ side: "us", head: "helmet", glove: "#3b3a35" }, LOOK[look](), table[id]); });
+    // Our figures all take the look of whichever side is playing; the tables only say what each kind carries.
+    const look = (LOOK[sideLook] || LOOK.ground)();
+    for (const table of [MARINES, ARMY, SEALS, PJS])
+      Object.keys(table).forEach(id => { SPECS[id] = Object.assign({ side: "us", head: "helmet", glove: "#3b3a35" }, look, table[id]); });
     Object.keys(OTHERS).forEach(id => { SPECS[id] = Object.assign({}, OTHERS[id]); });
   }
   buildSpecs();
@@ -2261,8 +2263,9 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     P = null; $("playbar").hidden = true;
     await new Promise(r => setTimeout(r, 30));
     try {
-      const m = await call("NewMission", S.data.t, S.data.u, S.data.n, seed, kind, S.side || "marines", options ? JSON.stringify(options) : "");
+      const m = await call("NewMission", S.data.t, S.data.u, S.data.s, S.data.n, seed, kind, S.side || "marines", options ? JSON.stringify(options) : "");
       S.m = m; S.seed = seed; S.missions = m.missions; S.sides = m.sides; S.custom = options || null; S.map = m.map; S.roster = m.roster; S.state = m.state;
+      sideLook = (m.side && m.side.look) || "ground"; buildSpecs();
       S.mw = m.map.w * m.map.cell; S.mh = m.map.h * m.map.cell; S.sq = m.map.square;
       S.log = []; S.rolls = []; S.flip = {}; S.sel = -1; S.tap = null; S.marks = []; S.hover = null; S.pending = null; S.turnMsgs = []; S.busy = false; S.picks = []; S.lastPick = null;
       buildGround(m.map);
@@ -2281,10 +2284,10 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     try {
       // Artifact paths can't start with "_", so the files live in framework/ instead of _framework/.
       await Blazor.start({ loadBootResource: (type, name, defaultUri) => defaultUri.replace("_framework/", "framework/") });
-      const files = await Promise.all(["terrain.json", "units.json", "names.json"].map(f => fetch(f).then(r => { if (!r.ok) throw new Error(f + " is missing"); return r.text(); })));
-      S.data = { t: files[0], u: files[1], n: files[2] };
+      const files = await Promise.all(["terrain.json", "units.json", "sides.json", "names.json"].map(f => fetch(f).then(r => { if (!r.ok) throw new Error(f + " is missing"); return r.text(); })));
+      S.data = { t: files[0], u: files[1], s: files[2], n: files[3] };
       // First thing, the choice of mission.
-      const menu = await call("Missions");
+      const menu = await call("Missions", S.data.s);
       S.missions = menu.missions; S.sides = menu.sides;
       try { S.side = localStorage.getItem("ft-side") || "marines"; } catch (e) { S.side = "marines"; }
       $("bootMsg").textContent = "The simulation is ready.";

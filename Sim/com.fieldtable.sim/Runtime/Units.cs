@@ -147,6 +147,9 @@ namespace FieldTable.Sim
         /// <summary>The language this side speaks. Null is English.</summary>
         public string Language { get; set; }
 
+        /// <summary>The side this force plays as, for one of ours; null for the enemy and civilians.</summary>
+        public Side Side { get; set; }
+
         /// <summary>How long this side's CASEVAC takes to come, in minutes, when it has its own; null uses the usual 15 to 30.</summary>
         public int? CasevacMinMinutes { get; set; }
         public int? CasevacMaxMinutes { get; set; }

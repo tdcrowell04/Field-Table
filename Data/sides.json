@@ -1,0 +1,591 @@
+{
+  "sides": [
+    {
+      "id": "marines",
+      "name": "Marines",
+      "member": "Marine",
+      "members": "Marines",
+      "group": "squad",
+      "callsign": "Raider 2",
+      "higher": "Raider 6",
+      "loseAt": 7,
+      "line": "13 Marines in three fire teams plus Doc and an interpreter",
+      "look": "ground",
+      "missions": [
+        "bridge",
+        "raid",
+        "crossroads",
+        "crew",
+        "clear",
+        "ambush",
+        "hill",
+        "delay",
+        "post"
+      ],
+      "column": [
+        {
+          "id": "alpha-tl",
+          "def": "tl",
+          "team": "Alpha",
+          "calls": [
+            "Alpha TL",
+            "Alpha team leader",
+            "Alpha lead"
+          ],
+          "back": 0,
+          "side": 0
+        },
+        {
+          "id": "alpha-ar",
+          "def": "ar",
+          "team": "Alpha",
+          "calls": [
+            "Alpha AR",
+            "Alpha automatic rifleman",
+            "Alpha gunner"
+          ],
+          "back": 7,
+          "side": -7
+        },
+        {
+          "id": "alpha-aar",
+          "def": "aar",
+          "team": "Alpha",
+          "calls": [
+            "Alpha AAR",
+            "Alpha assistant gunner"
+          ],
+          "back": 14,
+          "side": -9
+        },
+        {
+          "id": "alpha-rf",
+          "def": "mk",
+          "team": "Alpha",
+          "calls": [
+            "Alpha rifleman",
+            "Alpha marksman",
+            "marksman"
+          ],
+          "back": 7,
+          "side": 7
+        },
+        {
+          "id": "lead",
+          "def": "sl",
+          "team": "",
+          "calls": [
+            "Lead",
+            "SL",
+            "squad leader"
+          ],
+          "back": 25,
+          "side": 0
+        },
+        {
+          "id": "doc",
+          "def": "doc",
+          "team": "",
+          "calls": [
+            "Doc",
+            "corpsman"
+          ],
+          "back": 30,
+          "side": 5
+        },
+        {
+          "id": "terp",
+          "def": "terp",
+          "team": "",
+          "calls": [
+            "Interpreter",
+            "terp"
+          ],
+          "back": 30,
+          "side": -5
+        },
+        {
+          "id": "bravo-tl",
+          "def": "tl",
+          "team": "Bravo",
+          "calls": [
+            "Bravo TL",
+            "Bravo team leader",
+            "Bravo lead"
+          ],
+          "back": 45,
+          "side": 0
+        },
+        {
+          "id": "bravo-ar",
+          "def": "ar",
+          "team": "Bravo",
+          "calls": [
+            "Bravo AR",
+            "Bravo automatic rifleman",
+            "Bravo gunner"
+          ],
+          "back": 52,
+          "side": -7
+        },
+        {
+          "id": "bravo-aar",
+          "def": "aar",
+          "team": "Bravo",
+          "calls": [
+            "Bravo AAR",
+            "Bravo assistant gunner"
+          ],
+          "back": 59,
+          "side": -9
+        },
+        {
+          "id": "bravo-rf",
+          "def": "cg",
+          "team": "Bravo",
+          "calls": [
+            "Bravo rifleman",
+            "Gustaf",
+            "Carl Gustaf",
+            "Gustaf gunner"
+          ],
+          "back": 52,
+          "side": 7
+        },
+        {
+          "id": "charlie-tl",
+          "def": "tl",
+          "team": "Charlie",
+          "calls": [
+            "Charlie TL",
+            "Charlie team leader",
+            "Charlie lead"
+          ],
+          "back": 70,
+          "side": 0
+        },
+        {
+          "id": "charlie-ar",
+          "def": "ar",
+          "team": "Charlie",
+          "calls": [
+            "Charlie AR",
+            "Charlie automatic rifleman",
+            "Charlie gunner"
+          ],
+          "back": 77,
+          "side": -7
+        },
+        {
+          "id": "charlie-aar",
+          "def": "aar",
+          "team": "Charlie",
+          "calls": [
+            "Charlie AAR",
+            "Charlie assistant gunner"
+          ],
+          "back": 84,
+          "side": -9
+        },
+        {
+          "id": "charlie-rf",
+          "def": "dr",
+          "team": "Charlie",
+          "calls": [
+            "Charlie rifleman",
+            "drone operator"
+          ],
+          "back": 77,
+          "side": 7
+        }
+      ]
+    },
+    {
+      "id": "army",
+      "name": "Army",
+      "member": "soldier",
+      "members": "soldiers",
+      "group": "squad",
+      "callsign": "Bulldog 2",
+      "higher": "Bulldog 6",
+      "loseAt": 6,
+      "line": "a 9-soldier squad in two fire teams, plus a machine gun team, the platoon medic, and an interpreter",
+      "look": "ocp",
+      "missions": [
+        "bridge",
+        "raid",
+        "crossroads",
+        "crew",
+        "clear",
+        "ambush",
+        "hill",
+        "delay",
+        "post"
+      ],
+      "column": [
+        {
+          "id": "alpha-tl",
+          "def": "a-tl",
+          "team": "Alpha",
+          "calls": [
+            "Alpha TL",
+            "Alpha team leader",
+            "Alpha lead"
+          ],
+          "back": 0,
+          "side": 0
+        },
+        {
+          "id": "alpha-ar",
+          "def": "a-ar",
+          "team": "Alpha",
+          "calls": [
+            "Alpha AR",
+            "Alpha automatic rifleman",
+            "Alpha SAW"
+          ],
+          "back": 7,
+          "side": -7
+        },
+        {
+          "id": "alpha-gr",
+          "def": "a-gr",
+          "team": "Alpha",
+          "calls": [
+            "Alpha grenadier",
+            "Alpha 203"
+          ],
+          "back": 14,
+          "side": -9
+        },
+        {
+          "id": "alpha-rf",
+          "def": "a-dr",
+          "team": "Alpha",
+          "calls": [
+            "Alpha rifleman",
+            "drone operator"
+          ],
+          "back": 7,
+          "side": 7
+        },
+        {
+          "id": "lead",
+          "def": "a-sl",
+          "team": "",
+          "calls": [
+            "Lead",
+            "SL",
+            "squad leader"
+          ],
+          "back": 25,
+          "side": 0
+        },
+        {
+          "id": "doc",
+          "def": "a-med",
+          "team": "",
+          "calls": [
+            "Doc",
+            "medic"
+          ],
+          "back": 30,
+          "side": 5
+        },
+        {
+          "id": "terp",
+          "def": "terp",
+          "team": "",
+          "calls": [
+            "Interpreter",
+            "terp"
+          ],
+          "back": 30,
+          "side": -5
+        },
+        {
+          "id": "guns-mg",
+          "def": "a-mg",
+          "team": "Guns",
+          "calls": [
+            "Guns gunner",
+            "machine gunner",
+            "240 gunner",
+            "gun team leader"
+          ],
+          "back": 42,
+          "side": -4
+        },
+        {
+          "id": "guns-ag",
+          "def": "a-ag",
+          "team": "Guns",
+          "calls": [
+            "Guns AG",
+            "assistant gunner",
+            "Guns assistant"
+          ],
+          "back": 42,
+          "side": 4
+        },
+        {
+          "id": "bravo-tl",
+          "def": "a-tl",
+          "team": "Bravo",
+          "calls": [
+            "Bravo TL",
+            "Bravo team leader",
+            "Bravo lead"
+          ],
+          "back": 55,
+          "side": 0
+        },
+        {
+          "id": "bravo-ar",
+          "def": "a-ar",
+          "team": "Bravo",
+          "calls": [
+            "Bravo AR",
+            "Bravo automatic rifleman",
+            "Bravo SAW"
+          ],
+          "back": 62,
+          "side": -7
+        },
+        {
+          "id": "bravo-gr",
+          "def": "a-gr",
+          "team": "Bravo",
+          "calls": [
+            "Bravo grenadier",
+            "Bravo 203"
+          ],
+          "back": 69,
+          "side": -9
+        },
+        {
+          "id": "bravo-rf",
+          "def": "a-rf",
+          "team": "Bravo",
+          "calls": [
+            "Bravo rifleman"
+          ],
+          "back": 62,
+          "side": 7
+        }
+      ]
+    },
+    {
+      "id": "seals",
+      "name": "Navy SEALs",
+      "member": "SEAL",
+      "members": "SEALs",
+      "group": "squad",
+      "callsign": "Trident 2",
+      "higher": "Trident 6",
+      "loseAt": 4,
+      "line": "a SEAL squad of 8, each with a specialty, plus an interpreter",
+      "look": "multicam",
+      "missions": [
+        "raid",
+        "post",
+        "ambush",
+        "crew"
+      ],
+      "column": [
+        {
+          "id": "alpha-pt",
+          "def": "s-pt",
+          "team": "Alpha",
+          "calls": [
+            "Alpha point",
+            "point man",
+            "point"
+          ],
+          "back": 0,
+          "side": 0
+        },
+        {
+          "id": "alpha-br",
+          "def": "s-br",
+          "team": "Alpha",
+          "calls": [
+            "Alpha breacher",
+            "breacher"
+          ],
+          "back": 7,
+          "side": -6
+        },
+        {
+          "id": "alpha-com",
+          "def": "s-com",
+          "team": "Alpha",
+          "calls": [
+            "Alpha comms",
+            "communicator",
+            "comms",
+            "radioman"
+          ],
+          "back": 14,
+          "side": -8
+        },
+        {
+          "id": "alpha-mg",
+          "def": "s-mg",
+          "team": "Alpha",
+          "calls": [
+            "Alpha gunner",
+            "machine gunner",
+            "gunner"
+          ],
+          "back": 7,
+          "side": 6
+        },
+        {
+          "id": "lead",
+          "def": "s-oic",
+          "team": "",
+          "calls": [
+            "Lead",
+            "OIC",
+            "officer in charge",
+            "boss"
+          ],
+          "back": 24,
+          "side": 0
+        },
+        {
+          "id": "terp",
+          "def": "terp",
+          "team": "",
+          "calls": [
+            "Interpreter",
+            "terp"
+          ],
+          "back": 29,
+          "side": -5
+        },
+        {
+          "id": "bravo-sn",
+          "def": "s-sn",
+          "team": "Bravo",
+          "calls": [
+            "Bravo sniper",
+            "sniper"
+          ],
+          "back": 40,
+          "side": 0
+        },
+        {
+          "id": "bravo-med",
+          "def": "s-med",
+          "team": "Bravo",
+          "calls": [
+            "Bravo medic",
+            "Doc",
+            "medic",
+            "corpsman"
+          ],
+          "back": 47,
+          "side": -6
+        },
+        {
+          "id": "bravo-jtac",
+          "def": "s-jtac",
+          "team": "Bravo",
+          "calls": [
+            "Bravo JTAC",
+            "JTAC"
+          ],
+          "back": 47,
+          "side": 6
+        }
+      ]
+    },
+    {
+      "id": "pjs",
+      "name": "Air Force Pararescue",
+      "member": "PJ",
+      "members": "PJs",
+      "group": "team",
+      "callsign": "Guardian 2",
+      "higher": "Guardian 6",
+      "loseAt": 3,
+      "line": "a Combat Rescue Officer and 4 PJs in two pairs, plus an interpreter",
+      "look": "ocp",
+      "casevacMin": 5,
+      "casevacMax": 10,
+      "missions": [
+        "crew"
+      ],
+      "column": [
+        {
+          "id": "alpha-1",
+          "def": "pj",
+          "team": "Alpha",
+          "calls": [
+            "Alpha one",
+            "Alpha lead"
+          ],
+          "back": 0,
+          "side": 0
+        },
+        {
+          "id": "alpha-2",
+          "def": "pj",
+          "team": "Alpha",
+          "calls": [
+            "Alpha two"
+          ],
+          "back": 7,
+          "side": -6
+        },
+        {
+          "id": "lead",
+          "def": "pj-cro",
+          "team": "",
+          "calls": [
+            "Lead",
+            "CRO",
+            "rescue officer",
+            "team leader"
+          ],
+          "back": 16,
+          "side": 0
+        },
+        {
+          "id": "terp",
+          "def": "terp",
+          "team": "",
+          "calls": [
+            "Interpreter",
+            "terp"
+          ],
+          "back": 21,
+          "side": -5
+        },
+        {
+          "id": "bravo-1",
+          "def": "pj",
+          "team": "Bravo",
+          "calls": [
+            "Bravo one",
+            "Bravo lead"
+          ],
+          "back": 30,
+          "side": 0
+        },
+        {
+          "id": "bravo-2",
+          "def": "pj",
+          "team": "Bravo",
+          "calls": [
+            "Bravo two"
+          ],
+          "back": 37,
+          "side": -6
+        }
+      ]
+    }
+  ]
+}

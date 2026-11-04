@@ -27,9 +27,9 @@ namespace FieldTable.Playtest
         /// map and the start, and the list of missions to pick from next time.
         /// </summary>
         [JSInvokable]
-        public static string NewMission(string terrainJson, string unitsJson, string namesJson, int seed, string kind, string side, string optionsJson)
+        public static string NewMission(string terrainJson, string unitsJson, string sidesJson, string namesJson, int seed, string kind, string side, string optionsJson)
         {
-            data = GameData.Combine(GameData.FromJson(terrainJson), GameData.FromJson(unitsJson));
+            data = GameData.Combine(GameData.FromJson(terrainJson), GameData.FromJson(unitsJson), GameData.FromJson(sidesJson));
             terrainIndex.Clear();
             seenBroken.Clear();
             for (int i = 0; i < data.Terrains.Count; i++) terrainIndex[data.Terrains[i].Id] = i;
@@ -97,9 +97,15 @@ namespace FieldTable.Playtest
 
         /// <summary>The sides and missions to pick from: their ids and names, and which missions fit each side.</summary>
         [JSInvokable]
-        public static string Missions() => Json(WriteMissions);
+        public static string Missions(string sidesJson)
+        {
+            var sides = GameData.FromJson(sidesJson).Sides;
+            return Json(w => WriteMissions(w, sides));
+        }
 
-        static void WriteMissions(Utf8JsonWriter w)
+        static void WriteMissions(Utf8JsonWriter w) => WriteMissions(w, data.Sides);
+
+        static void WriteMissions(Utf8JsonWriter w, List<Side> sides)
         {
             w.WriteStartArray("missions");
             foreach (var st in StartStates.All)
@@ -113,7 +119,7 @@ namespace FieldTable.Playtest
             }
             w.WriteEndArray();
             w.WriteStartArray("sides");
-            foreach (var side in Sides.All)
+            foreach (var side in sides)
             {
                 w.WriteStartObject();
                 WriteSideFields(w, side);
@@ -142,6 +148,7 @@ namespace FieldTable.Playtest
             w.WriteString("line", side.Line);
             w.WriteNumber("size", side.Size);
             w.WriteNumber("loseAt", side.LoseAt);
+            w.WriteString("look", side.Look ?? "ground");
         }
 
         /// <summary>Where things stand between turns, as the Marines know it.</summary>

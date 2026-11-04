@@ -47,10 +47,10 @@ namespace FieldTable.Sim
         {
             var sim = new Simulation(map, seed);
             sim.AddWeapons(data.Weapons);
-            var side = Pending?.side ?? Sides.All[0];
+            var side = Pending?.side ?? data.Sides.FirstOrDefault() ?? throw new InvalidOperationException("The data has no sides (sides.json).");
             var mission = new Mission { Kind = kind, Sim = sim, MapData = mapData, Side = side, Options = Pending?.options, LoseAt = side.LoseAt };
             mission.OnItWord = side.Member + " on it";
-            mission.Marines = sim.AddForce(new Force { Id = "marines", Name = side.Callsign, Faction = side.Id, CasevacMinMinutes = side.CasevacMin, CasevacMaxMinutes = side.CasevacMax });
+            mission.Marines = sim.AddForce(new Force { Id = "marines", Name = side.Callsign, Faction = side.Id, Side = side, CasevacMinMinutes = side.CasevacMin, CasevacMaxMinutes = side.CasevacMax });
             mission.Enemy = sim.AddForce(new Force { Id = "enemy", Name = EnemyName, Faction = "kansia" });
             // The villagers and the enemy soldiers don't speak English, so talking to them takes the interpreter.
             mission.Enemy.Language = "local";
@@ -117,24 +117,24 @@ namespace FieldTable.Sim
 
         public static void AddSquad(Simulation sim, Force force, GameData data, NamePools names, Dice rng, List<(Vec2 pos, float facing)> formation)
         {
-            var side = Sides.Of(force);
+            var side = Sides.Of(force) ?? throw new InvalidOperationException("The force " + force.Id + " has no side.");
             var people = Shuffle(names.People.Count > 0 ? names.People : new List<string> { side.Member }, rng);
             int next = 0;
             string Name() => next < people.Count ? people[next++] : side.Member + " " + (next++ + 1);
 
             // The side's column, in the order it walks: the interpreter goes with the leader, unarmed and not counted.
-            for (int i = 0; i < side.Column.Length; i++)
+            for (int i = 0; i < side.Column.Count; i++)
             {
                 var s = side.Column[i];
-                var def = data.FindUnit(s.def) ?? throw new InvalidOperationException("No unit kind called " + s.def + " in the data.");
-                var u = new Unit(s.id, Name(), def, force, formation[i].pos) { Team = s.team };
-                u.Callsigns.AddRange(s.calls);
+                var def = data.FindUnit(s.Def) ?? throw new InvalidOperationException("No unit kind called " + s.Def + " in the data.");
+                var u = new Unit(s.Id, Name(), def, force, formation[i].pos) { Team = s.Team ?? "" };
+                u.Callsigns.AddRange(s.Calls);
                 u.Facing = formation[i].facing;
                 sim.AddUnit(u);
                 // A Marine who flies a drone carries it in its case until it's launched.
                 if (u.Def.Drone != null)
                 {
-                    var drone = new Unit(s.id + "-drone", "Drone", data.FindUnit(u.Def.Drone), force, u.Position) { Operator = u, Gone = true };
+                    var drone = new Unit(s.Id + "-drone", "Drone", data.FindUnit(u.Def.Drone), force, u.Position) { Operator = u, Gone = true };
                     drone.Callsigns.Add("drone");
                     sim.AddUnit(drone);
                 }
@@ -142,7 +142,7 @@ namespace FieldTable.Sim
         }
 
         /// <summary>The side a simulation's player force is, for the shape of its column.</summary>
-        static Side SideOf(Simulation sim) => Sides.Of(sim.PlayerForce);
+        public static Side SideOf(Simulation sim) => Sides.Of(sim.PlayerForce) ?? throw new InvalidOperationException("The player's force has no side.");
 
         /// <summary>How far a Marine who'd start in the enemy's sight can shift to a hidden spot, and what that costs a start.</summary>
         const float TuckRange = 30f, TuckCost = 25f;
@@ -210,7 +210,8 @@ namespace FieldTable.Sim
         /// <summary>True when the whole column, from the lead back, fits on the map instead of getting squashed against an edge.</summary>
         public static bool Fits(MapGrid map, Vec2 lead, Vec2 target, Side side = null)
         {
-            float depth = (side ?? Sides.All[0]).ColumnDepth;
+            // Before the simulation exists (checking a map), the side being made for is the one pending; failing that, the deepest column.
+            float depth = (side ?? Pending?.side)?.ColumnDepth ?? 90f;
             Vec2 tail = lead - (target - lead) * (depth / Math.Max(1f, Vec2.Distance(target, lead)));
             return lead.X >= 12f && lead.Y >= 12f && lead.X <= map.WidthMeters - 12f && lead.Y <= map.HeightMeters - 12f
                 && tail.X >= 12f && tail.Y >= 12f && tail.X <= map.WidthMeters - 12f && tail.Y <= map.HeightMeters - 12f;
@@ -282,7 +283,7 @@ namespace FieldTable.Sim
         }
 
         /// <summary>The squad in its column of wedges, lead at a spot, facing a target.</summary>
-        public static List<(Vec2, float)> Toward(MapGrid map, Vec2 lead, Vec2 target, Side side = null)
+        public static List<(Vec2, float)> Toward(MapGrid map, Vec2 lead, Vec2 target, Side side)
         {
             Vec2 f = target - lead;
             float len = f.Length;
@@ -290,8 +291,8 @@ namespace FieldTable.Sim
             var right = new Vec2(-f.Y, f.X);
             float facing = Bearing(lead, target);
             var spots = new List<(Vec2, float)>();
-            foreach (var c in (side ?? Sides.All[0]).Column)
-                spots.Add((Standable(map, Inside(map, lead - f * c.back + right * c.side), spots.Select(x => x.Item1)), facing));
+            foreach (var c in side.Column)
+                spots.Add((Standable(map, Inside(map, lead - f * c.Back + right * c.Side), spots.Select(x => x.Item1)), facing));
             return spots;
         }
 

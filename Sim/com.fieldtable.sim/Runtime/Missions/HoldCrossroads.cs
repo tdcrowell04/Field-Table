@@ -63,7 +63,7 @@ namespace FieldTable.Sim
             foreach (var r in routes) { var d = Direction(r.Points, c); arms.Add(d); arms.Add(d * -1f); }
             if (arms.Count < 4) arms = new List<Vec2> { new Vec2(0, -1), new Vec2(0, 1), new Vec2(1, 0), new Vec2(-1, 0) };
             Vec2 home = arms[(int)(Next(rng) * arms.Count) % arms.Count];
-            var formation = Toward(map, c + home * 10f, c - home * 100f);
+            var formation = Toward(map, c + home * 10f, c - home * 100f, SideOf(sim));
             AddSquad(sim, mission.Marines, data, names, rng, formation);
             var squad = sim.Units.Where(u => ReferenceEquals(u.Force, mission.Marines) && !u.Gone).ToList();
 

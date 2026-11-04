@@ -1,6 +1,6 @@
 # Field Table: game bible
 
-*Started Oct 16, 2026 · @Triston. Updated Nov 2, 2026 to match every ruling so far. Overruled ideas have been taken out.*
+*Started Oct 16, 2026 · @Triston. Updated Nov 4, 2026 to match every ruling so far. Overruled ideas have been taken out.*
 
 ## Overview
 
@@ -34,7 +34,7 @@ In sci-fi and fantasy, each setting follows its own rules just as strictly: cons
   - **Army:** a 9-soldier squad, a staff sergeant squad leader and two fire teams of four (team leader, automatic rifleman with the M249, grenadier with the M320, rifleman), with what the platoon sends along: its combat medic and a two-soldier M240 machine gun team ("Guns"). 12 in all, plus the interpreter. Alpha's rifleman flies the Black Hornet, a drone that fits in a hand. M4A1 carbines, night vision for all. Firepower for their size: the M240 reaches farther and hits harder than any rifle, and each team has its own grenadier. Lose with 6 down. Not sure: the weapons squad's exact makeup, whether the marksman rifle is one per squad, and how many squads have the Black Hornet and the blended night-and-thermal goggles today. Left out unless asked: the M7 and M250 (the Army moved production to the XM8 carbine in 2026), the M110A1 marksman rifle, and Javelin teams.
   - **Navy SEALs:** a squad of 8, half a platoon of about 16: the officer in charge (Lead), a point man, a communicator, a breacher, a sniper, a medic, a machine gunner, and a JTAC, plus the interpreter. Every weapon suppressed (Mk 18 carbines, an Mk 48 machine gun, an Mk 13 sniper rifle), thermal and night vision for all. Raids, ambushes, and watching from close in; they hit and get out, since 8 can't trade fire with a platoon for long. The breacher gets through a door in half the time; the medic is a paramedic. The JTAC is a shooter with a radio until the game has aircraft. Lose with 4 down. Not sure: the Navy doesn't publish its platoon chart, and in 2021 it made platoons fewer and bigger, so today's is likely more than 16.
   - **Air Force Pararescue:** a Combat Rescue Officer (Lead) and 4 PJs in two pairs, plus the interpreter, brought in by their own rescue helicopters, which wait nearby, so a CASEVAC comes in 5 to 10 minutes instead of 15 to 30. Every PJ is a paramedic: treats in two thirds the time, and someone down under a PJ's hands stops bleeding out. M4A1 carbines, night vision, trauma kits. A rescue force, not an assault force. Lose with 3 down. Not sure: how often the officer goes in on the ground rather than a senior PJ; "up to 3 PJs a helicopter" comes from an older article.
-  - **Which missions each side plays** (ledger round 18, (a)): the ones that fit what it does for real. Marines and Army: all nine. SEALs: the compound raid, the observation post, the supply ambush, and the downed crew. Pararescue: the downed crew, with more rescue missions to draft. Triston's words: *"With the option to adjust anything about the mission numbers wise to make it play custom"* So the picker has a Custom option: any mission for any side, with the mission's numbers yours to change (how many enemy soldiers, the turn limit, how many down to lose, and the turn relief, the reaction force, or the supply party arrives). Anything left blank keeps the mission's own number.
+  - **Which missions each side plays** (ledger round 18, (a)): the ones that fit what it does for real. Marines and Army: all nine. SEALs: the compound raid, the observation post, the supply ambush, and the downed crew. Pararescue: the downed crew, and three rescue missions kept in ledger round 19 (below). Triston's words: *"With the option to adjust anything about the mission numbers wise to make it play custom"* So the picker has a Custom option: any mission for any side, with the mission's numbers yours to change (how many enemy soldiers, the turn limit, how many down to lose, and the turn relief, the reaction force, or the supply party arrives). Anything left blank keeps the mission's own number.
 - **Tactical mode:** WEGO turns, as described below.
 - **Pocket DM mode:** tabletop RPG sessions. The game uses its own generic tabletop RPG and tabletop strategy rules, written for Field Table. Code covers as much of a typical campaign as possible, and the AI decides anything the code doesn't cover yet (see Simulation).
 - **Solo, co-op, and versus.**
@@ -243,6 +243,10 @@ Every mission played in the Field Table prototype is a candidate mission for the
 - Take the hill (ledger round 17): an enemy squad is dug in on a hill that looks down the road the battalion needs. Take it and hold it. Win: a Marine on the hilltop and no enemy still fighting within 250 m, two turns in a row. Lose: 7 Marines down or out of time. Extras: their radio taken intact (search their position), every Marine home. Enemy goal: hold to the last, fall back to a second position on the far slope, or let you take it and counterattack from the woods.
 - Delay the advance (ledger round 17): an enemy platoon (about 30) is coming up a road toward the battalion. Slow it down without getting caught: three lines are marked on the map, and you fall back through them. Win: it's turn 20 and they haven't crossed the last line. Lose: they cross the last line, or 7 down. Extras: no line given up before turn 6, every Marine home. Enemy goal: push straight up the road, send scouts first and then the rest, or hold you on the road with a few while the rest go round through the woods.
 - Raid the observation post (ledger round 17): an enemy observation post on high ground is spotting for their artillery. Get in, wreck its radio and scopes (search it), and get out before their quick reaction force arrives, on a turn a die picks, 8 to 14. Win: the gear wrecked and the squad back past its start line. Lose: 7 down or out of time. Extras: a prisoner taken, every Marine home. Enemy goal: a sleepy post that's easy to surprise, a post with a patrol out, or one that expected you and set a trap.
+- Pull out the wounded patrol (ledger round 19, for Pararescue): a patrol took casualties and is pinned about 300 m from a landing zone, three of them hurt, one badly. Get to them, treat the hurt, and carry them to the landing zone while the patrol holds the enemy off, before the badly hurt one bleeds out. Win: every casualty out alive on your helicopters. Lose: one of them dies, or 3 PJs down. Extras: the patrol's dead brought out too, every PJ home. Enemy goal: keep the patrol pinned, work round toward the landing zone, or fall back once the helicopters show.
+- Crash in the river (ledger round 19, for Pararescue): a helicopter went down in the river. Its crew are in the water and on a sandbar, two of them hurt, and the current is working on them. Get to them (wade or swim; the team drops heavy gear), treat, and get them out before the enemy who heard the crash arrives, on a turn a die picks. Win: every crew member out. Lose: one drowns or is captured, or 3 PJs down. Extras: the wreck's radio and codes pulled out, every PJ home. Enemy goal: come straight for the crash, search the banks first, or watch the crash from cover and wait for the rescuers.
+- The collapsed building (ledger round 19, for Pararescue): a strike brought down a building in a village with people inside: a family, and one of ours who was with them. Find where they're trapped (search the rubble), dig them out, treat, and get everyone out while a Kansian patrol works through the village. Win: everyone trapped brought out alive. Lose: 3 PJs down or out of time. Extras: no villager hurt by our fire, the family out before our own, every PJ home. Enemy goal: a patrol passing through, a patrol searching house to house, or soldiers who set up on the village's far side to wait for whoever comes.
+- Smarter attackers (ledger round 19, item 12 (a)): the enemy's attacks move cover to cover, use smoke, and send a group round the side while their guns hold you down. As first built, a squad given no orders held the crossroads and the delay every test game.
 - The picker and the end screen (ledger round 17): the page opens on the mission picker instead of a random mission. A win says Mission accomplished (the bridge keeps Bridge seized), and the end says what the enemy was out to do in that mission's words. The director's add-ins fit each mission: no IED at the crossroads, since you start there, and reinforcements come once the first attack is beaten off; the ambush only gets civilians running and a dead radio.
 - When the AI makes a mission, it fills a mission template and code checks the result. *"Yeah it uses the mission start states and fills in pre made adders to make it unique."*
 - Player-built missions and campaigns: players can bring them built all the way or only partly. The AI fills in whatever they leave out, and they share them on Steam Workshop.
@@ -267,7 +271,10 @@ Every mission played in the Field Table prototype is a candidate mission for the
 
 ## Mods
 
-Modders can make their own experiences and share them with people.
+Modders can make their own experiences and share them with people. Keep this in mind at every step (ledger round 19, in chat): *"Let's just keep in mind ensuring this game is easily moddable and modular so that way custom factions with custom models and custom map assets and such are easy to make and put into workshop. When it's released I would like the home menu to have a list of the most popular mods for each category listed, not a now thing but yeah"*
+
+- Modular from the start: the sides, units, weapons, terrain, and names are data files, so a custom faction is a file, not code. Custom models and map assets come with the Unity build.
+- At release, the home menu lists the most popular mods in each category. Not now.
 
 - What modders can change: units, factions, maps, missions, verbs, radio lines, art, rules, map symbols, and order language (like spells).
 - Safety: data and art only at first, no custom code, because code mods can carry viruses when people share them.
@@ -740,13 +747,35 @@ In chat, with a screenshot of the net where Alpha and Bravo kept asking which gr
 | Air Force Pararescue | Accepted | |
 | Which missions each side plays | (a): the ones that fit, plus a custom option | *"With the option to adjust anything about the mission numbers wise to make it play custom"* |
 
+### 2026-11-04: ledger round 19
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| The enemy army (Claude's calls) | Accepted | *"Already approved the name."* |
+| Take the hill (Claude's calls) | Accepted | |
+| Delay the advance (Claude's calls) | Accepted | |
+| Raid the observation post (Claude's calls) | Accepted | |
+| Quicker turns, and lines on the map | Accepted | |
+| The crossroads and the delay are too easy | (a): smarter attackers | |
+| Orders over several messages | Accepted | |
+| Facing a direction | Accepted | |
+| The ambush | Accepted | |
+| Every side (Claude's calls) | Accepted | |
+| The Marines' specialists | Accepted | |
+| The Army's squad | Accepted | |
+| The SEAL squad | Accepted | |
+| The Pararescue team | Accepted | |
+| How they look on the table | Accepted | |
+| Custom numbers: what you can change | Accepted | |
+| Pull out the wounded patrol | Accepted | |
+| Crash in the river | Accepted | |
+| The collapsed building | Accepted | |
+
+In chat, with the answers: *"Let's just keep in mind ensuring this game is easily moddable and modular so that way custom factions with custom models and custom map assets and such are easy to make and put into workshop. When it's released I would like the home menu to have a list of the most popular mods for each category listed, not a now thing but yeah"* Recorded under Mods.
+
 ## Open questions
 
-- [ ] Claude's calls from building the enemy army and the three new missions (round 18, items 7 to 11, carried into ledger round 19)
-- [ ] The crossroads and the delay are won with no orders given; how much harder to make them (round 18, item 12, carried into ledger round 19)
-- [ ] Claude's fixes to the orders from Triston's screenshot: several messages read together, facing a direction, and the ambush (round 18, items 13 to 15, carried into ledger round 19)
-- [ ] Claude's calls from building the four sides and the custom numbers (ledger round 19)
-- [ ] Three rescue mission drafts for Pararescue (ledger round 19)
+- [ ] Claude's calls from building smarter attackers, the three rescue missions, and the sides as data files (ledger round 20)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 

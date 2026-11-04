@@ -47,7 +47,7 @@ namespace FieldTable.Sim
         /// </summary>
         public static Mission Create(string id, GameData data, NamePools names, ulong seed, string goal = null, string side = null, MissionOptions options = null)
         {
-            var who = Sides.Find(side) ?? Sides.All[0];
+            var who = data.FindSide(side) ?? data.Sides.FirstOrDefault() ?? throw new ArgumentException("The data has no sides (sides.json).", nameof(data));
             StartState state;
             if (string.IsNullOrEmpty(id) || string.Equals(id, Random, StringComparison.OrdinalIgnoreCase))
             {
