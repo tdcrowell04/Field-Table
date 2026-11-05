@@ -162,6 +162,26 @@ namespace FieldTable.Sim.Tests
         }
 
         [Fact]
+        public void ACustomFactionIsJustAFile()
+        {
+            // A modder's side: a fireteam of four from units already in the data, no code.
+            const string mod = @"{ ""sides"": [ { ""id"": ""recon"", ""name"": ""Recon team"", ""member"": ""Marine"", ""members"": ""Marines"", ""group"": ""team"",
+                ""callsign"": ""Ghost 1"", ""higher"": ""Ghost 6"", ""loseAt"": 2, ""line"": ""a 4-Marine recon team"", ""look"": ""multicam"", ""missions"": [ ""post"" ],
+                ""column"": [
+                  { ""id"": ""alpha-tl"", ""def"": ""tl"", ""team"": ""Alpha"", ""calls"": [ ""Alpha TL"" ], ""back"": 0, ""side"": 0 },
+                  { ""id"": ""lead"", ""def"": ""sl"", ""team"": """", ""calls"": [ ""Lead"" ], ""back"": 8, ""side"": 0 },
+                  { ""id"": ""alpha-ar"", ""def"": ""ar"", ""team"": ""Alpha"", ""calls"": [ ""Alpha AR"" ], ""back"": 14, ""side"": -6 },
+                  { ""id"": ""alpha-rf"", ""def"": ""mk"", ""team"": ""Alpha"", ""calls"": [ ""marksman"" ], ""back"": 14, ""side"": 6 } ] } ] }";
+            var data = GameData.Combine(Scene.Data, GameData.FromJson(mod));
+            var m = StartStates.Create(StartStates.Random, data, names.Value, 4, null, "recon");
+            Assert.Equal(StartStates.ObservationPost, m.Kind);
+            Assert.Equal("Ghost 1", m.Marines.Name);
+            Assert.Equal(4, m.Squad.Count());
+            Assert.Equal(2, m.LoseAt);
+            Assert.Contains("Every Marine comes home alive", m.Secondary.Select(o => o.Text));
+        }
+
+        [Fact]
         public void TheEnemyIsTheKansianArmy()
         {
             var m = Make(StartStates.Bridge, Sides.Marines);
