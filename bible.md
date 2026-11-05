@@ -59,6 +59,12 @@ The game runs in WEGO turns: both sides give orders, then both sides move at the
 
 ## Command interface
 
+**Verbs that grow with what players need** (in chat, Nov 5, 2026). Triston: *"I literally just want you to make a game that replicates what we had in the field table artifact. I want it to be realistic, modular, moddable. That's exactly what the original game was"* Then: *"I want it to still be coded but I want it to be coded in a smart way where we think about as many instances as humanly possible and make things broad enough to where the game master can use the verbs and such in a string to accomplish what the player is asking for. For example someone requesting that the units set up and ambush and look in a directoin could just simply be a move, hold position, hold fire, and open fire when a trigger of the enemy making it to a specific coordinate is tripped does that not make sense?"* And: *"It's fine if you want to code ambush as a verb, I'd like to make as many verbs as possible to make it make sense, and then use the data of what people are requesting that we don't have a verb for to hard code the most requested verbs that we don't have if that makes sense. This game should be able to grow based on what players actually need"*
+
+- Everything stays coded. As many verbs as make sense get hard-coded; the game master strings verbs together, with triggers, to do what the player asks.
+- What players ask for that no verb covers is logged, and the most requested become new hard-coded verbs.
+- Claude's plan for this (every verb finished, steps and triggers, settings that stay on, recipes, the most-asked-for list, out of game, and Triston's 36 real orders as the test) is in ledger round 20.
+
 The player clicks a unit, then talks to it. Selecting first means the game always knows who an order is for, so the AI never has to guess.
 
 - Selecting units: Click a unit on the map or in the unit list. Saying a callsign also works.
@@ -773,8 +779,11 @@ In chat, with a screenshot of the net where Alpha and Bravo kept asking which gr
 
 In chat, with the answers: *"Let's just keep in mind ensuring this game is easily moddable and modular so that way custom factions with custom models and custom map assets and such are easy to make and put into workshop. When it's released I would like the home menu to have a list of the most popular mods for each category listed, not a now thing but yeah"* Recorded under Mods.
 
+In chat, after reading Claude's report of round 20's build: *"You're supposed to be smart right? How is it so hard for you to take my intent of what I'm asking you for, and get it done right? I literally just want you to make a game that replicates what we had in the field table artifact. I want it to be realistic, modular, moddable. That's exactly what the original game was"* Claude hadn't looked at the original artifact (Field Table, Build 18) until then. In it, Claude was the game master: any situation, any order, any scale, judged against realism and fairness rules, with SOPs and house rules as plain text. The build had become a hand-coded simulation where anything not yet coded failed. Triston's direction, recorded under Command interface: keep it coded, but broad, with verbs strung together by the game master.
+
 ## Open questions
 
+- [ ] The verb plan: every verb finished, orders in steps with triggers, settings that stay on, recipes, the most-asked-for list, out of game, and the 36 real orders as the test (ledger round 20)
 - [ ] Claude's calls from building smarter attackers, including the Kansian helmets and plates fix (ledger round 20)
 - [ ] The squad still wins the crossroads and the delay with no orders; how to close it (ledger round 20)
 - [ ] The sides as a data file (ledger round 20)
