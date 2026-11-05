@@ -323,7 +323,7 @@ Live AI is allowed in this game. This project is separate from Conduits' no-AI-a
 
 Each step is a complete, playable game on its own. Don't start a step until the one before it is fun.
 
-1. Squad slice: One generated map, one of four sides (Marines, Army, Navy SEALs, Air Force Pararescue), nine missions (the bridge seizure, the compound raid, hold the crossroads, the downed helicopter crew, clear the village, the supply-party ambush, take the hill, delay the advance, and raid the observation post), WEGO turns, typed orders, verbs and blanks. If this isn't fun, nothing above it will be.
+1. Squad slice: One generated map, one of four sides (Marines, Army, Navy SEALs, Air Force Pararescue), twelve missions (the bridge seizure, the compound raid, hold the crossroads, the downed helicopter crew, clear the village, the supply-party ambush, take the hill, delay the advance, raid the observation post, and for Pararescue, the wounded patrol, the crash in the river, and the collapsed building), WEGO turns, typed orders, verbs and blanks. If this isn't fun, nothing above it will be.
 2. Voice: Push-to-talk on top of the typed path, with readback.
 3. Co-op and versus at squad level.
 4. Platoon: Three squads plus attachments; the radio net and platoon sergeant problems.
@@ -775,7 +775,10 @@ In chat, with the answers: *"Let's just keep in mind ensuring this game is easil
 
 ## Open questions
 
-- [ ] Claude's calls from building smarter attackers, the three rescue missions, and the sides as data files (ledger round 20)
+- [ ] Claude's calls from building smarter attackers, including the Kansian helmets and plates fix (ledger round 20)
+- [ ] The squad still wins the crossroads and the delay with no orders; how to close it (ledger round 20)
+- [ ] The sides as a data file (ledger round 20)
+- [ ] Claude's calls from building the three rescue missions, and the rules they needed (ledger round 20)
 
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 
