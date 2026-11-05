@@ -167,16 +167,33 @@ namespace FieldTable.Sim
             var map = Sim.Map;
             int count = 2 + Pick(3);
             Vec2 drop = FarSideSpot(330f, 450f, (p, t) => t.Id == "road" || t.Id == "trail" ? 1f : 0f) ?? Inside(map, Focus);
+            var came = new List<Unit>();
             for (int i = 0; i < count; i++)
             {
                 bool rpg = i == 3;
                 var at = Standable(map, drop + new Vec2(i * 4f, i % 2 * 4f), Sim.Units.Select(u => u.Position));
-                var u = new Unit("enemy-r" + (i + 1), NextName(rpg ? "RPG gunner" : "Rifleman"), data.FindUnit(rpg ? "en-rpg" : "en-rf"), m.Enemy, at);
+                var u = new Unit("enemy-r" + (i + 1), NextName(rpg ? "RPG gunner" : "Rifleman"), data.FindUnit(rpg ? "en-rpg" : "en-rf"), m.Enemy, at) { Team = "reinforcements" };
                 Sim.AddUnit(u);
+                came.Add(u);
                 var to = FarSideSpot(50f, 120f, (p, t) => t.Cover + (Sight.Trace(map, p, 1.1f, Focus, 1f).Clear ? 1f : 0f)) ?? Focus;
                 if (!Sim.Give(u, new Order { Verb = Verbs.Move, Where = Sim.Coordinates(to), Speed = "run" }).Ok) Send(u, Verbs.Move, Focus - at, 200f);
             }
             Sim.Radio(null, m.Side.Higher + ": Drone feed shows a truck dropping off " + count + " soldiers at " + map.SquareOf(drop) + " on " + at.FarWord + ".", "info", drop, m.Side.Higher);
+            // Once they're in place and know where the squad is, they attack the way the rest of their army does.
+            Attack attack = null;
+            Sim.OnSecond += () =>
+            {
+                var up = came.Where(u => u.CanAct && !u.Gone).ToList();
+                if (up.Count == 0 || m.Outcome != null) return;
+                if (attack == null && up.Any(u => u.Order != null)) return;
+                var knows = Sim.Fog.For(m.Enemy);
+                var target = knows.Contacts.Where(k => k.Known && ReferenceEquals(k.Unit.Force, m.Marines) && k.Unit.CanAct && !k.Unit.Def.Flying)
+                    .OrderBy(k => Vec2.Distance(k.LastKnownPosition, up[0].Position)).FirstOrDefault();
+                if (target == null) return;
+                if (attack == null) attack = new Attack(Sim, came, "reinforcements", target.LastKnownPosition, m.Marines, flank: up.Count >= Attack.FlankFrom);
+                else attack.Retarget(target.LastKnownPosition);
+                attack.Tick();
+            };
         }
 
         void CiviliansPanic()

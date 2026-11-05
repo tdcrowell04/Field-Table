@@ -38,10 +38,12 @@ namespace FieldTable.Sim.Tests
         }
 
         [Fact]
-        public void TheEnemyHasNoHelmetOrPlates()
+        public void TheKansianArmyWearsHelmetsAndPlates()
         {
-            Assert.False(Scene.Data.FindUnit("en-rf").Helmet);
-            Assert.False(Scene.Data.FindUnit("en-rf").Plate);
+            // Ledger round 19, item 7: round helmets and plate carriers.
+            Assert.True(Scene.Data.FindUnit("en-rf").Helmet);
+            Assert.True(Scene.Data.FindUnit("en-pkm").Plate);
+            Assert.False(Scene.Data.FindUnit("en-hvt").Plate);
             Assert.True(Scene.Data.FindUnit("rf").Helmet);
             Assert.True(Scene.Data.FindUnit("doc").Plate);
         }

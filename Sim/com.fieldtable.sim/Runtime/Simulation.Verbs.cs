@@ -241,7 +241,8 @@ namespace FieldTable.Sim
                 var cloud = new SmokeCloud { Center = Clamp(o.Point.Value), Radius = SmokeRadius, Height = SmokeHeight, UntilStep = Clock.Step + SmokeSeconds * SimClock.StepsPerSecond };
                 Map.Smoke.Add(cloud);
                 Record(new SmokeAt(u, cloud));
-                Radio(u, u.Name + ": Smoke out.", "smoke", cloud.Center);
+                // Only ours call it on our net; the enemy's smoke is just seen.
+                if (ReferenceEquals(u.Force, PlayerForce)) Radio(u, u.Name + ": Smoke out.", "smoke", cloud.Center);
             }
             Finish(u, null);
         }

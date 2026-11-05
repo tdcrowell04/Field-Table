@@ -138,6 +138,7 @@ namespace FieldTable.Sim
 
             // The post's ways: sleepers waking, the patrol walking its loop, the trap holding fire, and the reaction force.
             bool sprung = false, qrfCame = false;
+            Attack qrfAttack = null;
             var loop = Enumerable.Range(0, 6).Select(k => Standable(map, Inside(map, post + Turn(from, k * Math.PI / 3) * PatrolOut), Array.Empty<Vec2>())).ToList();
             int leg = 0;
             plan.HoldFire = u => goal == Trap && ambush.Contains(u) && !sprung;
@@ -188,14 +189,20 @@ namespace FieldTable.Sim
                 if (qrfCame)
                 {
                     var up = qrf.Where(u => u.CanAct).ToList();
-                    if (up.Count == 0 || up.Any(u => u.Order != null && u.Order.Verb != Verbs.Suppress)) return;
+                    if (up.Count == 0) return;
                     var target = knows.Contacts.Where(k => ReferenceEquals(k.Unit.Force, mission.Marines) && k.Unit.CanAct && !k.Unit.Def.Flying)
                         .OrderBy(k => Vec2.Distance(k.LastKnownPosition, up[0].Position)).FirstOrDefault();
-                    Vec2 to = target?.LastKnownPosition ?? post;
-                    if (Vec2.Distance(to, up[0].Position) < 20f) return;
-                    var guns = up.Where(u => u.Def.Id == "en-pkm").ToList();
-                    if (target != null) SuppressKnown(sim, guns, to, mission.Marines);
-                    TeamOrder(sim, qrf, "reaction force", to, target != null ? Verbs.Bound : Verbs.Move, null, up.Except(target != null ? guns : new List<Unit>()).ToList());
+                    if (target != null)
+                    {
+                        // Once they know where the raiders are, they attack the way the rest of their army does.
+                        if (qrfAttack == null) qrfAttack = new Attack(sim, qrf, "reaction force", target.LastKnownPosition, mission.Marines);
+                        else qrfAttack.Retarget(target.LastKnownPosition);
+                        qrfAttack.Tick();
+                        return;
+                    }
+                    if (up.Any(u => u.Order != null && u.Order.Verb != Verbs.Suppress)) return;
+                    if (Vec2.Distance(post, up[0].Position) < 20f) return;
+                    TeamOrder(sim, qrf, "reaction force", post, Verbs.Move);
                 }
             };
 

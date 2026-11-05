@@ -638,7 +638,9 @@
       "weapon": "ak",
       "ammo": 150,
       "grenades": 1,
-      "load": 14
+      "load": 14,
+      "helmet": true,
+      "plate": true
     },
     {
       "id": "en-sl",
@@ -648,7 +650,10 @@
       "ammo": 150,
       "grenades": 1,
       "load": 18,
-      "radio": true
+      "radio": true,
+      "smoke": 1,
+      "helmet": true,
+      "plate": true
     },
     {
       "id": "en-tl",
@@ -657,7 +662,10 @@
       "weapon": "ak",
       "ammo": 150,
       "grenades": 2,
-      "load": 15
+      "load": 15,
+      "smoke": 1,
+      "helmet": true,
+      "plate": true
     },
     {
       "id": "en-pkm",
@@ -667,7 +675,9 @@
       "ammo": 400,
       "load": 20,
       "walkSpeed": 1.2,
-      "runSpeed": 3.0
+      "runSpeed": 3.0,
+      "helmet": true,
+      "plate": true
     },
     {
       "id": "en-rpg",
@@ -678,7 +688,9 @@
       "launcher": "rpg",
       "launcherAmmo": 1,
       "load": 22,
-      "launcherAp": 2
+      "launcherAp": 2,
+      "helmet": true,
+      "plate": true
     },
     {
       "id": "en-eng",
@@ -686,7 +698,9 @@
       "figure": "oprf",
       "weapon": "ak",
       "ammo": 90,
-      "load": 18
+      "load": 18,
+      "helmet": true,
+      "plate": true
     },
     {
       "id": "en-snp",
@@ -694,7 +708,9 @@
       "figure": "oprf",
       "weapon": "svd",
       "ammo": 40,
-      "load": 14
+      "load": 14,
+      "helmet": true,
+      "plate": true
     },
     {
       "id": "en-hvt",

@@ -150,6 +150,7 @@ namespace FieldTable.Sim
             else if (goal == Counter)
             {
                 bool hit = false;
+                Attack attack = null;
                 foreach (var u in woods) u.Team = "counterattack";
                 plan.EverySecond = side =>
                 {
@@ -167,15 +168,13 @@ namespace FieldTable.Sim
                             var k = knows.Track(x);
                             k.Known = true; k.LastKnownPosition = x.Position; k.LastSeenStep = sim.Clock.Step;
                         }
-                        var guns = men.Where(u => u.Def.Id == "en-pkm").ToList();
-                        SuppressKnown(sim, guns, top, mission.Marines);
-                        TeamOrder(sim, woods, "counterattack", top, Verbs.Bound, null, men.Except(guns).ToList());
+                        // The gun holds the top down; a party swings round the side; the rest come on cover to cover.
+                        attack = new Attack(sim, woods, "counterattack", top, mission.Marines);
+                        attack.Tick();
                         sim.Shout(men[0], "Now! Take it back!", always: true);
                         return;
                     }
-                    if (men.Any(u => u.Order != null && u.Order.Verb != Verbs.Suppress)) return;
-                    var shortOf = men.Where(u => u.Def.Id != "en-pkm" && Vec2.Distance(u.Position, top) > Mission.OnObjective && u.Suppression < 0.5f).ToList();
-                    if (shortOf.Count > 0) TeamOrder(sim, woods, "counterattack", top, Verbs.Bound, null, shortOf);
+                    attack?.Tick();
                 };
             }
 

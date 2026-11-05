@@ -125,6 +125,7 @@ namespace FieldTable.Sim
                     var gun = NewGroup("fire", main, new[] { "en-pkm", "en-pkm", "en-rpg" }.Concat(Riflemen(Between(rng, 2, 3))).ToArray(), first);
                     var around = NewGroup("assault", second, new[] { "en-rpg" }.Concat(Riflemen(Between(rng, 8, 10))).ToArray(), first);
                     around.WaitFor = gun;
+                    around.Around = true;
                     break;
                 }
             }
@@ -248,6 +249,8 @@ namespace FieldTable.Sim
             public int Phase;
             public int GatheredTurn = -1;
             public bool Firing;
+            public bool Around;      // already coming in from the side, so it doesn't send its own flank
+            public Attack Assault;   // how it goes in (ledger round 19: smarter attackers)
         }
 
         const int Waiting = 0, Going = 1, Gathered = 2, In = 3, Done = 4;
@@ -338,18 +341,14 @@ namespace FieldTable.Sim
                         var other = g.WaitFor;
                         bool ready = other == null || other.Phase == Done || (other.Phase >= Gathered && (other.Role != "fire" || turn - other.GatheredTurn >= 1));
                         if (!ready && turn - g.GatheredTurn < 3) break;
-                        // The machine guns stay back and fire on the squad; the rest go in by bounds, half rushing while
-                        // the other half kneels and covers them.
-                        var guns = men.Where(u => u.Def.Id == "en-pkm").ToList();
-                        SuppressKnown(sim, guns, c, marines);
-                        TeamOrder(sim, g.Men, g.Team, c, Verbs.Bound, null, men.Except(guns).ToList());
+                        // In they go: the machine guns stay back and fire on the squad, a party swings round the side,
+                        // and the rest come on cover to cover, with smoke before open ground.
+                        g.Assault = new Attack(sim, g.Men, g.Team, c, marines, flank: !g.Around);
                         g.Phase = In;
+                        g.Assault.Tick();
                         break;
                     case In:
-                        // Once they've all stopped, any still short of the crossing go again, as long as they aren't pinned.
-                        if (men.Any(u => u.Order != null && u.Order.Verb != Verbs.Suppress)) break;
-                        var shortOf = men.Where(u => Vec2.Distance(u.Position, c) > HoldWithin * 0.5f && u.Suppression < 0.5f && u.Def.Id != "en-pkm").ToList();
-                        if (shortOf.Count > 0) TeamOrder(sim, g.Men, g.Team, c, Verbs.Bound, null, shortOf);
+                        g.Assault?.Tick();
                         break;
                 }
             }

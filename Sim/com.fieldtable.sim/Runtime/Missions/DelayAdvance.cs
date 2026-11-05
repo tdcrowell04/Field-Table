@@ -156,6 +156,10 @@ namespace FieldTable.Sim
             // A group whose order didn't take (no way there) waits a bit and tries the next waypoint, instead of
             // searching for a route every second.
             var waitUntil = new Dictionary<string, int>();
+            // Each squad in contact attacks what's holding it up (ledger round 19: smarter attackers).
+            var attacks = new Dictionary<string, Attack>();
+            // Positions they've already overrun: they push on past them instead of attacking them again.
+            var overrun = new List<Vec2>();
             plan.EverySecond = side =>
             {
                 int turn = sim.Clock.Turn;
@@ -187,6 +191,31 @@ namespace FieldTable.Sim
                     if (up.Count == 0 || plan.FallingBack) continue;
                     // Through the last waypoint: they walk off the battalion's edge and are past everything.
                     foreach (var u in up.Where(u => Vec2.Distance(u.Position, exitPoint) <= 15f)) sim.LeaveMap(u);
+                    // In contact (not the scouts, who watch): attack the nearest of the squad they know about that's in
+                    // their way, ahead of them up the road. Once they've overrun it, they carry on.
+                    if (name != "scouts")
+                    {
+                        Vec2 mid = new Vec2(up.Average(u => u.Position.X), up.Average(u => u.Position.Y));
+                        // Off the road while fighting, their place along it still moves on with them, so when the fight's
+                        // over they carry on from here instead of going back.
+                        int closest = Enumerable.Range(0, route.Count).OrderBy(i => Vec2.Distance(route[i], mid)).First();
+                        if (closest + 1 > next) { next = Math.Min(route.Count - 1, closest + 1); group[name] = (men, route, next, arriveTurn); }
+                        Vec2 onward = MissionKit.Unit(route[next] - mid);
+                        var near = knows.Contacts.Where(k => k.Known && ReferenceEquals(k.Unit.Force, mission.Marines) && k.Unit.CanAct && !k.Unit.Def.Flying
+                                && sim.Clock.Step - k.LastSeenStep <= 60 * SimClock.StepsPerSecond && Vec2.Distance(k.LastKnownPosition, mid) <= 450f
+                                && Dot(k.LastKnownPosition - mid, onward) > 20f && !overrun.Any(o => Vec2.Distance(o, k.LastKnownPosition) <= 80f))
+                            .OrderBy(k => Vec2.Distance(k.LastKnownPosition, mid)).FirstOrDefault();
+                        if (attacks.TryGetValue(name, out var was) && was.Done) { overrun.Add(was.Objective); near = null; }
+                        if (near != null)
+                        {
+                            if (!attacks.TryGetValue(name, out var attack)) attacks[name] = attack = new Attack(sim, men, name, near.LastKnownPosition, mission.Marines);
+                            else attack.Retarget(near.LastKnownPosition);
+                            attack.Tick();
+                            continue;
+                        }
+                        // Nobody to fight for a minute: back to the road.
+                        if (attacks.Remove(name)) foreach (var u in men) u.Team = name;
+                    }
                     if (up.Any(u => u.Order != null && u.Order.Verb != Verbs.Suppress)) continue;
                     // Scouts stop once they've found the squad, and watch.
                     if (name == "scouts" && scoutsFound) continue;
