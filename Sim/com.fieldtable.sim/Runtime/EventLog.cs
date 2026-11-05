@@ -174,6 +174,15 @@ namespace FieldTable.Sim
 
     /// <summary>A line on the radio net. Written from templates now; the in-game AI can voice them later.</summary>
     /// <summary>A unit hurt by its own side's fire.</summary>
+    /// <summary>Someone was hit by someone's fire (a round or a blast). Kept so a mission can tell who hurt whom.</summary>
+    public sealed class HitBy : SimEvent
+    {
+        public Unit Shooter { get; }
+        public Unit Victim { get; }
+        public HitBy(Unit shooter, Unit victim) { Shooter = shooter; Victim = victim; }
+        public override string Describe() => Victim.Name + " is hit by " + Shooter.Name + "'s fire.";
+    }
+
     public sealed class FriendlyFire : SimEvent
     {
         public Unit Shooter { get; }

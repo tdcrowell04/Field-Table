@@ -516,7 +516,10 @@
       "casevacMin": 5,
       "casevacMax": 10,
       "missions": [
-        "crew"
+        "crew",
+        "patrol",
+        "river",
+        "rubble"
       ],
       "column": [
         {

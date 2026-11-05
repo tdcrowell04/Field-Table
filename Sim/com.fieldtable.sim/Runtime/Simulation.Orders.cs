@@ -265,10 +265,12 @@ namespace FieldTable.Sim
                     {
                         // Our own, a friend from another unit (like a downed crew), or a prisoner, who walks with his escort.
                         var cas = order.TargetUnit;
-                        bool ally = cas != null && !ReferenceEquals(cas.Force, unit.Force) && !cas.Force.Civilian && !AreHostile(unit.Force, cas.Force);
+                        // A civilian being rescued (dug out of rubble, say) can be carried too.
+                        bool ally = cas != null && !ReferenceEquals(cas.Force, unit.Force) && (!cas.Force.Civilian || cas.Passenger) && !AreHostile(unit.Force, cas.Force);
                         if (cas == null || !(ReferenceEquals(cas.Force, unit.Force) || ally || cas.Detained) || ReferenceEquals(cas, unit) || cas.Def.Flying || cas.Captured) return Fail(check, "Say again, carry who?");
-                        if (cas.Condition == Condition.Dead) return Fail(check, cas.Name + " is gone, Lead.");
-                        if (!(cas.Condition == Condition.Down || cas.LegHit || cas.Detained)) return Fail(check, cas.Name + " can walk, Lead.");
+                        // The dead of a friendly unit we've come for can be carried out; anyone else who's dead stays.
+                        if (cas.Condition == Condition.Dead && !(ally && cas.Passenger)) return Fail(check, cas.Name + " is gone, Lead.");
+                        if (!(cas.Condition == Condition.Down || cas.Condition == Condition.Dead || cas.LegHit || cas.Detained)) return Fail(check, cas.Name + " can walk, Lead.");
                         if (string.IsNullOrWhiteSpace(order.Where))
                         {
                             if (Evac == null) return Fail(check, "Carry " + cas.Name + " where, Lead?");
@@ -428,7 +430,8 @@ namespace FieldTable.Sim
         {
             var friend = units.FirstOrDefault(u => ReferenceEquals(u.Force, unit.Force) && u.IsCalled(name));
             if (friend != null) return friend;
-            var known = Fog.For(unit.Force).Contacts.Select(c => c.Unit).Where(u => u.Condition != Condition.Dead && !u.Gone).ToList();
+            // The dead aren't targets, except a friendly unit's dead we've come to bring out.
+            var known = Fog.For(unit.Force).Contacts.Select(c => c.Unit).Where(u => (u.Condition != Condition.Dead || u.Passenger) && !u.Gone).ToList();
             // An exact name wins over a partial one, so "Rifleman 1" never means "Rifleman 12".
             var exact = known.Where(u => u.IsCalled(name)).OrderBy(u => Vec2.Distance(unit.Position, Fog.For(unit.Force).About(u.Id).LastKnownPosition)).FirstOrDefault();
             if (exact != null) return exact;

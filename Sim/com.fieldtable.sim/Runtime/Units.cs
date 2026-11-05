@@ -220,6 +220,9 @@ namespace FieldTable.Sim
         /// <summary>Taken prisoner by the other side and led away.</summary>
         public bool Captured { get; internal set; }
 
+        /// <summary>Trapped under a fallen building: off the table until someone digs them out.</summary>
+        public bool Trapped { get; internal set; }
+
         /// <summary>Something the squad wants that this person carries, like a crate of rifles. Searching them takes it.</summary>
         public string Cargo { get; internal set; }
 

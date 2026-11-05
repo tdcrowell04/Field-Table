@@ -24,7 +24,7 @@ namespace FieldTable.Sim
     public static class StartStates
     {
         public const string Bridge = "bridge", Raid = "raid", Crossroads = "crossroads", Crew = "crew", Clear = "clear", SupplyAmbush = "ambush",
-            Hill = "hill", DelayAdvance = "delay", ObservationPost = "post", Random = "random";
+            Hill = "hill", DelayAdvance = "delay", ObservationPost = "post", Patrol = "patrol", River = "river", Rubble = "rubble", Random = "random";
 
         public static readonly IReadOnlyList<StartState> All = new[]
         {
@@ -37,6 +37,10 @@ namespace FieldTable.Sim
             new StartState(Hill, "Take the hill", TakeTheHill.Create),
             new StartState(DelayAdvance, "Delay the advance", Sim.DelayAdvance.Create),
             new StartState(ObservationPost, "Raid the observation post", RaidObservationPost.Create),
+            // Rescue missions for Pararescue (ledger round 19).
+            new StartState(Patrol, "Pull out the wounded patrol", WoundedPatrol.Create),
+            new StartState(River, "Crash in the river", RiverCrash.Create),
+            new StartState(Rubble, "The collapsed building", CollapsedBuilding.Create),
         };
 
         public static StartState Find(string id) => All.FirstOrDefault(s => string.Equals(s.Id, id, StringComparison.OrdinalIgnoreCase));

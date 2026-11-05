@@ -1573,6 +1573,8 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
   function mainWord(o) { return { notyet: o.notYetWord, onit: o.onItWord, done: o.doneWord }[o.mainStatus]; }
   function winText() { return S.state.objectives.win; }
   function loseText() { return S.state.objectives.lose; }
+  // The friends a mission is about, for the quick brief: what to call them, and what to say before they're found.
+  const FRIENDS = { crew: ["Crew", "Not found yet. Last heard near the wreck."], river: ["Crew", "In the river and on the sandbar."], patrol: ["Patrol", "Pinned where the brief says."] };
   function quickBriefHtml() {
     const o = S.state.objectives, st = S.state.units;
     const seen = [], friends = [], squad = { up: 0, hurt: 0, down: 0, dead: 0, out: 0 };
@@ -1593,7 +1595,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       + "<div class=\"obj\"><h3 class=\"mini\">Secondary objectives</h3>" + o.secondary.map(x => objRow(x.status, x.text, x.status)).join("") + "</div>"
       + "<dl class=\"facts\"><dt>Win</dt><dd>" + esc(winText()) + "</dd><dt>Lose</dt><dd>" + esc(loseText()) + "</dd><dt>ROE</dt><dd>" + esc(o.roe) + "</dd>"
       + "<dt>Enemy</dt><dd>" + (seen.length ? seen.join("<br>") : "None seen yet. Strength unknown.") + "</dd>"
-      + (S.m.kind === "crew" ? "<dt>Crew</dt><dd>" + (friends.length ? friends.join("<br>") : "Not found yet. Last heard near the wreck.") + "</dd>" : "")
+      + (FRIENDS[S.m.kind] ? "<dt>" + FRIENDS[S.m.kind][0] + "</dt><dd>" + (friends.length ? friends.join("<br>") : FRIENDS[S.m.kind][1]) + "</dd>" : "")
       + "<dt>" + esc(cap(S.m.side.group)) + "</dt><dd>" + esc(squadLine) + "</dd><dt>Time</dt><dd>Turn " + S.state.turn + " of " + S.state.turnLimit + "</dd></dl>"
       + "<div class=\"acts\"><button class=\"btn small\" type=\"button\" id=\"briefMode\">Full brief</button></div>"
       + "<p>Tap a " + esc(S.m.side.member) + " to name them in your orders, or tap the ground to name a spot. Send reads the orders; Play turn plays one minute.</p></div>";

@@ -117,8 +117,8 @@ namespace FieldTable.Sim.Tests
             Assert.Equal(9, data.FindSide(Sides.Marines).Missions.Count);
             Assert.Equal(9, data.FindSide(Sides.Army).Missions.Count);
             Assert.Equal(new[] { StartStates.Raid, StartStates.ObservationPost, StartStates.SupplyAmbush, StartStates.Crew }, data.FindSide(Sides.Seals).Missions);
-            Assert.Equal(new[] { StartStates.Crew }, data.FindSide(Sides.Pararescue).Missions);
-            for (ulong seed = 1; seed <= 5; seed++) Assert.Equal(StartStates.Crew, Make(StartStates.Random, Sides.Pararescue, seed).Kind);
+            Assert.Equal(new[] { StartStates.Crew, StartStates.Patrol, StartStates.River, StartStates.Rubble }, data.FindSide(Sides.Pararescue).Missions);
+            for (ulong seed = 1; seed <= 5; seed++) Assert.Contains(Make(StartStates.Random, Sides.Pararescue, seed).Kind, data.FindSide(Sides.Pararescue).Missions);
         }
 
         [Fact]

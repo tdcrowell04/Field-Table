@@ -555,7 +555,7 @@ namespace FieldTable.Sim
         void ThinkCarry(Unit u, Order o)
         {
             var c = o.TargetUnit;
-            if (c == null || c.Gone || c.Condition == Condition.Dead) { Finish(u, null); return; }
+            if (c == null || c.Gone || (c.Condition == Condition.Dead && !c.Passenger)) { Finish(u, null); return; }
             if (ReferenceEquals(c.CarriedBy, u)) return;
             if (c.CarriedBy != null)
             {
@@ -563,7 +563,7 @@ namespace FieldTable.Sim
                 var lead = c.CarriedBy;
                 if (Vec2.Distance(u.Position, lead.Position) > 2.5f && (u.Path == null || Clock.Step % (2 * SimClock.StepsPerSecond) == 0))
                 {
-                    u.Path = Paths.Find(u.Position, lead.Position, false);
+                    u.Path = Paths.Find(u.Position, lead.Position, o.Swim);
                     u.PathIndex = 0;
                     u.Speed = MoveSpeed.Run;
                 }
@@ -574,7 +574,7 @@ namespace FieldTable.Sim
             c.CarriedBy = u;
             c.Path = null;
             u.Speed = MoveSpeed.Walk;
-            u.Path = Paths.Find(u.Position, o.Point.Value, false);
+            u.Path = Paths.Find(u.Position, o.Point.Value, o.Swim);
             u.PathIndex = 0;
             if (u.Path == null) { c.CarriedBy = null; Finish(u, u.Name + ": Can't get " + c.Name + " there, Lead."); }
         }
@@ -681,7 +681,8 @@ namespace FieldTable.Sim
             foreach (var x in units)
             {
                 bool passenger = x.Passenger && !AreHostile(x.Force, PlayerForce);
-                if (!(ReferenceEquals(x.Force, PlayerForce) || passenger) || x.Gone || x.Def.Flying || x.Condition == Condition.Dead) continue;
+                // A friendly unit's dead go out too, when they've been brought to the landing zone.
+                if (!(ReferenceEquals(x.Force, PlayerForce) || passenger) || x.Gone || x.Def.Flying || (x.Condition == Condition.Dead && !passenger)) continue;
                 if (!(x.Condition == Condition.Down || x.LegHit || passenger) || Vec2.Distance(x.Position, e.Lz) > CasevacLoadRadius) continue;
                 x.CarriedBy = null;
                 x.Gone = true;

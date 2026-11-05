@@ -9,9 +9,9 @@ namespace FieldTable.Sim.Tests
         static readonly System.Lazy<NamePools> names = new System.Lazy<NamePools>(() => NamePools.FromJson(Read("names.json")));
 
         [Fact]
-        public void NineMissionsEachWithAWayToWinAndLose()
+        public void TwelveMissionsEachWithAWayToWinAndLose()
         {
-            Assert.Equal(new[] { "bridge", "raid", "crossroads", "crew", "clear", "ambush", "hill", "delay", "post" }, StartStates.All.Select(s => s.Id));
+            Assert.Equal(new[] { "bridge", "raid", "crossroads", "crew", "clear", "ambush", "hill", "delay", "post", "patrol", "river", "rubble" }, StartStates.All.Select(s => s.Id));
             foreach (var state in StartStates.All)
             {
                 var m = StartStates.Create(state.Id, Scene.Data, names.Value, 7);

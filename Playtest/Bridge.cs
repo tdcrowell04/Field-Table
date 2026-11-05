@@ -114,7 +114,7 @@ namespace FieldTable.Playtest
                 w.WriteString("id", st.Id);
                 w.WriteString("name", st.Name);
                 // The missions whose arrival turn a custom game can set.
-                w.WriteBoolean("arrival", st.Id == StartStates.Crossroads || st.Id == StartStates.ObservationPost || st.Id == StartStates.SupplyAmbush);
+                w.WriteBoolean("arrival", st.Id == StartStates.Crossroads || st.Id == StartStates.ObservationPost || st.Id == StartStates.SupplyAmbush || st.Id == StartStates.River);
                 w.WriteEndObject();
             }
             w.WriteEndArray();

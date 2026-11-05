@@ -615,6 +615,7 @@ namespace FieldTable.Sim
         internal void Wound(Unit v, WeaponDef w, Unit by)
         {
             if (v.Condition == Condition.Dead || v.Gone) return;
+            if (by != null) Record(new HitBy(by, v));
             if (by != null && ReferenceEquals(by.Force, v.Force))
             {
                 Record(new FriendlyFire(by, v));
@@ -721,6 +722,9 @@ namespace FieldTable.Sim
         }
 
         internal void KnockDownForTest(Unit u) => Down(u, "a test");
+
+        /// <summary>Someone in the water who's been in too long goes under, like a downed crew member the current carries off.</summary>
+        internal void GoUnder(Unit u) => Kill(u, "drowned");
         internal void RemoveUnitForTest(Unit u) => units.Remove(u);
 
         /// <summary>Takes someone out of the fight for good, as if they'd never come: dead to anything still holding them, and gone from the table.</summary>
