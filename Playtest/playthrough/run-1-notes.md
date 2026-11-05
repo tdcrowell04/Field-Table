@@ -1,0 +1,46 @@
+# AAR notes (running)
+## Run 1 (expert, Opus, Marines, Raid the OP "Jasper Blind")
+- T1: game master wrote "the post (F5)" with grid in brackets; sim couldn't resolve -> say again.
+- T1: "Bravo follow Charlie" -> "Say again, follow who?" Team can't follow a team. Still failing after re-send.
+- T1: Not covered: weapons tight/hold fire, routes/waypoints (via C2, D2), report when set, SALUTE, mission intent/ROE statement, stay off crest, positive ID, keep standoff/altitude.
+- T1: Lead/Doc/interpreter "moving with the assault" dropped (HQ got no order).
+- T1: Individual orders overwritten by team orders in the same send: Duarte observe F5 -> replaced by Alpha move; Mercer fly drone -> replaced by Charlie move (no drone went up).
+- Each Haiku read 40-50 s.
+- T2: Player asked Mercer to "halt and launch the drone"; game master turned it into "Mercer follow Charlie" and listed launch as not covered, though fly drone exists. Game master missed a verb it has.
+- T2: "say status of the drone" (a question to a Marine) not covered: no way to ask a unit for status.
+- T2: "Disregard" and "trail by 50 m" not covered.
+- T2: Player had to give Lead/HQ their own move; expert noted "my mistake" (fine, realistic).
+- T2: On the re-read of all the turn's messages, Haiku dropped Ruiz's (Lead's) own move. Re-reading the whole turn can lose orders it got right the first time.
+- T2: A Marine can't both keep moving with his team and fly the drone; game master put "stay with Charlie" as not covered.
+- T2 result: Alpha walked straight over the crest of the hill at C3 (the player had said stay off it, and gave a route; neither covered). Enemy OP saw them at ~300 m: Duarte killed (head), Novak down (leg) in minute 2. First casualties trace straight to the missing route/crest support.
+- T2: Drone finally up at 1:14, spotted 8 enemy fast. Drone works well once ordered.
+- T3: Game master wrote targets as "PKM gunner 2 (enemy)" -> "Say again, which PKM gunner 2 (enemy)? We don't have eyes on that." Same bracket problem as "the post (F5)". Contacts in plain view on the drone, but the Marines couldn't fire on them. Hit Ortiz's suppress and Okafor's Gustaf.
+- T3: "suppress the trench at E5" -> "I don't have it marked." A where with a grid in it should resolve to the grid.
+- T3: Good reads: halt -> hold, drag Novak to B3 -> carry, Doc hold at B3, Bravo base of fire -> overwatch from D3, Charlie halt at C2.
+- T3: "call targets" not covered (drone spotting already reports contacts on its own, so this one is mostly there).
+- T3: Player read the "which PKM gunner 2? We don't have eyes on that" as realism and switched to grid area fire. It was really the bracket bug; drone had eyes and the net had just reported the gunner. A player can't tell a bug from realism.
+- T3: "When you're set in the D3 woods, Gustaf HE at F5" -> conditional dropped; Okafor and Tran stopped moving and fired from B2 right away. "When X, do Y" (sequence/trigger) is the most natural expert phrasing and isn't supported.
+- T3: Keller (interpreter) kept his old "move to scrub at E2" order alone and wandered forward to C3 toward the enemy. Old orders on people the player stopped thinking about.
+- T3 result: OP force pulled back east from F5 to G5-G7 once under fire/drone (enemy breaking contact). 
+- T4: Areas/lines between grids ("crest from F4 to F6", "G5 through G7") -> game master itself asked say again ("three squares"). Should take the middle or the line.
+- T4: "cease fire" not covered as a verb, though the new overwatch orders replaced the fire anyway, so the effect happened.
+- T4: Mercer: "hold at C2 and keep the bird on the enemy" -> game master gave Mercer move C2 + report, which replaced his fly drone order (risk: drone order dropped). One Marine can carry only one order; drone + hold conflict again.
+- T4: "report any movement toward the post" -> verb "report" with "the post (F5)" -> bracket bug again.
+- T4: Expert adapted: 'it wants one square, not a span. A real sector of fire is left and right limits, but I'll give it single grids so it sticks.' Player learning the parser's limits instead of the game learning the player.
+- T4: "cease fire" still not covered even as a plain order (5 times now). Most-asked missing verb so far along with routes and hold fire.
+- T4: Okafor "Say again, which the post (F5)?" again; Alpha voice says "Overwatch on the post (F5)" reading the bracket aloud.
+- T4: "drag Novak back to B3": B3 resolved to a spot on the B/C edge (23 m away), so Novak stays at C3 on the list. Grid squares may resolve to the nearest point, not the middle.
+- T4 result: the OP force keeps running east, now H8-I7, ~400 m past the post. Post empty.
+- ROOT CAUSE of bracket bug: the reader prompt itself lists places as "the post (F5), their observation post on Hill 17A" and contacts as "Squad leader 1 (enemy)". Haiku copies the label whole. Fix: page strips a trailing "(...)" when matching, and/or the prompt lists them as "the post: at F5".
+- T5: The bracket bug blocked the main assault: Charlie search the post, Ruiz move to the post all came back "Say again, where is the post (F5)?"
+- T5: Game master invented an order: "Alpha, assaulting the post at F5" when the player never told Alpha to move (read "All stations... we take the post now" as an Alpha assault). Ortiz was supposed to stay on overwatch; Doyle was with the casualty.
+- T5: Prisoner handling read well: Keller talk to Rifleman 2 at E5, Boone detain Rifleman 2.
+- T5: Not covered: "wreck the radio and the scopes" (the raid's main task!), "check him / search him", "keep eyes on and report".
+- T5: Corrections all took using bare grids. Doc stabilized Novak. Enemy now at J8-J9, near the map edge, still running.
+- T6: 'Keller, halt and hold at D4' -> Keller walked BACK to C4 (D4 resolved to a spot, not 'stay where you are'). 'Halt' should mean stop right here. Expert noticed.
+- T8: Keller, told to hold at D4 until called, moved on his own to E5 (next to the downed enemy) doing 'nothing' — looks like the interpreter tags along with Lead once idle, overriding the hold. Boone 'search Rifleman 2' sat at E4 two minutes. Movement up the slope slow (Charlie ~2 turns at E4).
+- T9: Sato and Banks topped the ridge at F4/F5 and were both put down by a PKM from J10 (~600 m) within 10 s. No 'Taking fire' call, no return fire, and nobody fired on the gun. Expert had predicted 'shoot whoever tops the crest'; the game has no 'approach from the side / stay below the crest' tool to avoid it. Possible balance note: 2 chest hits in 10 s at ~600 m.
+- T10: "Pop smoke on F5 to screen" from E5 -> "Too far to throw, past 35 m." Smoke should go as far as it can toward the place (a screen), not refuse.
+- T10: "pop smoke, then drag Sato" (two steps for one Marine) -> game master asked to say the drag as its own order. Sequences again.
+- T10: "Mercer, find me the gun" -> game master gave Mercer 'observe J10' (from B2, by eye) instead of flying the drone there. Drone task read as a person task.
+- T10: "Be ready to ... finish the search" -> game master raised 'Bravo: say again, search what?' (readiness/standby isn't an order).

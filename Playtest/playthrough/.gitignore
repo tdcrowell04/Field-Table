@@ -1,0 +1,6 @@
+prompt-*.txt
+transcript-*.md
+answer*.json
+traffic.txt
+shots-*/
+*.log
