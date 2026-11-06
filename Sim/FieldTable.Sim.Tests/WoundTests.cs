@@ -215,7 +215,8 @@ namespace FieldTable.Sim.Tests
         {
             var s = new Scene();
             var m = s.Add("m", "rf", s.Blue, 100, 300);
-            Assert.True(s.Sim.Give(m, new Order { Verb = Verbs.ThrowSmoke, Where = "B4" }).Ok == false);
+            // Past a throw, it goes as far as it can toward the spot.
+            Assert.Contains(s.Sim.Check(m, new Order { Verb = Verbs.ThrowSmoke, Where = "B4" }).Warnings, w => w.Contains("past a throw"));
             var check = s.Sim.Give(m, new Order { Verb = Verbs.ThrowSmoke });
             Assert.True(check.Ok);
             s.Sim.RunTurn();

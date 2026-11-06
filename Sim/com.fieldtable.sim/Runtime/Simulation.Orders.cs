@@ -33,17 +33,21 @@ namespace FieldTable.Sim
         /// Gives an order to everyone it names. A team spreads out side by side instead of piling onto one spot.
         /// Each unit's check comes back, whether or not it could do it.
         /// </summary>
-        public List<OrderCheck> GiveOrder(Force force, string who, Order order)
+        public List<OrderCheck> GiveOrder(Force force, string who, Order order) => GiveOrder(force, who, order, null);
+
+        List<OrderCheck> GiveOrder(Force force, string who, Order order, ISet<Unit> except)
         {
             var list = UnitsCalled(force, who);
             var results = new List<OrderCheck>();
             order.Verb = (order.Verb ?? "").Trim().ToLowerInvariant();
-            var teams = list.Select(u => u.Team).Distinct().ToList();
             if (list.Count == 0)
             {
                 results.Add(new OrderCheck { Ok = false, Problem = "Nobody called " + who + " in " + force.Name + "." });
                 return results;
             }
+            if (except != null) list = list.Where(u => !except.Contains(u)).ToList();
+            if (list.Count == 0) return results;
+            var teams = list.Select(u => u.Team).Distinct().ToList();
             int group = ++nextGroup;
             var able = list.Where(u => u.CanAct).ToList();
             Vec2 centroid = able.Count > 0 ? Average(able.Select(u => u.Position)) : list[0].Position;
@@ -64,6 +68,37 @@ namespace FieldTable.Sim
             return results;
         }
 
+        /// <summary>The whole squad, or one of its teams, rather than one person.</summary>
+        public bool IsGroupName(Force force, string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return false;
+            string n = name.Trim();
+            if (n.Equals("squad", StringComparison.OrdinalIgnoreCase) || n.Equals("all", StringComparison.OrdinalIgnoreCase) || n.Equals("everyone", StringComparison.OrdinalIgnoreCase)) return true;
+            return units.Any(u => ReferenceEquals(u.Force, force) && string.Equals(u.Team, n, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Orders that came in one radio call, given (or only checked) together. Someone named on their own keeps their
+        /// own order even when their team or the whole squad gets one in the same call, before or after it: "Duarte,
+        /// observe F5. Alpha, move to the woods" leaves Duarte observing. One list of checks comes back per order.
+        /// </summary>
+        public List<List<OrderCheck>> GiveOrders(Force force, IReadOnlyList<(string who, Order order)> batch, bool give = true)
+        {
+            var alone = new HashSet<Unit>();
+            foreach (var (who, _) in batch)
+                if (!IsGroupName(force, who)) foreach (var u in UnitsCalled(force, who)) alone.Add(u);
+            var results = new List<List<OrderCheck>>();
+            foreach (var (who, order) in batch)
+            {
+                var except = IsGroupName(force, who) ? alone : null;
+                if (give) { results.Add(GiveOrder(force, who, order, except)); continue; }
+                var list = UnitsCalled(force, who);
+                if (list.Count == 0) { results.Add(GiveOrder(force, who, order, null)); continue; }
+                results.Add(list.Where(u => except == null || !except.Contains(u)).Select(u => Check(u, order)).ToList());
+            }
+            return results;
+        }
+
         /// <summary>Checks an order without carrying it out.</summary>
         public OrderCheck Check(Unit unit, Order order) => Resolve(unit, order.Copy(), default);
 
@@ -75,6 +110,8 @@ namespace FieldTable.Sim
             var check = Resolve(unit, order, offset);
             if (!check.Ok) return check;
             unit.Order = order;
+            // Told to hold or get down: they stay put until told otherwise, even once the order is done.
+            unit.StayPut = order.Verb == Verbs.Hold || order.Verb == Verbs.ChangePosture;
             unit.Path = check.Path;
             unit.PathIndex = 0;
             unit.TaskSeconds = 0f;
@@ -100,6 +137,11 @@ namespace FieldTable.Sim
             // A request names what it asks for, not a place or a person; flying the drone home names no place.
             if (verb == Verbs.Request && string.IsNullOrWhiteSpace(order.Kind) && !string.IsNullOrWhiteSpace(order.Target)) { order.Kind = order.Target; order.Target = null; }
             if (verb == Verbs.FlyDrone && order.Where != null && RecallWords.Contains(order.Where.Trim().ToLowerInvariant())) order.Where = null;
+
+            // A name with a note in brackets, like "the post (F5)" or "PKM gunner 2 (enemy)": the name without the note,
+            // or the note when only it makes sense.
+            order.Where = WithoutNote(order.Where, x => TryPlace(unit, x, out _));
+            order.Target = WithoutNote(order.Target, x => FindTarget(unit, x) != null || TryPlace(unit, x, out _));
 
             // Where the order points, if anywhere.
             if (!string.IsNullOrWhiteSpace(order.Where))
@@ -213,7 +255,13 @@ namespace FieldTable.Sim
                     if (unit.Smokes <= 0) return Fail(check, unit.Name + " is out of smoke.");
                     if (order.Point == null && order.TargetUnit != null) order.Point = order.TargetUnit.Position;
                     if (order.Point == null) order.Point = SmokeSpot(unit);
-                    if (Vec2.Distance(unit.Position, order.Point.Value) > ThrowRange) return Fail(check, "Too far to throw, that's past 35 meters.");
+                    // Past a throw: it goes as far as it can toward the spot, a screen between them and us.
+                    if (Vec2.Distance(unit.Position, order.Point.Value) > ThrowRange)
+                    {
+                        var toward = order.Point.Value - unit.Position;
+                        order.Point = Clamp(unit.Position + toward * ((ThrowRange - 1f) / toward.Length));
+                        check.Warnings.Add("That's past a throw. Smoke goes " + (int)(ThrowRange - 1f) + " m toward it.");
+                    }
                     break;
 
                 case Verbs.Clear:
@@ -278,6 +326,13 @@ namespace FieldTable.Sim
                             order.Where = "the LZ";
                         }
                         if (Paths.Find(cas.Position, order.Point.Value, order.Swim) == null) return Fail(check, "No way to carry " + cas.Name + " there from here.");
+                        // Already carrying them (told again, or told somewhere new): keep hold and head there.
+                        if (ReferenceEquals(cas.CarriedBy, unit))
+                        {
+                            check.Path = Paths.Find(unit.Position, order.Point.Value, order.Swim);
+                            if (check.Path == null) return Fail(check, "No way to carry " + cas.Name + " there from here.");
+                            break;
+                        }
                         var toCasualty = Paths.Find(unit.Position, cas.Position, order.Swim);
                         if (toCasualty == null) return Fail(check, "No way to get to " + cas.Name + " from here.");
                         check.Path = toCasualty;
@@ -430,6 +485,12 @@ namespace FieldTable.Sim
         {
             var friend = units.FirstOrDefault(u => ReferenceEquals(u.Force, unit.Force) && u.IsCalled(name));
             if (friend != null) return friend;
+            // A team by name, like "follow Charlie": whoever leads it now, the first of them still on their feet.
+            if (unit.Force != null && IsGroupName(unit.Force, name) && units.Any(u => ReferenceEquals(u.Force, unit.Force) && string.Equals(u.Team, name.Trim(), StringComparison.OrdinalIgnoreCase)))
+            {
+                var lead = UnitsCalled(unit.Force, name).FirstOrDefault(u => u.CanAct && !ReferenceEquals(u, unit));
+                if (lead != null) return lead;
+            }
             // The dead aren't targets, except a friendly unit's dead we've come to bring out.
             var known = Fog.For(unit.Force).Contacts.Select(c => c.Unit).Where(u => (u.Condition != Condition.Dead || u.Passenger) && !u.Gone).ToList();
             // An exact name wins over a partial one, so "Rifleman 1" never means "Rifleman 12".
@@ -438,6 +499,17 @@ namespace FieldTable.Sim
             string n = name.Trim().ToLowerInvariant();
             var matches = known.Where(u => u.IsCalled(name) || (u.Name ?? "").ToLowerInvariant().Contains(n) || (u.Def.Name ?? "").ToLowerInvariant().Contains(n)).ToList();
             return matches.OrderBy(u => Vec2.Distance(unit.Position, Fog.For(unit.Force).About(u.Id).LastKnownPosition)).FirstOrDefault();
+        }
+
+        static string WithoutNote(string text, Func<string, bool> works)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            var m = System.Text.RegularExpressions.Regex.Match(text.Trim(), @"^(.*?)\s*\(([^()]*)\)\s*$");
+            if (!m.Success || works(text)) return text;
+            string main = m.Groups[1].Value.Trim(), note = m.Groups[2].Value.Trim();
+            if (main.Length > 0 && works(main)) return main;
+            if (note.Length > 0 && works(note)) return note;
+            return main.Length > 0 ? main : text;
         }
 
         static readonly HashSet<string> RecallWords = new HashSet<string> { "back", "home", "land", "me", "here", "base" };

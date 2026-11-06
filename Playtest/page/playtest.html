@@ -1901,8 +1901,9 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     });
     L.push("", "VERBS: use exactly one of these per order, with the blanks shown:", VERB_HELP);
     L.push("", "WHERE: a grid square (columns A to " + String.fromCharCode(64 + S.map.cols) + ", rows 1 to " + S.map.rows + ", 100 meters each, like \"E3\"), a place below written exactly as shown, six-digit coordinates written like \"452 287\" (meters east, then meters north), a " + side.member + " or team name, or a kind of ground in a square, written like \"woods at C3\" (woods, field, crops, reeds, scrub, orchard, hedge, wall, rocks, gully, road, trail, creek, building, farmyard, cliff, bridge).", "PLACES:");
-    S.map.places.forEach(p => { if (p.kind !== "control") L.push("- " + p.label + " (" + p.grid + ")" + (p.note ? ", " + p.note : "")); });
-    S.map.buildings.forEach(b => L.push("- " + b.label + " (" + gridOf(b.x + b.w / 2, b.y + b.h / 2) + ")"));
+    // Names are listed on their own, never with a note in brackets, so the reader writes back just the name.
+    S.map.places.forEach(p => { if (p.kind !== "control") L.push("- " + p.label + ": at " + p.grid + (p.note ? ", " + p.note : "")); });
+    S.map.buildings.forEach(b => L.push("- " + b.label + ": at " + gridOf(b.x + b.w / 2, b.y + b.h / 2)));
     L.push("", "GROUND IN EACH SQUARE, most first:");
     (S.squareGround || []).forEach(line => L.push("- " + line));
     L.push("", "CONTACTS the squad has seen. Use these names for target:");
@@ -1912,7 +1913,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       if (r.side === "us" || !u || u.gone) return;
       any = true;
       const age = Math.max(0, Math.round((S.state.step - (u.lastSeen || 0)) / 600));
-      L.push("- " + r.name + " (" + (r.side === "civ" ? "civilian" : r.side === "friend" ? "friend, on our side" : "enemy") + "): " + (u.seen ? "seen now at " + u.grid : "last seen " + (age < 1 ? "just now" : age + " min ago") + " at " + u.grid));
+      L.push("- " + r.name + ": " + (r.side === "civ" ? "civilian" : r.side === "friend" ? "friend, on our side" : "enemy") + ", " + (u.seen ? "seen now at " + u.grid : "last seen " + (age < 1 ? "just now" : age + " min ago") + " at " + u.grid));
     });
     if (!any) L.push("- none yet");
     L.push("", "RULES:",
@@ -1926,6 +1927,11 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       "- Leave out blanks the player didn't give. Don't make up places, people, or contacts. If a place or name isn't in the lists, add a short line to sayAgain in a " + side.member + "'s voice instead, like \"Bravo: Say again, which building?\"",
       "- If the player asks for something none of the verbs cover, add it to notCovered with who and a plain summary, and leave it out of orders.",
       "- readbacks: one short line per order in a " + side.member + "'s radio voice, from whoever got it.",
+      "- Write a place or contact name exactly as listed, with nothing added: \"the post\", not \"the post (F5)\".",
+      "- Give orders only to whoever the player is talking to. A call to all stations or the squad that only says what's happening or what the plan is gives nobody an order.",
+      "- The drone moves only by fly drone. When the player tells the drone operator to launch it, fly it, put it over somewhere, or find or watch something with it, give that operator fly drone with where.",
+      "- \"Be ready to\", \"stand by to\", or \"prepare to\" isn't an order yet: leave it out, and don't ask about it.",
+      "- \"Disregard\", \"cancel\", or \"belay\" an order with nothing new in its place: give them hold.",
       "- Keep the player's meaning. Don't add orders the player didn't give.");
     if (msgs.length === 1) L.push("", "THE ORDERS, as the player gave them:", "\"\"\"" + msgs[0].text + "\"\"\"");
     else {
@@ -2064,6 +2070,16 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     };
   }
 
+  function keepEarlier(prev, next) {
+    const named = new Set(next.orders.map(o => o.who.toLowerCase()));
+    const kept = prev.orders.filter(o => !named.has(o.who.toLowerCase()));
+    const keptWho = new Set(kept.map(o => o.who.toLowerCase()));
+    return Object.assign({}, next, {
+      orders: kept.concat(next.orders),
+      readbacks: prev.readbacks.filter(r => keptWho.has((r.who || "").toLowerCase())).concat(next.readbacks)
+    });
+  }
+
   async function send() {
     const text = box.value.trim();
     if (!text || S.busy || P || !S.m || S.state.outcome) return;
@@ -2089,6 +2105,8 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     if (simple) read = localRead(text);
     read = cleanRead(read);
     if (simple && prev) read = mergeReads(prev.read, read);
+    // Haiku reads the whole turn again; anyone it left out this time keeps the order they got from the earlier read.
+    if (!simple && prev) read = keepEarlier(prev.read, read);
     read.orders = combine(read.orders);
     S.turnMsgs[S.turnMsgs.length - 1].sayAgain = read.sayAgain;
     if (note) addLog({ kind: "event warn", text: note });

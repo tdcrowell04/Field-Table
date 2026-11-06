@@ -56,7 +56,7 @@ namespace FieldTable.Sim
                 BleedOut(u);
                 if (!u.CanAct) { u.IsMoving = false; continue; }
                 if (u.Order == null && !ReferenceEquals(u.Force, PlayerForce) && !PlanBrain(u, dt)) Brain(u);
-                if (u.Order == null && u.Def.Interpreter && ReferenceEquals(u.Force, PlayerForce)) StayWithLead(u);
+                if (u.Order == null && u.Def.Interpreter && !u.StayPut && ReferenceEquals(u.Force, PlayerForce)) StayWithLead(u);
                 Think(u, dt);
                 Move(u, dt);
             }
@@ -621,6 +621,7 @@ namespace FieldTable.Sim
                 Record(new FriendlyFire(by, v));
                 if (ReferenceEquals(v.Force, PlayerForce)) Radio(by, Callsign(by) + ": Check fire! Check fire! " + v.Name + " is hit by our own fire.", "casualty", v.Position);
             }
+            if (by != null && ReferenceEquals(v.Force, PlayerForce) && AreHostile(v.Force, by.Force)) CallUnseenFire(v, by);
             int where = Roll(20, v.Name, "where the hit lands", true);
             bool stopped = false;
             if (where <= 2 && v.Def.Helmet) stopped = Roll(20, v.Name, "the helmet (stops it on " + HelmetSaves + " or less)", true) <= HelmetSaves;
@@ -776,6 +777,26 @@ namespace FieldTable.Sim
             string lower = kind.StartsWith("Kansian ", StringComparison.Ordinal) ? kind : char.ToLowerInvariant(kind[0]) + kind.Substring(1);
             Radio(caller, who + (takingFire ? ": Taking fire! " + kind : drone ? ": Contact on the drone, " + lower : ": Contact, " + lower) + " at " + square + ".", "contact", target.Position);
         }
+
+        /// <summary>When each team last called fire it couldn't see the source of.</summary>
+        readonly Dictionary<string, int> unseenCalled = new Dictionary<string, int>();
+
+        /// <summary>
+        /// Hit by someone nobody on our side can see: the team calls it, with the way it's coming from, at most once
+        /// every 30 seconds. ("Taking fire" with a name and square is called when the shooter is seen.)
+        /// </summary>
+        void CallUnseenFire(Unit v, Unit by)
+        {
+            var c = Fog.For(v.Force).Contacts.FirstOrDefault(x => ReferenceEquals(x.Unit, by));
+            if (c != null && c.Visible) return;
+            string who = string.IsNullOrEmpty(v.Team) ? v.Name : v.Team;
+            if (unseenCalled.TryGetValue(who, out int last) && Clock.Step - last < SecondsGoneToCallAgain * SimClock.StepsPerSecond) return;
+            unseenCalled[who] = Clock.Step;
+            Radio(v, who + ": Taking fire from the " + Compass(Bearing(v.Position, by.Position)) + "! Can't see the shooter.", "contact");
+        }
+
+        static readonly string[] CompassWords = { "north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest" };
+        static string Compass(float bearing) => CompassWords[(int)Math.Round(((bearing % 360f) + 360f) % 360f / 45f) % 8];
 
         static float Bearing(Vec2 a, Vec2 b) => (float)(Math.Atan2(b.X - a.X, -(b.Y - a.Y)) * 180.0 / Math.PI + 360.0) % 360f;
 

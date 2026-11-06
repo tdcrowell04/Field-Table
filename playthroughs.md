@@ -4,7 +4,7 @@ Triston's ask: three playthroughs of random missions (an expert radio operator o
 
 Paused at Triston's word: *"Let's just pause here for now and take our lessons and write them down where they can't get lost then we'll pick up after the usage reset."* Also: *"Alright let's re design the test to ensure better results, but also in reality a player would bend to fit the game so we just need to see what's realistic and make it better each time we do this"* and *"we'll hold off on the next play test for now as well."*
 
-Nothing below is ruled yet. The fixes and the test changes go to Triston for accept or veto before any of them are built.
+Triston's rulings on 2026-11-06 (in the bible's decision log): fix run 1's bugs, then a fresh expert replays the same raid for 8 turns; the scoreboard, the same map, and the player debrief are accepted. Real Haiku through an API key is off: *"Oh well if it's separate from my plan I ain't paying more money for that"*.
 
 ## How the test ran
 
@@ -96,7 +96,7 @@ The expert read bugs as realism and learned the parser's limits ("it wants one s
 - The expert's context passed 115,000 tokens by turn 10.
 - Each minute of play took 2 to 3 minutes of real time.
 
-## Changes to the test, for Triston to accept or veto
+## Changes to the test (ruled 2026-11-06: 2 to 5 accepted, 1 off)
 
 1. **Real Haiku for every part.** With a Claude API key added as a secret in the cloud environment, the harness can send the page's exact prompts to Haiku directly. That covers the director and the voices too, not just the order reader. Each read would take seconds instead of about 40, and cost a small part of the tokens.
 2. **Fix the bugs above first,** so the next run finds new problems instead of the same ones.

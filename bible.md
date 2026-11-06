@@ -781,6 +781,20 @@ In chat, with the answers: *"Let's just keep in mind ensuring this game is easil
 
 In chat, after reading Claude's report of round 20's build: *"You're supposed to be smart right? How is it so hard for you to take my intent of what I'm asking you for, and get it done right? I literally just want you to make a game that replicates what we had in the field table artifact. I want it to be realistic, modular, moddable. That's exactly what the original game was"* Claude hadn't looked at the original artifact (Field Table, Build 18) until then. In it, Claude was the game master: any situation, any order, any scale, judged against realism and fairness rules, with SOPs and house rules as plain text. The build had become a hand-coded simulation where anything not yet coded failed. Triston's direction, recorded under Command interface: keep it coded, but broad, with verbs strung together by the game master.
 
+### 2026-11-06: in chat, the playthroughs
+
+Triston's words on the test: *"Alright let's re design the test to ensure better results, but also in reality a player would bend to fit the game so we just need to see what's realistic and make it better each time we do this"*
+
+| Decision | Ruling | Triston's words |
+|---|---|---|
+| What the next 8 turns compare against | Fix run 1's bugs, then a fresh expert replays the same raid | *"Continue on and after 8 turns let me know if you saw any improvement or not"* |
+| A scoreboard for every run | Accepted | |
+| The same mission and map for each player | Accepted | |
+| A short debrief from each player | Accepted | |
+| Real Haiku through an API key | Off: the key can't be saved for Anthropic's own servers from a session, and API use is billed apart from his plan | *"Oh well if it's separate from my plan I ain't paying more money for that"* |
+
+The bugs and the scoreboard are in `playthroughs.md`.
+
 ## Open questions
 
 - [ ] The verb plan: every verb finished, orders in steps with triggers, settings that stay on, recipes, the most-asked-for list, out of game, and the 36 real orders as the test (ledger round 20)

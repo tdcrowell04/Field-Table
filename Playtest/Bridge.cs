@@ -713,11 +713,10 @@ namespace FieldTable.Playtest
             var sim = Current.Sim;
             using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(ordersJson) ? "[]" : ordersJson);
             w.WriteStartArray("checks");
-            int n = 0;
+            var batch = new List<(string who, Order order)>();
             foreach (var o in doc.RootElement.EnumerateArray())
             {
-                string who = Str(o, "who");
-                var order = new Order
+                batch.Add((Str(o, "who"), new Order
                 {
                     Verb = Str(o, "verb"),
                     Where = Str(o, "where"),
@@ -727,17 +726,14 @@ namespace FieldTable.Playtest
                     Facing = Str(o, "facing"),
                     Kind = Str(o, "kind"),
                     Swim = o.TryGetProperty("swim", out var s) && s.ValueKind == JsonValueKind.True,
-                };
-                List<OrderCheck> checks;
-                if (give) checks = sim.GiveOrder(mission.Marines, who, order);
-                else
-                {
-                    var list = sim.UnitsCalled(mission.Marines, who);
-                    checks = list.Count == 0
-                        ? new List<OrderCheck> { sim.GiveOrder(mission.Marines, who, order)[0] }
-                        : list.Select(u => sim.Check(u, order)).ToList();
-                }
-                foreach (var c in checks)
+                }));
+            }
+            // One radio call: someone named on their own keeps their own order over their team's.
+            var all = sim.GiveOrders(mission.Marines, batch, give);
+            for (int n = 0; n < all.Count; n++)
+            {
+                string who = batch[n].who;
+                foreach (var c in all[n])
                 {
                     w.WriteStartObject();
                     w.WriteNumber("order", n);
@@ -757,7 +753,6 @@ namespace FieldTable.Playtest
                     }
                     w.WriteEndObject();
                 }
-                n++;
             }
             w.WriteEndArray();
             if (give) WriteState(w);

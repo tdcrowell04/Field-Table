@@ -60,7 +60,7 @@ function stateFn() {
     enemyGoalText: st.enemyGoalText || null, lies: st.lies || [], addIns: st.addIns || [],
     brief: S.m.brief, objectives: { main: o.main, mainStatus: o.mainStatus, win: o.win, lose: o.lose, roe: o.roe, secondary: o.secondary.map(x => x.text + ': ' + x.status) },
     map: { columns: 'A to ' + String.fromCharCode(64 + S.map.cols), rows: '1 to ' + S.map.rows, squareMeters: S.sq, places, controlLines: controls, buildings },
-    ours, contacts, casevac: st.casevac || null,
+    ours, contacts, casevac: st.casevac || null, seed: S.seed,
   };
 }
 
@@ -83,6 +83,8 @@ const routes = {
     netCursor = 0;
     await page.click('#bootPick button[data-side="' + body.side + '"]');
     await sleep(100);
+    // A set map: the page picks 10000 + a random number below 90000, so the next random number is made to give it.
+    if (body.seed) await page.evaluate(seed => { const r = Math.random; Math.random = () => { Math.random = r; return (seed - 10000 + 0.5) / 90000; }; }, +body.seed);
     await page.click('#bootPick button[data-kind="' + (body.kind || 'random') + '"]');
     await page.waitForSelector('#boot', { state: 'hidden', timeout: 120000 });
     await page.click('.tabs button[data-tab="net"]');
