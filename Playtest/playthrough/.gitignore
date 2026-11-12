@@ -4,3 +4,5 @@ answer*.json
 traffic.txt
 shots-*/
 *.log
+notes-*.md
+traffic.txt
