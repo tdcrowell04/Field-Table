@@ -40,7 +40,7 @@ def squad_lines(st):
 def contact_lines(st):
     if not st['contacts']:
         return ['  none']
-    return ['  %s (%s) at %s, %s%s' % (c['name'], c['side'], c['grid'], c['seen'], '' if c['condition'] in ('ok', None) else ', ' + c['condition']) for c in st['contacts']]
+    return ['  %s (%s) at %s, %s%s' % (c['name'], c['side'], c['grid'], c['seen'], '' if c.get('condition') in ('ok', None) else ', ' + c['condition']) for c in st['contacts']]
 
 
 def view(st, net=None, banner='', mapfile=None, first=False):
