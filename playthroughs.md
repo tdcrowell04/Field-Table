@@ -149,7 +149,44 @@ By hand for run 1's first 8 turns:
 - Two Marines were down by the end of turn 2 (Duarte killed, Novak hit).
 - Charlie hadn't reached the post.
 
-## Pick up here: the replay (ready, on hold at Triston's word)
+## The replay (run 1b), 8 minutes played 2026-11-12
+
+Run 1's map (38545), a fresh expert, the run 1 fixes in. Record: `Playtest/playthrough/run-1b-transcript.md` and `run-1b-notes.md`. Scoreboard (`ft.py score 1b 8`):
+
+```
+turn | first read                                  | final read                                  | corrections
+   1 |  6 orders,  0 refused,  1 asked,  3 missing |  6 orders,  0 refused,  1 asked,  0 missing | 1
+   2 |  5 orders,  1 refused,  0 asked,  2 missing |  7 orders,  0 refused,  0 asked,  2 missing | 1
+   3 | 14 orders,  0 refused,  0 asked,  6 missing | 16 orders,  0 refused,  0 asked,  2 missing | 1
+   4 |  7 orders,  0 refused,  2 asked,  1 missing |  7 orders,  0 refused,  0 asked,  1 missing | 1
+   5 |  6 orders,  0 refused,  1 asked,  4 missing |  8 orders,  0 refused,  0 asked,  7 missing | 1
+   6 |  4 orders,  0 refused,  0 asked,  1 missing |  4 orders,  0 refused,  0 asked,  1 missing | 0
+   7 |  5 orders,  0 refused,  0 asked,  3 missing |  6 orders,  0 refused,  0 asked,  3 missing | 1
+   8 |  4 orders,  0 refused,  0 asked,  1 missing |  4 orders,  0 refused,  0 asked,  1 missing | 0
+all  | 51 orders,  1 refused,  4 asked, 21 missing | 58 orders,  0 refused,  1 asked, 17 missing | 6
+```
+
+Quick read, before the debrief:
+- **Turned down on the first read:** 1 of 51 orders (run 1: 10 of 37). Turned down after corrections: 0 (run 1: 2). The bracket names, team orders wiping a man's own order, and lost drone orders are gone.
+- **Marines hurt by minute 8:** none (run 1: one killed and one down by minute 2).
+- **Not covered:** still about the same (21 asks; run 1, 18). It's the same asks: cease fire and hold fire, "when set, then…", routes, "wreck the radio and scopes", shifting fire on a trigger. All of them are in the round 20 verb plan.
+- **New problems found:**
+  1. A team's correction in a later message lost to the members' own orders from the first message (fix 2 went too far: the later message should win).
+  2. Readbacks promise "then …" steps that never get given.
+  3. The squad leader's own moves ("Lead moving to D3", "Ruiz moving to E5") are never read as orders; only "Ruiz, move to E4" works.
+  4. A re-read dropped Doc's treat and Keller's detain once.
+  5. With hold fire not covered, "Gustaf on the post" opened fire at 500 m and gave the raid away. The player: *"Fire control being unenforceable is the most unrealistic thing so far."*
+  6. Boone spent minutes 7 and 8 at E4 on "search the post" without closing the last 115 m.
+  7. The harness lost minute 6's radio net to a crash (fixed).
+- **The post wasn't searched by minute 8 in either run.**
+
+## Pick up here (paused 2026-11-12 at Triston's word, after minute 8)
+
+1. Ask the player the debrief (`players/debrief.md`). If the player agent is gone, start a fresh one with the transcript.
+2. Write the comparison for Triston and look into new problems 1, 3, and 6. Fixing them needs his accept first.
+3. Runs 2 and 3 (the casual player and the new player) haven't started.
+
+## How to run a replay
 
 Ruled: a fresh expert replays run 1 for 8 turns, then a debrief, then the comparison with the scoreboard above. Run 1 was **map 38545**, which rebuilds it exactly: same brief, places, Marines, and starting spots.
 
