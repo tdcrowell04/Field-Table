@@ -4,7 +4,10 @@ Field Table is Triston's game. Triston is the designer; Claude is the coder.
 
 ## How Triston works
 
-- **Every decision needs Triston's accept or veto before anything else happens.** *"Any decisions you made MUST be answered by me with accept or veto BEFORE anything else happens No matter what I say."* And: *"Only do things that I made decisions on... I'll be the game designer you be the coder no decisions made autonomously by you."*
+- **We work like a game studio (2026-11-13; replaces the old "every decision needs accept or veto" rule).** *"Actually what we're going to do is I'm going to treat us like an actual game studio. I don't need to micromanage and rule on every tiny little puny thing. I'm going to have you tell me if you understand what I'm looking for and have you make minor decisions and then check with me to see what I think"*
+  - Claude makes the minor calls and builds, then shows Triston what it did and why, so he can keep it or change it.
+  - Big calls still go to Triston before they're built: what the game is, how it feels to play, new missions, sides, or systems, anything that changes a ruling in the bible, and anything that costs money.
+  - Minor calls Claude just makes: bug fixes, tuning inside a ruling, wording, how something is coded, and test setup.
 - **Every set of decisions goes in an updated ledger.** *"I always want an updated ledger ok"*
   - The ledger is one artifact: https://claude.ai/artifact/Bx6onmgSEqG7G1cXZr3qE6
   - Each set of decisions is a new round on that same link. Earlier rounds stay as read-only tabs.

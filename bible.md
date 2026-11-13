@@ -795,6 +795,12 @@ Triston's words on the test: *"Alright let's re design the test to ensure better
 
 The bugs and the scoreboard are in `playthroughs.md`.
 
+### 2026-11-13: in chat, how we work
+
+*"Actually what we're going to do is I'm going to treat us like an actual game studio. I don't need to micromanage and rule on every tiny little puny thing. I'm going to have you tell me if you understand what I'm looking for and have you make minor decisions and then check with me to see what I think"*
+
+This replaces *"Any decisions you made MUST be answered by me with accept or veto BEFORE anything else happens"* and *"no decisions made autonomously by you."* Claude makes the minor calls (bug fixes, tuning inside a ruling, wording, code, test setup) and reports them; the big calls (what the game is, how it plays, new missions, sides, or systems, changing a ruling, anything that costs money) still go to Triston first.
+
 ## Open questions
 
 - [ ] The verb plan: every verb finished, orders in steps with triggers, settings that stay on, recipes, the most-asked-for list, out of game, and the 36 real orders as the test (ledger round 20)
