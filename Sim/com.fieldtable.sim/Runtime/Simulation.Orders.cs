@@ -46,6 +46,10 @@ namespace FieldTable.Sim
                 return results;
             }
             if (except != null) list = list.Where(u => !except.Contains(u)).ToList();
+            // A drone operator flying the drone stays on the controls when his team or the squad gets an order; he has
+            // to be named himself to put it down.
+            if (list.Count > 1 && IsGroupName(force, who) && order.Verb != Verbs.FlyDrone)
+                list = list.Where(u => !Flying(u)).ToList();
             if (list.Count == 0) return results;
             var teams = list.Select(u => u.Team).Distinct().ToList();
             int group = ++nextGroup;
@@ -67,6 +71,9 @@ namespace FieldTable.Sim
             }
             return results;
         }
+
+        /// <summary>A drone operator with his drone up and his hands on it.</summary>
+        bool Flying(Unit u) => u.Order != null && u.Order.Verb == Verbs.FlyDrone && DroneOf(u) is Unit d && !d.Gone;
 
         /// <summary>The whole squad, or one of its teams, rather than one person.</summary>
         public bool IsGroupName(Force force, string name)
@@ -94,7 +101,10 @@ namespace FieldTable.Sim
                 if (give) { results.Add(GiveOrder(force, who, order, except)); continue; }
                 var list = UnitsCalled(force, who);
                 if (list.Count == 0) { results.Add(GiveOrder(force, who, order, null)); continue; }
-                results.Add(list.Where(u => except == null || !except.Contains(u)).Select(u => Check(u, order)).ToList());
+                var who2 = list.Where(u => except == null || !except.Contains(u)).ToList();
+                if (who2.Count > 1 && IsGroupName(force, who) && (order.Verb ?? "").Trim().ToLowerInvariant() != Verbs.FlyDrone)
+                    who2 = who2.Where(u => !Flying(u)).ToList();
+                results.Add(who2.Select(u => Check(u, order)).ToList());
             }
             return results;
         }

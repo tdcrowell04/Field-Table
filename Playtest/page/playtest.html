@@ -1914,7 +1914,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       if (r.side === "us" || !u || u.gone) return;
       any = true;
       const age = Math.max(0, Math.round((S.state.step - (u.lastSeen || 0)) / 600));
-      L.push("- " + r.name + ": " + (r.side === "civ" ? "civilian" : r.side === "friend" ? "friend, on our side" : "enemy") + ", " + (u.seen ? "seen now at " + u.grid : "last seen " + (age < 1 ? "just now" : age + " min ago") + " at " + u.grid));
+      L.push("- " + r.name + ": " + (r.side === "civ" ? "civilian" : r.side === "friend" ? "friend, on our side" : "enemy") + ", " + (u.condition && u.condition !== "ok" && (u.seen || u.lastSeen) ? hurtText(u) + ", " : "") + (u.seen ? "seen now at " + u.grid : "last seen " + (age < 1 ? "just now" : age + " min ago") + " at " + u.grid));
     });
     if (!any) L.push("- none yet");
     L.push("", "RULES:",
@@ -1939,6 +1939,10 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       "- When the player tells one " + side.member + " which way to aim or watch while his team is moving, give him the team's move with that facing, not an order to stay where he is.",
       "- Enemy wounded, down, or dead are the contacts listed as down or dead: name them as target (\"the two wounded Kansians at F5\" means the down contacts at or near F5).",
       "- A part of a named place (its crest, top, back side, edge) is that place: \"the crest of the hill at C3\" is the hill at C3.",
+      "- \"The hill\" (or the woods, the road) with no name means the one that " + side.member + " or team was just sent to or is on now, or else the nearest one to them. Ask only when there's really no telling.",
+      "- \"Hold fire\", \"don't shoot\", \"weapons tight\", or \"cease fire\" is never hold: it says nothing about moving. Put it in notCovered and keep their other orders.",
+      "- A readback for an order they have to walk to says they're moving there to do it (\"Charlie, moving to the post to search it\"), not that they're doing it now.",
+      "- A say again is a " + side.member + " asking a plain question in his own words. Never quote the game's limits (no \"I can only suppress one square per order\"); if two squares are next to each other, take the one nearest the enemy.",
       "- Keep the player's meaning. Don't add orders the player didn't give.");
     if (msgs.length === 1) L.push("", "THE ORDERS, as the player gave them:", "\"\"\"" + msgs[0].text + "\"\"\"");
     else {

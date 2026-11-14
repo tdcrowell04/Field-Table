@@ -50,5 +50,20 @@ namespace FieldTable.Sim.Tests
             s2.Sim.KnockDownForTest(e2);
             Assert.False(s2.Sim.Give(doc2, new Order { Verb = Verbs.TreatCasualty, Where = s2.Sim.Coordinates(new Vec2(155f, 305f)) }).Ok);
         }
+
+        // Runs 2 and 3: a team order took the drone operator off the drone five times.
+        [Fact]
+        public void ATeamOrderLeavesTheDroneOperatorFlying()
+        {
+            var m = StartStates.Create(StartStates.Random, Scene.Data, NamePools.FromJson(Read("names.json")), 38545, null, "marines");
+            var op = m.Squad.First(u => m.Sim.DroneOf(u) != null);
+            Assert.True(m.Sim.Give(op, new Order { Verb = Verbs.FlyDrone, Where = "the post" }).Ok);
+            for (int i = 0; i < 300; i++) m.Sim.StepForTest();
+            var checks = m.Sim.GiveOrder(m.Marines, op.Team, new Order { Verb = Verbs.Move, Where = "C3" });
+            Assert.DoesNotContain(checks, c => ReferenceEquals(c.Unit, op));
+            Assert.Equal(Verbs.FlyDrone, op.Order.Verb);
+            // Named himself, he does what he's told.
+            Assert.True(m.Sim.Give(op, new Order { Verb = Verbs.Move, Where = "C3" }).Ok);
+        }
     }
 }
