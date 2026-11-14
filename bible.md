@@ -801,6 +801,10 @@ The bugs and the scoreboard are in `playthroughs.md`.
 
 This replaces *"Any decisions you made MUST be answered by me with accept or veto BEFORE anything else happens"* and *"no decisions made autonomously by you."* Claude makes the minor calls (bug fixes, tuning inside a ruling, wording, code, test setup) and reports them; the big calls (what the game is, how it plays, new missions, sides, or systems, changing a ruling, anything that costs money) still go to Triston first.
 
+### 2026-11-14: overnight, the studio way
+
+Minor calls made and reported in `playthroughs.md` (morning report): the replay's problems and runs 2 and 3's problems fixed, with tests. Two big calls from the playthroughs were added to ledger round 20: b1, steep hills make moves slow, and b2, the brief undercounts the enemy.
+
 ## Open questions
 
 - [ ] The verb plan: every verb finished, orders in steps with triggers, settings that stay on, recipes, the most-asked-for list, out of game, and the 36 real orders as the test (ledger round 20)
@@ -812,3 +816,4 @@ This replaces *"Any decisions you made MUST be answered by me with accept or vet
 > This is something totally separate and won't get in the way of conduits but I thought could be fun and if it goes well could be something that gets built after conduits same universe getting folded into it if things go well and I can hire a studio because it went well. Otherwise another project for after conduits if it doesn't go well
 
 *Update, Oct 26, 2026: "I mean yeah I changed my mind. I can't work on conduits til I hear back from the play test and learn guitar so what should I do in the meantime lol."*
+- [ ] Steep hills and slow moves; the brief undercounting the enemy (ledger round 20, b1 and b2)

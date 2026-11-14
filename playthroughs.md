@@ -180,11 +180,70 @@ Quick read, before the debrief:
   7. The harness lost minute 6's radio net to a crash (fixed).
 - **The post wasn't searched by minute 8 in either run.**
 
-## Pick up here (paused 2026-11-12 at Triston's word, after minute 8)
+## Morning report (overnight work, 2026-11-14)
 
-1. Ask the player the debrief (`players/debrief.md`). If the player agent is gone, start a fresh one with the transcript.
-2. Write the comparison for Triston and look into new problems 1, 3, and 6. Fixing them needs his accept first.
-3. Runs 2 and 3 (the casual player and the new player) haven't started.
+Triston: *"Ahead and do some work at midnight tonight and I'll see what you've done in the morning"*. This was the first night working the studio way: minor calls made and reported, big calls left for you.
+
+### What I fixed (minor calls, all with tests, 347 pass; the phone page is updated)
+
+From the replay:
+- **A correction now wins.** A later message's team order replaces its members' earlier orders, unless the newest message also speaks to that person by name.
+- **Lead moves himself.** "Lead moving to D3" now moves the squad leader.
+- **Honest readbacks.** They say only what was taken, and "moving to the post to search it" until the Marines get there.
+- **Corrections keep good orders.** The game master now sees the orders already read and keeps them.
+- **Boone didn't stall.** The post sits on a slope that climbs about 70 m in 85 m. The readbacks now show how long a move takes ("404 m, about 9 min"), and players said this helped.
+
+From runs 2 and 3:
+- **The drone stays up.** A drone operator flying the drone stays on it when his team gets an order.
+- **What you watch isn't where you go.** "Put the gun on the post" no longer sends a gunner walking 400 m to the enemy alone.
+- **A gunner told where to aim keeps moving with his team.**
+- **Downed enemy can be named.** The game master is told which enemy are down or hurt, and "the wounded Kansians at F5" finds them for treat, talk, and detain.
+- **"The hill" means the hill they're on or were sent to,** and "the crest of the hill" is the hill.
+- **"Hold fire" is never read as "stop."** In run 3 it had cancelled Alpha's move.
+- **"Wreck / smash / destroy the radio and scopes" is a search of that place.** This was the top mission complaint from all three players.
+- **Say-agains no longer quote the game's limits** ("I can only suppress one square per order").
+
+### The scoreboards (first 8 minutes, same raid, same map)
+
+Each line: the first read of each turn's traffic | the final read after corrections | corrections.
+
+```
+Run 1 (expert, before any fixes)   | 37 orders, 10 refused,  3 asked, 18 missing | 37 orders,  2 refused,  0 asked, 15 missing | 5
+Replay (expert, run 1 fixes)       | 51 orders,  1 refused,  4 asked, 21 missing | 58 orders,  0 refused,  1 asked, 17 missing | 6
+Run 2 (casual)                     | 43 orders,  1 refused,  5 asked, 13 missing | 43 orders,  1 refused,  1 asked, 12 missing | 5
+Run 3 (no military)                | 24 orders,  2 refused,  6 asked, 19 missing | 30 orders,  3 refused,  0 asked, 18 missing | 5
+```
+
+- **Orders turned down on the first read** went from 10 of 37 (run 1) to 1 to 2 in each later run.
+- **Marines hurt:** run 1 had two down by minute 2. The replay, run 2, and run 3 had none.
+- **Not covered** stayed about the same, 13 to 21 asks per run. The same asks every time (below).
+- **Nobody searched the post by minute 8 in any run.** Part of that is the climb, part is "wreck the radio" not being taken (fixed tonight).
+
+### What each player hit
+
+- **The expert:** fire control above all (*"Fire control can't be optional"*). Also the mission task never taken, team callsigns, multi-step orders, Lead's own moves. *"The battlefield felt real. The radio is close."*
+- **The casual player:** plain words misread: "which ridge, which slope, which crest" (*"There is only one hill"*), Ortiz sent alone toward the post on "overwatch," Doc saying *"Nobody's hit, Lead"* next to enemy wounded. *"Anything after the first verb got dropped."* Liked the travel times in the readbacks.
+- **The new player:** "which hill" three times; hold fire read as "stop" (cancelled Alpha's move); a radio failure with no explanation (*"made me feel I'd lost control"*); readbacks claiming a search while still walking (*"looks like they're doing it when they aren't"*). Asked for a short line on what words the game takes, and a clear note on every part not understood.
+
+### The trends
+
+1. **Every player, every run: fire control.** Hold fire, cease fire, weapons tight, "only shoot what you're sure of." The squad fires on its own anyway, gave away the raid twice, and won fights the players didn't choose. This is v3 in round 20.
+2. **Every player: "do this, then that."** Routes, "when you're set," "after the road, the post," shifting fire on a trigger. This is v2 in round 20.
+3. **Plain words for places.** "The hill," "the ridge," "the slope." The casual and new players hit this most. Fixed tonight for "the hill"; describing ground from the map is v3.
+4. **The drone is everyone's favorite part,** and the enemy breaking contact under fire felt real to all three.
+5. **Players bend to the parser.** All three learned to name Marines one at a time, give one square, and use grid squares. That's realistic, as you said. The fixes above take away the worst of what they had to learn.
+
+### Your calls (added to round 20 on the ledger, since round 20 isn't answered yet)
+
+- **b1, steep hills make moves slow.** My pick: gentler hills on the map, same climbing pace.
+- **b2, the brief undercounts the enemy** ("a few soldiers" against 8 with two machine guns and an RPG). My pick: a rough true count in the brief, with the fog in the details.
+- **The rest of round 20 still waits on you,** and v1 to v3 (verbs, steps and triggers, fire control and routes) are exactly what all three players asked for most.
+
+## Pick up here
+
+1. Your answers to round 20 (including b1 and b2). Then build what you accept, starting with v3's fire control and v2's steps, the two things every player hit.
+2. After that, the same three players replay the raid on map 38545 to see whether the trends move. Each run's scoreboard comes from `ft.py score <run> 8`.
+3. All four runs are recorded in `Playtest/playthrough/` (run-1, run-1b, run-2, run-3: transcript, notes with debriefs, score). The player prompts are in `players/`.
 
 ## How to run a replay
 
