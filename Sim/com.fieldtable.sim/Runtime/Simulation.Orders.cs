@@ -587,6 +587,37 @@ namespace FieldTable.Sim
             return t.Passable && !t.Deep && t.MoveFactor >= 0.3f;
         }
 
+        /// <summary>
+        /// About how long a unit takes to walk (or run, or crawl) a path under this order, counting the ground and the
+        /// climb the way moving does, so a steep slope shows as slow before anyone sets off.
+        /// </summary>
+        public float TravelSeconds(Unit u, Order o, IList<Vec2> path)
+        {
+            if (u == null || path == null || path.Count == 0) return 0f;
+            var how = SpeedOf(o);
+            float speed = how == MoveSpeed.Run ? u.Def.RunSpeed : how == MoveSpeed.Crawl ? u.Def.CrawlSpeed : u.Def.WalkSpeed;
+            if (u.Condition == Condition.Wounded) speed *= 0.6f;
+            if (speed <= 0f) return 0f;
+            float seconds = 0f;
+            Vec2 at = u.Position;
+            foreach (var next in path)
+            {
+                float d = Vec2.Distance(at, next);
+                int pieces = Math.Max(1, (int)Math.Ceiling(d / 5f));
+                for (int i = 0; i < pieces; i++)
+                {
+                    Vec2 a = at + (next - at) * (i / (float)pieces), b = at + (next - at) * ((i + 1) / (float)pieces);
+                    float len = Vec2.Distance(a, b);
+                    if (len <= 0f) continue;
+                    float climb = Map.InBounds(b) && Map.InBounds(a) ? Math.Max(0f, Map.GroundAt(b) - Map.GroundAt(a)) / Math.Max(len, 1f) : 0f;
+                    float factor = Map.InBounds(a) ? Map.TerrainAt(a).MoveFactor : 1f;
+                    seconds += len * (1f + 3f * climb) / Math.Max(0.02f, speed * factor);
+                }
+                at = next;
+            }
+            return seconds;
+        }
+
         static MoveSpeed SpeedOf(Order o)
         {
             string s = (o.Speed ?? "").ToLowerInvariant();

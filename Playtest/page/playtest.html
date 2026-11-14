@@ -1624,7 +1624,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
         + "<ul>" + checks.map(c => {
           const nm = c.u >= 0 ? S.roster[c.u].name : c.who;
           if (!c.ok) return "<li class=\"no\">" + esc(nm) + ": " + esc(/^not covered/.test(c.problem || "") ? "Not covered yet: " + o.verb : c.problem) + "</li>";
-          return "<li class=\"ok\">" + esc(nm) + (c.meters != null ? ", " + Math.round(c.meters) + " m" : "") + "</li>" + c.warnings.map(w => "<li class=\"warn\">" + esc(w) + "</li>").join("");
+          return "<li class=\"ok\">" + esc(nm) + (c.meters != null ? ", " + Math.round(c.meters) + " m" + (c.seconds >= 90 ? ", about " + Math.round(c.seconds / 60) + " min" : "") : "") + "</li>" + c.warnings.map(w => "<li class=\"warn\">" + esc(w) + "</li>").join("");
         }).join("") + "</ul></div>");
     });
     r.sayAgain.forEach(s => out.push("<div class=\"ocard say\"><span class=\"rb\">" + esc(s) + "</span></div>"));
@@ -1886,8 +1886,9 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     "- request: call for CASEVAC. kind \"CASEVAC\". where: the landing zone."
   ].join("\n");
   const SHAPE = '{"orders": [{"who": "Alpha", "verb": "overwatch", "where": "building 4", "target": null, "facing": "north and east", "speed": "run", "posture": null, "swim": false, "kind": null}],\n "readbacks": [{"who": "Alpha", "text": "Alpha, moving to building 4, overwatch north and east."}],\n "sayAgain": ["Bravo: Say again, which building?"],\n "notCovered": [{"who": "Charlie", "text": "fly the drone over the village"}]}';
-  function buildPrompt(msgs) {
+  function buildPrompt(msgs, earlier) {
     const L = [], st = S.state.units;
+    const leadName = (S.roster.find(r => r.side === "us" && r.lead) || {}).name || "Lead";
     const side = S.m.side, teams = [...new Set(S.roster.filter(r => r.side === "us" && r.team).map(r => r.team))];
     L.push("You read radio orders for Field Table, a squad tactics game. The player is \"Lead\", leading " + side.line + ". Turn what the player said into orders the game can run.");
     L.push("", "Reply with only JSON, in this shape:", SHAPE);
@@ -1932,6 +1933,8 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       "- The drone moves only by fly drone. When the player tells the drone operator to launch it, fly it, put it over somewhere, or find or watch something with it, give that operator fly drone with where.",
       "- \"Be ready to\", \"stand by to\", or \"prepare to\" isn't an order yet: leave it out, and don't ask about it.",
       "- \"Disregard\", \"cancel\", or \"belay\" an order with nothing new in its place: give them hold.",
+      "- Lead is " + leadName + ". When the player says where Lead is going (\"Lead moving to D3\", \"" + leadName + " moving to E5\", \"I'm moving to C3\", \"HQ moves with me to E4\"), give " + leadName + " that move.",
+      "- A readback says only the order you gave, never a step that isn't in orders (no \"then ...\"). Put any later step in notCovered.",
       "- Keep the player's meaning. Don't add orders the player didn't give.");
     if (msgs.length === 1) L.push("", "THE ORDERS, as the player gave them:", "\"\"\"" + msgs[0].text + "\"\"\"");
     else {
@@ -1940,6 +1943,10 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
         L.push("Message " + (i + 1) + ": \"\"\"" + m.text + "\"\"\"");
         (m.sayAgain || []).forEach(x => L.push("  The squad asked: " + x));
       });
+      if (earlier && earlier.orders.length) {
+        L.push("", "ORDERS ALREADY READ from the earlier messages. Keep each one exactly as it is unless a later message changes it for that " + side.member + " or team. A later message that names a team replaces the earlier orders of everyone in that team.");
+        earlier.orders.forEach(o => L.push("- " + JSON.stringify(o)));
+      }
     }
     return L.join("\n");
   }
@@ -2070,6 +2077,24 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     };
   }
 
+  // Someone named on their own keeps their own order over their team's within one message (the sim sees to that),
+  // but a later message wins: a team order that's new this time replaces its members' orders from earlier messages.
+  function laterWins(prev, next) {
+    const key = o => [o.who, o.verb, o.where || "", o.target || ""].join("|").toLowerCase();
+    const old = new Set(prev.orders.map(key));
+    const us = S.roster.filter(r => r.side === "us");
+    const isGroup = w => /^(squad|all|everyone)$/i.test(w) || us.some(r => (r.team || "").toLowerCase() === w.toLowerCase());
+    const inGroup = (name, w) => /^(squad|all|everyone)$/i.test(w) || us.some(r => r.name.toLowerCase() === name.toLowerCase() && (r.team || "").toLowerCase() === w.toLowerCase());
+    const fresh = next.orders.filter(o => isGroup(o.who) && !old.has(key(o)));
+    if (!fresh.length) return next;
+    const drop = o => !isGroup(o.who) && old.has(key(o)) && fresh.some(t => inGroup(o.who, t.who));
+    const gone = new Set(next.orders.filter(drop).map(o => o.who.toLowerCase()));
+    return Object.assign({}, next, {
+      orders: next.orders.filter(o => !drop(o)),
+      readbacks: next.readbacks.filter(r => !gone.has((r.who || "").toLowerCase()))
+    });
+  }
+
   function keepEarlier(prev, next) {
     const named = new Set(next.orders.map(o => o.who.toLowerCase()));
     const kept = prev.orders.filter(o => !named.has(o.who.toLowerCase()));
@@ -2093,7 +2118,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     renderPane();
     let read = null, reader = "simple", note = null;
     if (caps.sample) {
-      try { read = await caps.sample.json(buildPrompt(S.turnMsgs), { model: "claude-haiku-5-5", modelTier: "quick" }); reader = "haiku"; }
+      try { read = await caps.sample.json(buildPrompt(S.turnMsgs, prev && prev.read), { model: "claude-haiku-5-5", modelTier: "quick" }); reader = "haiku"; }
       catch (e) {
         const code = e && e.code;
         if (code === "not_granted" || code === "sampling_disabled" || code === "not_declared" || code === "capability_disabled" || code === "capability_removed") { caps.sample = null; caps.reader = "off"; note = "Haiku isn't allowed here, so the simple reader took these orders."; }
@@ -2106,7 +2131,7 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     read = cleanRead(read);
     if (simple && prev) read = mergeReads(prev.read, read);
     // Haiku reads the whole turn again; anyone it left out this time keeps the order they got from the earlier read.
-    if (!simple && prev) read = keepEarlier(prev.read, read);
+    if (!simple && prev) read = laterWins(prev.read, keepEarlier(prev.read, read));
     read.orders = combine(read.orders);
     S.turnMsgs[S.turnMsgs.length - 1].sayAgain = read.sayAgain;
     if (note) addLog({ kind: "event warn", text: note });

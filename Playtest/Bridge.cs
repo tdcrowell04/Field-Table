@@ -750,6 +750,7 @@ namespace FieldTable.Playtest
                         foreach (var p in c.Path) { w.WriteNumberValue(R(p.X)); w.WriteNumberValue(R(p.Y)); }
                         w.WriteEndArray();
                         w.WriteNumber("meters", R(Pathfinder.Length(c.Unit.Position, c.Path)));
+                        w.WriteNumber("seconds", R(sim.TravelSeconds(c.Unit, batch[n].order, c.Path)));
                     }
                     w.WriteEndObject();
                 }
