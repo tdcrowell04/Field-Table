@@ -1,0 +1,9 @@
+turn | first read                                  | final read                                  | corrections
+   1 |  6 orders,  0 refused,  1 asked,  4 missing |  7 orders,  0 refused,  0 asked,  3 missing | 1
+   2 |  1 orders,  0 refused,  1 asked,  2 missing |  2 orders,  0 refused,  0 asked,  2 missing | 1
+   4 |  4 orders,  1 refused,  0 asked,  3 missing |  4 orders,  1 refused,  0 asked,  3 missing | 0
+   5 |  3 orders,  0 refused,  3 asked,  4 missing |  6 orders,  1 refused,  0 asked,  3 missing | 1
+   6 |  4 orders,  0 refused,  1 asked,  2 missing |  5 orders,  0 refused,  0 asked,  2 missing | 1
+   7 |  3 orders,  1 refused,  0 asked,  3 missing |  3 orders,  1 refused,  0 asked,  4 missing | 1
+   8 |  3 orders,  0 refused,  0 asked,  1 missing |  3 orders,  0 refused,  0 asked,  1 missing | 0
+all  | 24 orders,  2 refused,  6 asked, 19 missing | 30 orders,  3 refused,  0 asked, 18 missing | 5
