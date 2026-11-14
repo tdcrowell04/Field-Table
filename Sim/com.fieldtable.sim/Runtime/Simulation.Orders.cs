@@ -203,6 +203,8 @@ namespace FieldTable.Sim
                     break;
 
                 case Verbs.TreatCasualty:
+                    // A place but no name ("check the wounded at F5"): whoever's hurt there, theirs or ours.
+                    if (order.TargetUnit == null && order.Point != null) order.TargetUnit = HurtNear(unit, order.Point.Value);
                     if (order.TargetUnit == null) order.TargetUnit = NearestCasualty(unit);
                     if (order.TargetUnit == null) return Fail(check, "Nobody's hit, Lead.");
                     if (order.TargetUnit.Condition == Condition.Ok) return Fail(check, order.TargetUnit.Name + " isn't hurt.");
@@ -289,6 +291,8 @@ namespace FieldTable.Sim
                     break;
 
                 case Verbs.Talk:
+                    // A place but no name ("talk to the wounded one at F5"): the enemy down or hurt there that we know of.
+                    if (order.TargetUnit == null && order.Point != null) order.TargetUnit = HurtNear(unit, order.Point.Value, enemyOnly: true);
                     if (order.TargetUnit == null || ReferenceEquals(order.TargetUnit.Force, unit.Force)) return Fail(check, "Say again, talk to who?");
                     if (order.TargetUnit.CanAct && AreHostile(unit.Force, order.TargetUnit.Force)) return Fail(check, order.TargetUnit.Name + " is fighting us, Lead. Detain them first.");
                     order.Point = order.TargetUnit.Position;
@@ -340,6 +344,8 @@ namespace FieldTable.Sim
                     }
 
                 case Verbs.Detain:
+                    // A place but no name ("talk to the wounded one at F5"): the enemy down or hurt there that we know of.
+                    if (order.TargetUnit == null && order.Point != null) order.TargetUnit = HurtNear(unit, order.Point.Value, enemyOnly: true);
                     {
                         var p = order.TargetUnit;
                         if (p == null || ReferenceEquals(p.Force, unit.Force)) return Fail(check, "Say again, detain who?");
@@ -533,6 +539,18 @@ namespace FieldTable.Sim
             Vec2 to = near.LastKnownPosition - unit.Position;
             float len = to.Length;
             return len < 0.1f ? unit.Position : Clamp(unit.Position + to * (Math.Min(15f, len) / len));
+        }
+
+        /// <summary>Someone hurt or down near a spot, ours or a known contact, nearest the spot first; null if none.</summary>
+        Unit HurtNear(Unit unit, Vec2 at, bool enemyOnly = false)
+        {
+            var fog = Fog.For(unit.Force);
+            return units.Where(u => !ReferenceEquals(u, unit) && !u.Gone && !u.Def.Flying
+                    && (u.Condition == Condition.Wounded || u.Condition == Condition.Down)
+                    && (enemyOnly ? !ReferenceEquals(u.Force, unit.Force) : true)
+                    && (ReferenceEquals(u.Force, unit.Force) || fog.Contacts.Any(c => ReferenceEquals(c.Unit, u)))
+                    && Vec2.Distance(u.Position, at) <= 60f)
+                .OrderBy(u => Vec2.Distance(u.Position, at)).FirstOrDefault();
         }
 
         Unit NearestCasualty(Unit unit) =>

@@ -29,5 +29,26 @@ namespace FieldTable.Sim.Tests
             while (boone.Order != null && boone.Path != null && t < 600f) { m.Sim.StepForTest(); t += 1f / SimClock.StepsPerSecond; }
             Assert.InRange(t, up * 0.7f, up * 1.3f);
         }
+
+        // Run 2: "check the two wounded Kansians at F5" got "Nobody's hit, Lead." A place stands in for the name.
+        [Fact]
+        public void AMedicToldToCheckTheWoundedAtAPlaceFindsTheEnemyDownThere()
+        {
+            var s = new Scene();
+            var doc = s.Add("doc", "doc", s.Blue, 100, 300, "HQ");
+            var e = s.Add("e", "en-rf", s.Red, 150, 300);
+            e.Ammo = 0;
+            s.Sim.KnockDownForTest(e);
+            s.Sim.Fog.Spot(s.Sim, s.Blue, e, doc);
+            var c = s.Sim.Give(doc, new Order { Verb = Verbs.TreatCasualty, Where = s.Sim.Coordinates(new Vec2(155f, 305f)) });
+            Assert.True(c.Ok, c.Problem);
+            Assert.Same(e, doc.Order.TargetUnit);
+            // And an enemy nobody knows about isn't found.
+            var s2 = new Scene();
+            var doc2 = s2.Add("doc", "doc", s2.Blue, 100, 300, "HQ");
+            var e2 = s2.Add("e", "en-rf", s2.Red, 150, 300);
+            s2.Sim.KnockDownForTest(e2);
+            Assert.False(s2.Sim.Give(doc2, new Order { Verb = Verbs.TreatCasualty, Where = s2.Sim.Coordinates(new Vec2(155f, 305f)) }).Ok);
+        }
     }
 }

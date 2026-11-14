@@ -1935,6 +1935,10 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
       "- \"Disregard\", \"cancel\", or \"belay\" an order with nothing new in its place: give them hold.",
       "- Lead is " + leadName + ". When the player says where Lead is going (\"Lead moving to D3\", \"" + leadName + " moving to E5\", \"I'm moving to C3\", \"HQ moves with me to E4\"), give " + leadName + " that move.",
       "- A readback says only the order you gave, never a step that isn't in orders (no \"then ...\"). Put any later step in notCovered.",
+      "- where is where they go; what they watch, aim at, or shoot goes in target. \"Put the gun on the post\" or \"overwatch the post\" from the hill is target \"the post\", with where left out or set to the hill, never where \"the post\".",
+      "- When the player tells one " + side.member + " which way to aim or watch while his team is moving, give him the team's move with that facing, not an order to stay where he is.",
+      "- Enemy wounded, down, or dead are the contacts listed as down or dead: name them as target (\"the two wounded Kansians at F5\" means the down contacts at or near F5).",
+      "- A part of a named place (its crest, top, back side, edge) is that place: \"the crest of the hill at C3\" is the hill at C3.",
       "- Keep the player's meaning. Don't add orders the player didn't give.");
     if (msgs.length === 1) L.push("", "THE ORDERS, as the player gave them:", "\"\"\"" + msgs[0].text + "\"\"\"");
     else {
@@ -2087,7 +2091,10 @@ body.big .playbar { bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
     const inGroup = (name, w) => /^(squad|all|everyone)$/i.test(w) || us.some(r => r.name.toLowerCase() === name.toLowerCase() && (r.team || "").toLowerCase() === w.toLowerCase());
     const fresh = next.orders.filter(o => isGroup(o.who) && !old.has(key(o)));
     if (!fresh.length) return next;
-    const drop = o => !isGroup(o.who) && old.has(key(o)) && fresh.some(t => inGroup(o.who, t.who));
+    // ...unless the newest message speaks to that person by name: then their own order stands.
+    const newest = ((S.turnMsgs[S.turnMsgs.length - 1] || {}).text || "").toLowerCase();
+    const named = w => new RegExp("(^|\\W)" + w.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(\\W|$)").test(newest);
+    const drop = o => !isGroup(o.who) && old.has(key(o)) && !named(o.who) && fresh.some(t => inGroup(o.who, t.who));
     const gone = new Set(next.orders.filter(drop).map(o => o.who.toLowerCase()));
     return Object.assign({}, next, {
       orders: next.orders.filter(o => !drop(o)),
